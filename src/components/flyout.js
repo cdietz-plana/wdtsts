@@ -1,0 +1,272 @@
+import { h } from "../lib/dom.js";
+import { money } from "../lib/format.js";
+import { findTable } from "../lib/selectors.js";
+import { iconBackspace, iconCard, iconClose, iconScan, iconTick } from "./icons.js";
+
+const TITLES = {
+  adjust: ["Adjust chip tray", "NB0101B · variance (1,000)"],
+  fill: ["Authorise fill", "NB0104A · 500,000"],
+  rating: ["Approve rating", "NB0102 · seat 3"],
+};
+
+const REASONS = [
+  "Missing loser · shoe 9, game 6",
+  "Miscount at pay or take",
+  "Chips in transit, not yet placed",
+  "Other, add a note",
+];
+
+/**
+ * A short wizard in a right-edge panel. Three rules hold it together:
+ * no step ever scrolls, completed steps collapse to a one-line summary you can
+ * reopen, and the last step is the second signature — the most repeated moment
+ * in the product and the one the source documents never drew.
+ */
+export function flyout(state, dispatch, { onScan, onResolve }) {
+  const fly = state.flyout;
+  const panel = h("aside.flyout", { data: { open: !!fly }, "aria-hidden": String(!fly) });
+  if (!fly) return panel;
+
+  const kind = fly.kind;
+  const steps = kind === "adjust" ? 3 : 2;
+  const [title, subtitle] = TITLES[kind];
+
+  panel.appendChild(
+    h(
+      "div",
+      { style: { display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: "0" } },
+      h(
+        "div",
+        {},
+        h("div.display", { text: title, style: { fontSize: "23px", fontWeight: "700" } }),
+        h("div", { text: subtitle, style: { fontSize: "15px", color: "var(--ink-3)", marginTop: "2px" } })
+      ),
+      h("button.icon-btn", { "aria-label": "Close", on: { click: () => dispatch({ type: "flyout-close" }) } }, iconClose())
+    )
+  );
+
+  panel.appendChild(
+    h(
+      "div",
+      { style: { display: "flex", alignItems: "center", gap: "7px", flexShrink: "0" } },
+      Array.from({ length: steps }, (_, i) =>
+        h("span", {
+          style: { flex: "1", height: "4px", borderRadius: "2px", background: i + 1 < fly.step ? "var(--ok)" : i + 1 === fly.step ? "var(--ink)" : "var(--line)" },
+        })
+      ),
+      h("span", { text: `Step ${fly.step} of ${steps}`, style: { fontSize: "14px", color: "var(--ink-2)", marginLeft: "4px", whiteSpace: "nowrap" } })
+    )
+  );
+
+  if (kind === "adjust") adjustBody(panel, state, dispatch, onScan, onResolve);
+  if (kind === "fill") fillBody(panel, state, dispatch, onResolve);
+  if (kind === "rating") ratingBody(panel, state, dispatch, onResolve);
+
+  return panel;
+}
+
+const stepDone = (label, value, onEdit) =>
+  h(
+    "button.step-done",
+    { on: { click: onEdit } },
+    h("span", { style: { color: "var(--ok)", display: "flex" } }, iconTick()),
+    h(
+      "span",
+      { style: { flex: "1", minWidth: "0" } },
+      h("span.micro", { text: label, style: { display: "block" } }),
+      h("span", { text: value, style: { display: "block", fontSize: "16px", marginTop: "1px" } })
+    ),
+    h("span", { text: "Edit", style: { fontSize: "15px", color: "var(--ink-2)" } })
+  );
+
+const navRow = (...buttons) => h("div", { style: { display: "flex", gap: "10px", flexShrink: "0" } }, buttons);
+
+function adjustBody(panel, state, dispatch, onScan, onResolve) {
+  const fly = state.flyout;
+  const table = findTable(state.pods, "t3");
+
+  if (fly.step > 1) panel.appendChild(stepDone("Reason", fly.reason || "—", () => dispatch({ type: "flyout-step", step: 1 })));
+  if (fly.step > 2) panel.appendChild(stepDone("Verification scan", `18:21 · actual ${money(table.actualInventory)}`, () => dispatch({ type: "flyout-step", step: 2 })));
+
+  if (fly.step === 1) {
+    panel.appendChild(
+      h(
+        "div",
+        { style: { flexShrink: "0" } },
+        h("div.display", { text: "Why is it short?", style: { fontSize: "18px", fontWeight: "600" } }),
+        h("div", { text: "A reason code is required before the count can be accepted.", style: { fontSize: "15px", color: "var(--ink-2)", lineHeight: "1.45", marginTop: "3px" } })
+      )
+    );
+    panel.appendChild(
+      h(
+        "div",
+        { style: { display: "flex", flexDirection: "column", gap: "8px", flex: "1" } },
+        REASONS.map((r) =>
+          h("button.option", { text: r, "aria-pressed": String(fly.reason === r), on: { click: () => dispatch({ type: "flyout-reason", reason: r }) } })
+        )
+      )
+    );
+    panel.appendChild(
+      navRow(
+        h("button.btn.btn--ghost.btn--big", { text: "Cancel", style: { flex: "1" }, on: { click: () => dispatch({ type: "flyout-close" }) } }),
+        h("button.btn.btn--big", { text: "Continue", style: { flex: "2" }, disabled: !fly.reason, on: { click: () => dispatch({ type: "flyout-step", step: 2 }) } })
+      )
+    );
+  } else if (fly.step === 2) {
+    panel.appendChild(
+      h(
+        "div",
+        { style: { flex: "1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "16px", textAlign: "center" } },
+        h("div.display", { text: "Verification scan", style: { fontSize: "20px", fontWeight: "600" } }),
+        h("div", { text: "The tray is counted again before the adjustment is written. This is the count that goes on the record.", style: { fontSize: "16px", color: "var(--ink-2)", maxWidth: "280px", lineHeight: "1.5" } }),
+        h("button.scan-dial", { data: { scanning: state.scanning }, on: { click: onScan } }, iconScan(), state.scanning ? null : h("span.display", { text: "Scan", style: { fontSize: "20px", fontWeight: "600" } }))
+      )
+    );
+    panel.appendChild(h("button.btn.btn--ghost.btn--big", { text: "Back", style: { flexShrink: "0" }, on: { click: () => dispatch({ type: "flyout-step", step: 1 }) } }));
+  } else {
+    panel.appendChild(
+      authorisation(state, dispatch, "Confirm adjustment", () =>
+        onResolve("a2", "Tray adjusted. NB0101B is back in balance and no longer blocks the roll.")
+      )
+    );
+  }
+}
+
+function fillBody(panel, state, dispatch, onResolve) {
+  const fly = state.flyout;
+  if (fly.step > 1) panel.appendChild(stepDone("Request", "500,000 · float · NB0104A", () => dispatch({ type: "flyout-step", step: 1 })));
+
+  if (fly.step === 1) {
+    panel.appendChild(
+      h(
+        "div",
+        { style: { flex: "1", display: "flex", flexDirection: "column", gap: "10px" } },
+        h(
+          "div.card",
+          { style: { padding: "13px 15px" } },
+          h("div.micro", { text: "Requested by" }),
+          h("div.mono", { text: "NB0104A · Secondary", style: { fontSize: "17px", marginTop: "2px" } }),
+          h("div.micro", { text: "Chips delivered to", style: { marginTop: "10px" } }),
+          h("div.mono", { text: "NB0104 · Primary", style: { fontSize: "17px", marginTop: "2px", color: "var(--critical)" } }),
+          h("div", { text: "The signed slip drops in the Primary’s box. Be at NB0104, not at A.", style: { fontSize: "15px", color: "var(--ink-2)", marginTop: "7px", lineHeight: "1.45" } })
+        ),
+        h(
+          "div.card",
+          { style: { padding: "13px 15px" } },
+          h("div.micro", { text: "Denominations" }),
+          h("div.mono", { html: "100,000 &times; 3<br>50,000 &times; 3<br>10,000 &times; 5", style: { fontSize: "16px", marginTop: "5px", lineHeight: "1.7" } }),
+          h(
+            "div",
+            { style: { borderTop: "1px solid var(--line)", marginTop: "8px", paddingTop: "8px", display: "flex", justifyContent: "space-between", alignItems: "baseline" } },
+            h("span", { text: "Total", style: { fontSize: "16px", fontWeight: "600" } }),
+            h("span.mono.display", { text: "500,000", style: { fontSize: "22px", fontWeight: "700" } })
+          )
+        )
+      )
+    );
+    panel.appendChild(
+      navRow(
+        h("button.btn.btn--ghost.btn--big", { text: "Reject", style: { flex: "1" }, on: { click: () => dispatch({ type: "flyout-close" }) } }),
+        h("button.btn.btn--big", { text: "Continue", style: { flex: "2" }, on: { click: () => dispatch({ type: "flyout-step", step: 2 }) } })
+      )
+    );
+  } else {
+    panel.appendChild(
+      authorisation(state, dispatch, "Confirm fill", () =>
+        onResolve("a4", "Fill authorised. Chips are on their way to NB0104, the Primary.")
+      )
+    );
+  }
+}
+
+function ratingBody(panel, state, dispatch, onResolve) {
+  const fly = state.flyout;
+  if (fly.step > 1) panel.appendChild(stepDone("Rating", "Seat 3 · W. Chan · avg bet 48,000", () => dispatch({ type: "flyout-step", step: 1 })));
+
+  if (fly.step === 1) {
+    panel.appendChild(
+      h(
+        "div",
+        { style: { flex: "1" } },
+        h(
+          "div.card",
+          { style: { padding: "14px 16px" } },
+          h("div.micro", { text: "Submitted by" }),
+          h("div", { text: "Dealer 0631 · 18:00", style: { fontSize: "17px", marginTop: "2px" } }),
+          h("div.micro", { text: "Average bet", style: { marginTop: "10px" } }),
+          h("div.mono.display", { text: "48,000", style: { fontSize: "24px", fontWeight: "700", marginTop: "2px" } }),
+          h("div", { text: "Above the configured threshold, so it needs an approver before it reaches the loyalty system.", style: { fontSize: "15px", color: "var(--ink-2)", marginTop: "8px", lineHeight: "1.45" } })
+        )
+      )
+    );
+    panel.appendChild(
+      navRow(
+        h("button.btn.btn--ghost.btn--big", { text: "Cancel rating", style: { flex: "1" }, on: { click: () => dispatch({ type: "flyout-close" }) } }),
+        h("button.btn.btn--big", { text: "Continue", style: { flex: "2" }, on: { click: () => dispatch({ type: "flyout-step", step: 2 }) } })
+      )
+    );
+  } else {
+    panel.appendChild(authorisation(state, dispatch, "Confirm rating", () => onResolve("a6", "Rating approved and sent to the loyalty system.")));
+  }
+}
+
+const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "clear", "0", "delete"];
+
+/**
+ * The second signature. Casino operations run on "two people have to agree",
+ * and this is that moment: a manager signs on this device, mid-task, standing
+ * at a live table, without the supervisor losing what they had entered.
+ */
+function authorisation(state, dispatch, confirmLabel, onConfirm) {
+  const pin = (state.flyout && state.flyout.pin) || "";
+
+  const press = (k) => {
+    if (k === "clear") dispatch({ type: "flyout-pin", pin: "" });
+    else if (k === "delete") dispatch({ type: "flyout-pin", pin: pin.slice(0, -1) });
+    else if (pin.length < 6) dispatch({ type: "flyout-pin", pin: pin + k });
+  };
+
+  return h(
+    "div",
+    { style: { display: "flex", flexDirection: "column", gap: "11px", flex: "1", minHeight: "0" } },
+    h(
+      "div",
+      { style: { flexShrink: "0" } },
+      h("div.display", { text: "Authorisation", style: { fontSize: "18px", fontWeight: "600" } }),
+      h("div", {
+        text: "You do not hold this permission. An authorised user signs here, on this device, without losing the entry.",
+        style: { fontSize: "15px", color: "var(--ink-2)", lineHeight: "1.45", marginTop: "3px" },
+      })
+    ),
+    h(
+      "div",
+      { style: { flexShrink: "0", display: "flex", alignItems: "center", gap: "11px", height: "54px", padding: "0 14px", borderRadius: "12px", background: "var(--surface-soft)", border: "1px solid var(--line)" } },
+      h("span", { style: { color: "var(--ink-2)", display: "flex" } }, iconCard()),
+      h(
+        "div",
+        { style: { flex: "1" } },
+        h("div.micro", { text: "Authorised by" }),
+        h("div.mono", {
+          text: pin ? "•".repeat(pin.length) : "Swipe card, or enter ID",
+          style: { fontSize: "18px", marginTop: "1px", letterSpacing: "0.2em", color: pin ? "var(--ink)" : "var(--ink-3)" },
+        })
+      ),
+      pin.length >= 4 ? h("span", { style: { color: "var(--ok)", display: "flex" } }, iconTick()) : null
+    ),
+    h(
+      "div.keypad",
+      {},
+      KEYS.map((k) =>
+        h(
+          "button.key",
+          { "aria-label": k, on: { click: () => press(k) } },
+          k === "clear" ? h("span", { text: "Clear", style: { fontSize: "16px", opacity: "0.6" } }) : k === "delete" ? iconBackspace() : k
+        )
+      )
+    ),
+    navRow(
+      h("button.btn.btn--ghost.btn--big", { text: "Cancel", style: { flex: "1" }, on: { click: () => dispatch({ type: "flyout-close" }) } }),
+      h("button.btn.btn--big", { text: confirmLabel, style: { flex: "2" }, disabled: pin.length < 4, on: { click: onConfirm } })
+    )
+  );
+}

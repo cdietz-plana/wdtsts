@@ -1,0 +1,136 @@
+/* =============================================================================
+   Design tokens — LTG Supervisor Tablet
+   -----------------------------------------------------------------------------
+   Two themes, one system. Structure, spacing and hit targets are identical in
+   both; only surface and colour change. Every value below is referenced by name
+   in components.css — never hard-code a colour in a component.
+
+   LIGHT is WDTS brand. Those values were sampled from the 21 Aug deck, NOT from
+   a brand guide. Confirm them against the real guide before this leaves Plan A.
+
+   DARK is not a tint of light. The brand crimson (#a81e33) all but disappears
+   on a dark ground, so dark mode runs a lifted #ff5c72. That is a design-system
+   decision, not a styling whim.
+   ========================================================================== */
+
+.ltg {
+  /* Type ------------------------------------------------------------------ */
+  --font-display: "Sora", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-ui: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  /* Radius ---------------------------------------------------------------- */
+  --r-sm: 8px;
+  --r-md: 11px;
+  --r-lg: 15px;
+  --r-xl: 18px;
+  --r-pill: 999px;
+
+  /* Hit targets ------------------------------------------------------------
+     44px is the floor for anything touched while walking. Rows and keys run
+     44–58. Chips and segmented controls sit at 36–40, used with the device
+     steadied. Nothing interactive is ever smaller than 36. */
+  --tap-min: 46px;
+  --tap-row: 60px;
+  --tap-key: 56px;
+  --tap-chip: 40px;
+
+  /* Motion ---------------------------------------------------------------- */
+  --ease-pane: cubic-bezier(0.66, 0, 0.22, 1);
+  --dur-pane: 460ms;
+  --dur-fly: 380ms;
+  --dur-theme: 300ms;
+}
+
+/* --- LIGHT (WDTS brand) --------------------------------------------------- */
+.ltg[data-theme="light"] {
+  --bg: #f4f5f6;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #eceef1;
+  --surface-soft: #f4f5f6;
+  --line: #e0e4e9;
+  --line-strong: #cdd2d8;
+
+  --ink: #141b24;
+  --ink-2: #3b4653;
+  --ink-3: #566472;
+
+  --brand: #a81e33;
+  --critical: #a81e33;
+  --critical-ink: #8e1a2b;
+  --high-ink: #8a5a10;
+  --ok-ink: #1f6146;
+  --high: #b4791a;
+  --ok: #2e7d5b;
+
+  --critical-wash: #fbeaed;
+  --critical-edge: #f0dade;
+  --high-wash: #f8f2e4;
+  --high-edge: #ece7d8;
+  --ok-wash: #eaf2ee;
+  --ok-edge: transparent;
+
+  --felt: #d9dee4;
+  --felt-edge: #c7ced6;
+  --felt-primary: #44546a;
+  --felt-primary-edge: #3a4859;
+  --seat: #c3cad2;
+  --seat-on: #44546a;
+
+  --on-accent: #ffffff;
+  --on-high: #1a1200;
+  --shadow-card: none;
+  --shadow-raised: 0 1px 3px rgba(20, 30, 45, 0.16);
+  --glass-blur: none;
+}
+
+/* --- DARK (glass) --------------------------------------------------------- */
+.ltg[data-theme="dark"] {
+  --bg: #0a0d13;
+  --surface: rgba(16, 14, 20, 0.56);
+  --surface-raised: rgba(22, 18, 26, 0.58);
+  --surface-sunken: rgba(10, 9, 14, 0.34);
+  --surface-soft: rgba(255, 255, 255, 0.07);
+  --line: rgba(255, 255, 255, 0.12);
+  --line-strong: rgba(255, 255, 255, 0.18);
+
+  /* Values at 95% clear 12:1 on the ground. Uppercase micro-labels sit at 60%,
+     clearing 6:1. Nothing that carries meaning goes below that. */
+  --ink: #ffffff;
+  --ink-2: rgba(255, 255, 255, 0.93);
+  --ink-3: rgba(255, 255, 255, 0.82);
+
+  --brand: #ff5c72;
+  --critical: #ff5c72;
+  --critical-ink: #ffa8b4;
+  --high-ink: #ffd98f;
+  --ok-ink: #8af0c6;
+  --high: #f5b544;
+  --ok: #3fd69a;
+
+  --critical-wash: rgba(255, 92, 114, 0.14);
+  --critical-edge: rgba(255, 92, 114, 0.32);
+  --high-wash: rgba(245, 181, 68, 0.14);
+  --high-edge: rgba(245, 181, 68, 0.3);
+  --ok-wash: rgba(63, 214, 154, 0.13);
+  --ok-edge: rgba(63, 214, 154, 0.26);
+
+  --felt: rgba(255, 255, 255, 0.1);
+  --felt-edge: rgba(255, 255, 255, 0.16);
+  --felt-primary: rgba(255, 255, 255, 0.26);
+  --felt-primary-edge: rgba(255, 255, 255, 0.34);
+  --seat: rgba(255, 255, 255, 0.22);
+  --seat-on: rgba(255, 255, 255, 0.78);
+
+  --on-accent: #12151b;
+  --on-high: #12151b;
+  --shadow-card: 0 12px 32px rgba(0, 0, 0, 0.35);
+  --shadow-raised: 0 2px 10px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  /* Blur sits behind the content. It never touches a number. */
+  /* Frosted, not tinted. The blur softens the room behind a panel; the
+     desaturation and the dim take its COLOUR away, so a card sitting over the
+     red ceiling does not read as a card with a problem. The room keeps its
+     colour everywhere a panel is not. */
+  --glass-blur: blur(26px) saturate(28%) brightness(0.44);
+}

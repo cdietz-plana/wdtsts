@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow, noarchive, noimageindex, nosnippet" />
+    <title>LTG Supervisor Tablet Prototype</title>
+    <meta name="description" content="Private design prototype. Access restricted." />
+    <link rel="icon" href="src/assets/wdts-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="src/styles/tokens.css" />
+    <link rel="stylesheet" href="src/styles/base.css" />
+    <link rel="stylesheet" href="src/styles/components.css" />
+    <style>
+      /* The access gate. Page chrome, not product UI. */
+      body[data-gated] {
+        background: #06080c;
+        overflow: hidden;
+      }
+
+      .gate[hidden] {
+        display: none;
+      }
+
+      .gate {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        overflow: hidden;
+      }
+
+      .gate__photo {
+        position: absolute;
+        inset: -10%;
+        background-image: url("src/assets/lobby.jpg");
+        background-size: cover;
+        background-position: 50% 42%;
+        filter: blur(20px) saturate(106%) brightness(0.64);
+        transform: scale(1.06);
+      }
+
+      .gate__veil {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(130% 46% at 50% -10%, rgba(150, 26, 44, 0.38), rgba(150, 26, 44, 0) 70%),
+          linear-gradient(176deg, rgba(20, 9, 13, 0.28) 0%, rgba(8, 9, 14, 0.5) 40%, rgba(4, 6, 9, 0.7) 100%);
+      }
+
+      .gate__card {
+        position: relative;
+        width: min(420px, 100%);
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        padding: 34px 34px 26px;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(18, 16, 22, 0.62);
+        backdrop-filter: blur(26px) saturate(60%) brightness(0.72);
+        -webkit-backdrop-filter: blur(26px) saturate(60%) brightness(0.72);
+        box-shadow: 0 32px 80px rgba(0, 0, 0, 0.55);
+        color: #fff;
+      }
+
+      .gate[data-shake] .gate__card {
+        animation: gate-shake 0.4s ease;
+      }
+
+      @keyframes gate-shake {
+        10%, 50% { transform: translateX(-7px); }
+        30%, 70% { transform: translateX(7px); }
+        90% { transform: translateX(-3px); }
+        100% { transform: translateX(0); }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .gate[data-shake] .gate__card { animation: none; }
+      }
+
+      /* The wordmark is black type, so on a dark ground it gets its own light
+         plate rather than an inversion, exactly as the sign-in screen does. */
+      .gate__plate {
+        align-self: flex-start;
+        background: #fff;
+        border-radius: 8px;
+        padding: 11px 16px;
+        margin-bottom: 24px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+      }
+
+      .gate__logo {
+        display: block;
+        height: 24px;
+        width: auto;
+      }
+
+      .gate__title {
+        font-family: "Sora", sans-serif;
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        margin: 0 0 6px;
+        color: #fff;
+      }
+
+      .gate__sub {
+        margin: 0 0 24px;
+        font-size: 14px;
+        line-height: 1.5;
+        color: rgba(255, 255, 255, 0.82);
+      }
+
+      .gate__label {
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.72);
+        margin-bottom: 8px;
+      }
+
+      .gate__input {
+        height: 52px;
+        width: 100%;
+        padding: 0 16px;
+        border-radius: 11px;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        background: rgba(0, 0, 0, 0.34);
+        color: #fff;
+        font-family: "IBM Plex Sans", sans-serif;
+        font-size: 17px;
+        letter-spacing: 0.04em;
+        outline: none;
+      }
+
+      .gate__input:focus {
+        border-color: rgba(255, 255, 255, 0.55);
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12);
+      }
+
+      .gate__input[aria-invalid="true"] {
+        border-color: #e2607a;
+      }
+
+      .gate__error {
+        margin: 10px 0 0;
+        font-size: 13.5px;
+        font-weight: 500;
+        color: #ffa8b4;
+      }
+
+      .gate__error[hidden] {
+        display: none;
+      }
+
+      .gate__btn {
+        margin-top: 18px;
+        height: 52px;
+        border: 0;
+        border-radius: 11px;
+        background: #8e1a2b;
+        color: #fff;
+        font-family: "IBM Plex Sans", sans-serif;
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        cursor: pointer;
+      }
+
+      .gate__btn:hover {
+        background: #a21f33;
+      }
+
+      .gate__btn:focus-visible {
+        outline: 3px solid rgba(255, 255, 255, 0.6);
+        outline-offset: 2px;
+      }
+
+      .gate__note {
+        margin: 24px 0 0;
+        padding-top: 18px;
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
+        font-size: 12px;
+        line-height: 1.55;
+        color: rgba(255, 255, 255, 0.64);
+      }
+    </style>
+  </head>
+  <body data-gated>
+    <div class="gate" id="gate" hidden>
+      <div class="gate__photo" aria-hidden="true"></div>
+      <div class="gate__veil" aria-hidden="true"></div>
+      <form class="gate__card" id="gate-form" autocomplete="off" novalidate>
+        <span class="gate__plate">
+          <img class="gate__logo" src="src/assets/wdts-logo.png" alt="Walker Digital Table Systems" />
+        </span>
+        <h1 class="gate__title">Mobile Manager</h1>
+        <p class="gate__sub">
+          Linked Table Games supervisor tablet. Design prototype, shared for review.
+        </p>
+        <label class="gate__label" for="gate-code">Access code</label>
+        <input
+          class="gate__input"
+          id="gate-code"
+          name="code"
+          type="password"
+          inputmode="text"
+          autocomplete="off"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
+          aria-describedby="gate-error"
+        />
+        <p class="gate__error" id="gate-error" role="alert" hidden>That code is not right.</p>
+        <button class="gate__btn" type="submit">Unlock</button>
+        <p class="gate__note">
+          Proprietary and confidential. Prepared by Plan A Technologies for Walker Digital Table
+          Systems. Every figure, name and table number in this prototype is invented.
+        </p>
+      </form>
+    </div>
+    <div id="app"></div>
+    <script type="module" src="src/gate.js"></script>
+  </body>
+</html>

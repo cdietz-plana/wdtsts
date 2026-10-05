@@ -1,0 +1,14 @@
+{
+  "name": "ltg-supervisor-prototype",
+  "version": "0.4.0",
+  "private": true,
+  "description": "Interaction prototype for the Linked Table Games supervisor tablet (WDTS Mobile Manager).",
+  "type": "module",
+  "scripts": {
+    "start": "npx --yes serve . -l 5173",
+    "dev": "python3 -m http.server 5173",
+    "typecheck": "npx --yes typescript@5 --noEmit --allowJs --checkJs --target es2022 --module esnext --moduleResolution bundler src/app.js"
+  },
+  "keywords": ["prototype", "casino", "table-games", "tablet"],
+  "license": "UNLICENSED"
+}

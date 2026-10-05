@@ -1,0 +1,3 @@
+# Design prototype shared for client review. Not for indexing.
+User-agent: *
+Disallow: /

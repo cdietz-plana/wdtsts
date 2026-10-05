@@ -1,0 +1,115 @@
+/* Page chrome around the device frame. Not part of the product UI. */
+
+:root {
+  color-scheme: light dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #dfe1e4;
+  color: #1c2530;
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body[data-page-theme="dark"] {
+  background: #1a1d23;
+  color: #e8eaed;
+}
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 16px 28px;
+  gap: 12px;
+}
+
+.page-bar {
+  width: 100%;
+  max-width: 1280px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.page-title {
+  font-family: "Sora", sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.page-sub {
+  font-size: 12px;
+  opacity: 0.62;
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.page-hint {
+  width: 100%;
+  max-width: 1280px;
+  font-size: 11.5px;
+  opacity: 0.55;
+  line-height: 1.5;
+}
+
+/* The device is authored at a fixed 1280x800 and scaled to fit the window,
+   so what you see is exactly what lands on the tablet. */
+.stage {
+  transform-origin: top left;
+  flex-shrink: 0;
+}
+
+.theme-switch {
+  display: flex;
+  background: rgba(128, 138, 150, 0.2);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.theme-switch button {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: inherit;
+  opacity: 0.6;
+  padding: 7px 13px;
+  border-radius: 8px;
+  cursor: pointer;
+  min-height: 36px;
+}
+
+.theme-switch button[aria-pressed="true"] {
+  background: #fff;
+  color: #1c2530;
+  opacity: 1;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(20, 30, 45, 0.2);
+}
+
+body[data-page-theme="dark"] .theme-switch button[aria-pressed="true"] {
+  background: #3c424c;
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* The help tips switch lives in the page chrome, not in the product. */
+.chip--tips { gap: 8px; }
+.chip--tips[aria-pressed="true"] { background: #1c2530; border-color: #1c2530; color: #fff; }
+body[data-page-theme="dark"] .chip--tips[aria-pressed="true"] { background: #fff; border-color: #fff; color: #10141b; }
