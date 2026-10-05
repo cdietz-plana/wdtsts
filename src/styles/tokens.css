@@ -2,8 +2,8 @@
    Design tokens — LTG Supervisor Tablet
    -----------------------------------------------------------------------------
    Four themes, one system. Structure and hit targets are identical in all four;
-   surface, colour and radius change. Every value below is referenced by name in
-   components.css — never hard-code a colour or a size in a component.
+   surface, color and radius change. Every value below is referenced by name in
+   components.css — never hard-code a color or a size in a component.
 
    LIGHT is WDTS brand. Those values were sampled from the 21 Aug deck, NOT from
    a brand guide. Confirm them against the real guide before this leaves Plan A.
@@ -37,6 +37,8 @@
   --t-title: 21px;     /* card and screen titles                              */
   --t-metric: 27px;    /* the number a card exists to show                    */
   --t-metric-2: 23px;  /* same job, but the figure ran long (142.3M)          */
+  --t-stat: 23px;      /* four figures on one pod card, six cards on screen   */
+  --t-stat-2: 20px;    /* and the same when one of those figures runs long    */
   --t-hero: 34px;      /* the single figure a full-bleed layout is about      */
 
   --font-display: "Sora", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
@@ -60,18 +62,19 @@
   --tap-chip: 40px;
 
   /* Player value -----------------------------------------------------------
-     A SECOND colour language, deliberately sharing no hue with severity.
+     A SECOND color language, deliberately sharing no hue with severity.
      Severity is warm (crimson, amber) plus one green. Value is entirely cool:
      slate, blue, indigo, violet. A pod full of whales can never read as a pod
      with a fault, which is the whole reason the floor view works at distance.
 
-     Position (a player ahead of the house) is not a third colour. It is a
+     Position (a player ahead of the house) is not a third color. It is a
      neutral ring on the dot, so it reads as a modifier on a person rather
      than as a new category to learn. See lib/playervalue.js. */
   --value-1: #78859a;
   --value-2: #3a6fd0;
   --value-3: #6446cf;
   --value-4: #9b3fd0;
+  --on-value: #ffffff;
   --ring-up: rgba(20, 27, 36, 0.5);
   --ring-hot: #141b24;
 
@@ -85,10 +88,11 @@
   --ambient-opacity: 0;
   --ambient-filter: none;
   --ambient-veil: transparent;
+  --narrow-rail-bg: transparent;
 }
 
 /* --- LIGHT (WDTS brand) --------------------------------------------------- */
-.ltg[data-theme="light"] {
+.ltg[data-theme="simple"] {
   --bg: #eef0f3;
   --surface: #ffffff;
   --surface-raised: #ffffff;
@@ -154,6 +158,18 @@
   --dial-bg: linear-gradient(155deg, #fff, #eceef1);
   --dial-shadow: 0 8px 24px rgba(28, 37, 48, 0.12);
 
+
+  /* The floor legend. Flat themes let it sit on the pane; themes with a room
+     behind it get a real surface, because a text shadow over a photograph is
+     not a surface and the backdrop under a strip that wide is never uniform. */
+  --legend-bg: transparent;
+  --legend-blur: none;
+
+
+  --floor-bg: rgba(255, 255, 255, 0.94);
+  --floor-thin: rgba(255, 255, 255, 0.93);
+  --floor-blur: blur(3px) saturate(60%) brightness(1.2);
+
 }
 
 /* --- DARK (glass over the room) ------------------------------------------- */
@@ -199,11 +215,14 @@
   --value-2: #6d9bff;
   --value-3: #a088ff;
   --value-4: #d47aff;
+  /* The dark ramp is lifted so the dots read on a dark ground, which makes it
+     too light to carry white. The seat number goes dark instead. */
+  --on-value: #0b0d11;
   --ring-up: rgba(255, 255, 255, 0.6);
   --ring-hot: #ffffff;
 
   /* Measured, not chosen. Chromium composites opaque children inside an
-     element that has a backdrop-filter about 19% darker than the colour they
+     element that has a backdrop-filter about 19% darker than the color they
      were given, so a severity chip in the alert rail renders near #cf4a5c
      rather than #ff5c72. The ink on those chips is set against what actually
      renders, which is why it is darker than it looks like it needs to be. */
@@ -212,9 +231,9 @@
   --shadow-card: 0 12px 32px rgba(0, 0, 0, 0.35);
   --shadow-raised: 0 2px 10px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
   /* Frosted, not tinted. The blur softens the room behind a panel; the
-     desaturation and the dim take its COLOUR away, so a card sitting over the
+     desaturation and the dim take its COLOR away, so a card sitting over the
      red ceiling does not read as a card with a problem. The room keeps its
-     colour everywhere a panel is not. */
+     color everywhere a panel is not. */
   --glass-blur: blur(26px) saturate(28%) brightness(0.44);
 
   --ambient-opacity: 1;
@@ -225,12 +244,12 @@
 
   --plan-bg: transparent;
   --plan-border: transparent;
-  --plan-pad: 2px;
+  --plan-pad: 4px;
   --rail-bg: rgba(9, 8, 13, 0.42);
   --rail-bg-wide: rgba(9, 8, 13, 0.34);
   --rail-blur-wide: blur(2px) saturate(75%) brightness(0.8);
   --legend-ink: var(--ink);
-  --legend-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  --legend-shadow: none;
 
 
   --bar-bg: var(--surface);
@@ -243,6 +262,16 @@
   --dial-bg: linear-gradient(155deg, var(--surface-raised), var(--surface));
   --dial-shadow: var(--shadow-card);
 
+
+  --legend-bg: rgba(10, 9, 14, 0.86);
+  --legend-blur: blur(18px) saturate(28%) brightness(0.5);
+
+
+  --floor-bg: rgba(10, 9, 14, 0.86);
+  --floor-thin: rgba(9, 8, 13, 0.34);
+  --floor-blur: blur(2px) saturate(75%) brightness(0.8);
+  --narrow-rail-bg: rgba(9, 8, 13, 0.52);
+
 }
 
 /* --- SQUARE (structure, not decoration) -----------------------------------
@@ -251,11 +280,13 @@
    small blur, which is what stops the hard corners reading as a wireframe
    again. Lines do the work that shadow does elsewhere. */
 .ltg[data-theme="square"] {
-  --r-sm: 2px;
-  --r-md: 3px;
-  --r-lg: 4px;
-  --r-xl: 5px;
-  --r-pill: 3px;
+  /* Square means square. Pills and badges go rectangular too: a square
+     theme with rounded chips reads as an oversight rather than a choice. */
+  --r-sm: 0;
+  --r-md: 0;
+  --r-lg: 0;
+  --r-xl: 0;
+  --r-pill: 0;
 
   --bg: #dfe3e9;
   --surface: rgba(255, 255, 255, 0.84);
@@ -267,7 +298,7 @@
 
   --ink: #10161e;
   --ink-2: #333e4b;
-  --ink-3: #4c5968;
+  --ink-3: #475462;
 
   --brand: #a81e33;
   --critical: #a81e33;
@@ -308,9 +339,11 @@
   --ambient-filter: blur(30px) saturate(26%) brightness(1.5);
   --ambient-veil: linear-gradient(176deg, rgba(223, 227, 233, 0.78) 0%, rgba(223, 227, 233, 0.9) 100%);
 
-  --plan-bg: var(--surface-sunken);
-  --plan-border: var(--line-strong);
-  --plan-pad: 10px;
+  /* No tray behind the pods. The cards and their edges are the structure;
+     a container around them was a second frame doing the same job. */
+  --plan-bg: transparent;
+  --plan-border: transparent;
+  --plan-pad: 0;
   --rail-bg: var(--surface-raised);
   --rail-bg-wide: transparent;
   --rail-blur-wide: none;
@@ -327,6 +360,15 @@
   --flyout-shadow: -1px 0 0 var(--line-strong);
   --dial-bg: linear-gradient(155deg, #fff, #e4e9ef);
   --dial-shadow: 0 1px 0 rgba(16, 22, 30, 0.14);
+
+
+  --legend-bg: transparent;
+  --legend-blur: none;
+
+
+  --floor-bg: rgba(255, 255, 255, 0.96);
+  --floor-thin: rgba(255, 255, 255, 0.94);
+  --floor-blur: blur(2px) saturate(70%) brightness(1.15);
 
 }
 
@@ -363,7 +405,7 @@
   --ok: #216047;
 
   /* Opaque-ish, not tinted glass: a wash this pale over a lit room stops
-     being a surface and the coloured type on it has nothing to sit against. */
+     being a surface and the colored type on it has nothing to sit against. */
   --critical-wash: rgba(252, 229, 233, 0.9);
   --critical-edge: rgba(156, 27, 47, 0.34);
   --high-wash: rgba(250, 240, 221, 0.9);
@@ -401,12 +443,12 @@
 
   --plan-bg: transparent;
   --plan-border: transparent;
-  --plan-pad: 2px;
+  --plan-pad: 4px;
   --rail-bg: rgba(255, 255, 255, 0.42);
   --rail-bg-wide: rgba(255, 255, 255, 0.3);
   --rail-blur-wide: blur(3px) saturate(60%) brightness(1.3);
   --legend-ink: var(--ink);
-  --legend-shadow: 0 1px 2px rgba(255, 255, 255, 0.85);
+  --legend-shadow: none;
 
 
   --bar-bg: var(--surface);
@@ -419,4 +461,163 @@
   --dial-bg: linear-gradient(155deg, rgba(255,255,255,.95), rgba(255,255,255,.6));
   --dial-shadow: var(--shadow-card);
 
+
+  --legend-bg: rgba(255, 255, 255, 0.95);
+  --legend-blur: blur(18px) saturate(50%) brightness(1.25);
+
+
+  --floor-bg: rgba(255, 255, 255, 0.95);
+  --floor-thin: rgba(255, 255, 255, 0.3);
+  --floor-blur: blur(3px) saturate(60%) brightness(1.3);
+  --narrow-rail-bg: rgba(255, 255, 255, 0.5);
+
+}
+
+
+/* =============================================================================
+   Wallpapers
+   -----------------------------------------------------------------------------
+   What sits behind the glass is a separate choice from the theme. These blocks
+   come after the theme blocks deliberately: they carry the same specificity, so
+   source order is what lets a chosen wallpaper override the one a theme opens
+   on.
+
+   A theme still sets its own default, because the pairings matter. Dark glass
+   over a bright room is unreadable and light glass over a dark one is worse,
+   so switching theme moves the wallpaper with it and the control below is for
+   going somewhere else on purpose.
+
+   The suit patterns are flat vector-style graphics rather than photographs, so
+   they take a fraction of the blur the room does. Blurring a pattern until it
+   is unrecognisable just produces an expensive gradient.
+   ========================================================================== */
+
+.ltg[data-wallpaper="light-lobby"] {
+  --ambient-opacity: 1;
+  --ambient-filter: blur(15px) saturate(88%) brightness(1.12);
+  --ambient-veil:
+    radial-gradient(150% 40% at 50% -8%, rgba(255, 238, 241, 0.42), rgba(255, 238, 241, 0) 72%),
+    linear-gradient(176deg, rgba(243, 246, 250, 0.42) 0%, rgba(232, 237, 244, 0.5) 40%, rgba(222, 229, 238, 0.58) 100%);
+
+  --legend-bg: var(--floor-bg);
+  --legend-blur: var(--floor-blur);
+  --legend-shadow: none;
+  --rail-bg-wide: var(--floor-thin);
+  --rail-blur-wide: var(--floor-blur);
+  --narrow-rail-bg: var(--floor-thin);
+  --plan-bg: transparent;
+  --plan-border: transparent;
+
+}
+
+.ltg[data-wallpaper="dark-lobby"] {
+  --ambient-opacity: 1;
+  --ambient-filter: blur(14px) saturate(108%) brightness(0.72);
+  --ambient-veil:
+    radial-gradient(150% 38% at 50% -8%, rgba(150, 26, 44, 0.3), rgba(150, 26, 44, 0) 72%),
+    linear-gradient(176deg, rgba(20, 9, 13, 0.2) 0%, rgba(8, 9, 14, 0.32) 30%, rgba(5, 7, 11, 0.42) 100%);
+
+  --legend-bg: var(--floor-bg);
+  --legend-blur: var(--floor-blur);
+  --legend-shadow: none;
+  --rail-bg-wide: var(--floor-thin);
+  --rail-blur-wide: var(--floor-blur);
+  --narrow-rail-bg: var(--floor-thin);
+  --plan-bg: transparent;
+  --plan-border: transparent;
+
+}
+
+/* Nothing behind the glass. The theme's flat ground is the wallpaper. */
+.ltg[data-wallpaper="gray"] {
+  --ambient-opacity: 0;
+  --ambient-filter: none;
+  --ambient-veil: transparent;
+
+  --legend-bg: transparent;
+  --legend-blur: none;
+  --rail-bg-wide: transparent;
+  --rail-blur-wide: none;
+  --narrow-rail-bg: transparent;
+
+}
+
+.ltg[data-wallpaper="red-suits"] {
+  --ambient-opacity: 1;
+  --ambient-filter: blur(4px) saturate(100%) brightness(1.02);
+  /* Enough veil to stop the pattern competing with the cards, not enough to
+     lose it. The suits should be felt at a glance and ignored while reading.
+     A first pass at double this washed the pattern out completely, which turns
+     an expensive image into a gradient. */
+  --ambient-veil:
+    radial-gradient(150% 42% at 50% -8%, rgba(255, 236, 240, 0.12), rgba(255, 236, 240, 0) 72%),
+    linear-gradient(176deg, rgba(250, 246, 248, 0.14) 0%, rgba(244, 238, 242, 0.2) 40%, rgba(238, 232, 238, 0.26) 100%);
+
+  --legend-bg: var(--floor-bg);
+  --legend-blur: var(--floor-blur);
+  --legend-shadow: none;
+  --rail-bg-wide: var(--floor-thin);
+  --rail-blur-wide: var(--floor-blur);
+  --narrow-rail-bg: var(--floor-thin);
+  --plan-bg: transparent;
+  --plan-border: transparent;
+
+}
+
+.ltg[data-wallpaper="dark-suits"] {
+  --ambient-opacity: 1;
+  --ambient-filter: blur(4px) saturate(108%) brightness(0.96);
+  --ambient-veil:
+    radial-gradient(150% 40% at 50% -8%, rgba(150, 26, 44, 0.1), rgba(150, 26, 44, 0) 72%),
+    linear-gradient(176deg, rgba(14, 7, 11, 0.12) 0%, rgba(8, 9, 14, 0.18) 40%, rgba(5, 7, 11, 0.24) 100%);
+
+  --legend-bg: var(--floor-bg);
+  --legend-blur: var(--floor-blur);
+  --legend-shadow: none;
+  --rail-bg-wide: var(--floor-thin);
+  --rail-blur-wide: var(--floor-blur);
+  --narrow-rail-bg: var(--floor-thin);
+  --plan-bg: transparent;
+  --plan-border: transparent;
+
+}
+
+/* --- Wallpapers a theme was not built for ----------------------------------
+   Each translucent theme is tuned for one backdrop: Glass for a lit room, Dark
+   for an unlit one. Over anything else, translucency stops working, because a
+   tint is only legible while what is behind it agrees with the ink in front.
+
+   So over a wallpaper that is not its own, a glass theme firms up: the rails
+   become surfaces and the cards go nearly opaque. It gives up some of the
+   effect to keep the numbers readable, which is the right way round.
+
+   Square and Simple need nothing here. Their floors were already near-opaque
+   and their cards always were, which is why they survive every wallpaper once
+   the floors are switched on at all.
+   -------------------------------------------------------------------------- */
+
+.ltg[data-theme="glass"][data-wallpaper="dark-lobby"],
+.ltg[data-theme="glass"][data-wallpaper="dark-suits"],
+.ltg[data-theme="glass"][data-wallpaper="red-suits"] {
+  --floor-thin: rgba(255, 255, 255, 0.9);
+  --rail-bg: rgba(255, 255, 255, 0.93);
+  --narrow-rail-bg: rgba(255, 255, 255, 0.9);
+  --surface: rgba(255, 255, 255, 0.93);
+  --surface-raised: rgba(255, 255, 255, 0.96);
+  --surface-soft: rgba(255, 255, 255, 0.84);
+  --surface-sunken: rgba(255, 255, 255, 0.72);
+  --felt: rgba(255, 255, 255, 0.7);
+  --glass-blur: blur(28px) saturate(40%) brightness(1.9);
+}
+
+.ltg[data-theme="dark"][data-wallpaper="light-lobby"],
+.ltg[data-theme="dark"][data-wallpaper="red-suits"] {
+  --floor-thin: rgba(9, 8, 13, 0.88);
+  --rail-bg: rgba(9, 8, 13, 0.92);
+  --narrow-rail-bg: rgba(9, 8, 13, 0.88);
+  --surface: rgba(14, 12, 18, 0.9);
+  --surface-raised: rgba(20, 17, 24, 0.93);
+  --surface-sunken: rgba(8, 7, 11, 0.8);
+  --felt: rgba(255, 255, 255, 0.12);
+  --glass-blur: blur(26px) saturate(28%) brightness(0.26);
 }

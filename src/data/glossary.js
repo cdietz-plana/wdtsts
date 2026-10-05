@@ -21,11 +21,11 @@ export const glossary = [
   /* --- the game --- */
   { term: "shoe", short: "The box the cards are dealt from, and by extension one run of play through those cards, usually 60 to 80 hands.",
     why: "The pod shares one Shoe ID. When the shoe ends, every table in the pod stops while cards are changed." },
-  { term: "cut card", short: "A coloured plastic card placed near the back of the shoe. When it comes out, the shoe is finished after the current hand.",
+  { term: "cut card", short: "A colored plastic card placed near the back of the shoe. When it comes out, the shoe is finished after the current hand.",
     why: "It is the warning that a pod-wide stop is about to happen, which makes it worth surfacing before it lands rather than after." },
   { term: "burn", alias: ["burn cards", "burned"], short: "Discarding cards without playing them, either at the start of a shoe or after a dealing error.",
     why: "It is a correction with an audit trail, so it belongs to the Override screen and to the Primary only." },
-  { term: "void hand", short: "Cancelling the hand in progress and starting a new one.",
+  { term: "void hand", short: "Canceling the hand in progress and starting a new one.",
     why: "One of the most consequential buttons in the product. It needs confirmation and it is a Primary-only action." },
 
   /* --- money --- */
@@ -52,7 +52,7 @@ export const glossary = [
   { term: "variance", short: "Actual minus Expected. Anything other than zero means money is unaccounted for.",
     why: "Not a metric, an accusation. It is why the Adjust flow ends in a second signature." },
   { term: "fill", short: "Chips brought from the cage to top up the tray.",
-    why: "Requested at a table, authorised by a supervisor, delivered to the pod's Primary. The physical route and the digital route differ." },
+    why: "Requested at a table, authorized by a supervisor, delivered to the pod's Primary. The physical route and the digital route differ." },
   { term: "credit", short: "The reverse of a fill: surplus chips sent back from the tray to the cage.",
     why: "Same workflow mirrored, and currently missing from the design." },
   { term: "opener", alias: ["closer"], short: "The counted tray inventory at the start of the gaming day, and the count at the end.",
@@ -62,7 +62,7 @@ export const glossary = [
   { term: "gaming day", short: "The casino's accounting day, which does not start at midnight. It rolls at a configured time, often early morning.",
     why: "Every total in the product is scoped to it. Two things on the same calendar date can be in different gaming days." },
   { term: "roll", alias: ["table roll", "roll in", "blocks roll", "blocking the roll"], short: "Closing one gaming day and opening the next. Inventory is counted, totals are banked, the books close.",
-    why: "The hard deadline the whole screen is organised around. An alert marked blocks roll must be cleared before the day can close." },
+    why: "The hard deadline the whole screen is organized around. An alert marked blocks roll must be cleared before the day can close." },
 
   /* --- people --- */
   { term: "rated", alias: ["rating", "rated player"], short: "A player identified by a loyalty card, so their play is tracked and earns comps.",
@@ -70,7 +70,7 @@ export const glossary = [
   { term: "anonymous", short: "A player with no card attached. Their play is tracked against the seat but not against a person.",
     why: "Converting anonymous to rated mid-session is a real workflow, and it rewrites that player's earlier transactions." },
   { term: "manual rating", short: "A rating a supervisor types in by hand, usually because the automatic one missed or the player sat down late.",
-    why: "Over a threshold it needs a second person to approve, which is one of the authorisation moments in the prototype." },
+    why: "Over a threshold it needs a second person to approve, which is one of the authorization moments in the prototype." },
   { term: "buy-in", alias: ["buy in"], short: "Cash or a marker exchanged for chips at the table.",
     why: "Cumulative buy-in is the AML trigger, so it is tracked per player per gaming day rather than per transaction." },
   { term: "marker", short: "Casino credit issued to a player at the table. An IOU, counted as drop.",
@@ -100,7 +100,7 @@ export const glossary = [
   { term: "chip set", short: "A group of chips belonging to one property or denomination scheme.",
     why: "Inventory is counted per chip set, so a tray total without a chip set breakdown cannot be reconciled." },
   { term: "MID", short: "Marketing or member ID attached to a rated session.",
-    why: "How play is credited to the right programme. Blank by default and editable, which makes it a data-entry moment." },
+    why: "How play is credited to the right program. Blank by default and editable, which makes it a data-entry moment." },
   { term: "RN", alias: ["refused name"], short: "Refused Name. A player who will not give their identity, recorded with descriptive notes instead.",
     why: "A real category in the data model with its own flag and notes, and absent from the current design." },
 ];

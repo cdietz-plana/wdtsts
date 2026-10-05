@@ -24,7 +24,7 @@ import { iconClose, iconNote } from "./icons.js";
 const stat = (label, value, color) =>
   h(
     "div",
-    { style: { background: "var(--surface-soft)", borderRadius: "10px", padding: "9px 11px" } },
+    { style: { background: "var(--surface-soft)", borderRadius: "var(--r-md)", border: "1px solid var(--line-strong)", padding: "9px 11px" } },
     h("div.micro", { text: label }),
     h("div.mono.display", { text: value, style: { fontSize: "var(--t-title)", fontWeight: "700", color: color || "", marginTop: "1px" } })
   );
@@ -51,7 +51,7 @@ const column = (title, body, foot) =>
     foot || null
   );
 
-export function playerSheet(state, dispatch) {
+export function playerSheet(state, dispatch, onClose) {
   const p = findPlayer(state.players, state.playerId);
   if (!p) return null;
   const table = findTable(state.pods, p.tableId);
@@ -172,11 +172,18 @@ export function playerSheet(state, dispatch) {
       );
 
   return h(
-    "div.sheet",
-    { role: "dialog", "aria-modal": "true", "aria-label": `${p.name}, player record` },
+    // The record slides up from the bottom and back down on the way out, which
+    // is why closing goes through a handler rather than straight to the store:
+    // the element has to stay mounted for the length of the exit.
+    "div.sheet.sheet--rise",
+    { role: "dialog", "aria-modal": "true", "aria-label": `${p.name}, player record`, data: { closing: !!state.playerClosing } },
     h(
       "div.sheet__bar",
       {},
+      // Close sits at the top left. On a tablet held in two hands the left
+      // thumb is already there, and it puts the way out in the same corner as
+      // the back control on every other screen.
+      h("button.icon-btn", { "aria-label": "Close", on: { click: onClose } }, iconClose()),
       h(
         "div",
         {},
@@ -191,8 +198,7 @@ export function playerSheet(state, dispatch) {
         h("div", { text: `${table ? table.name : ""} · seat ${p.seat}`, style: { fontSize: "var(--t-detail)", color: "var(--ink-3)", marginTop: "2px" } })
       ),
       h("span", { style: { flex: "1" } }),
-      rateAction,
-      h("button.icon-btn", { "aria-label": "Close", on: { click: () => dispatch({ type: "close-player" }) } }, iconClose())
+      rateAction
     ),
     h("div.sheet__body", { style: { display: "flex", gap: "13px" } }, identity, activity, notesCol)
   );

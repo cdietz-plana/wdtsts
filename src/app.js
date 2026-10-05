@@ -13,7 +13,7 @@ import { clear, h } from "./lib/dom.js";
 import { annotate, wireTips } from "./lib/helptips.js";
 import { patchLive } from "./lib/live.js";
 import { findPod, findTable, podOfTable } from "./lib/selectors.js";
-import { LOBBY } from "./assets.js";
+import { WALLPAPERS, wallpaper } from "./assets.js";
 import { createStore } from "./store.js";
 
 const HINTS = {
@@ -38,7 +38,7 @@ let pendingGeometry = null;
 const store = createStore((state, action) => render(action));
 const { dispatch, getState } = store;
 
-/* ---------------------------------------------------------------- behaviour */
+/* ---------------------------------------------------------------- behavior */
 
 function runScan() {
   const state = getState();
@@ -64,6 +64,16 @@ function orderFill(tableId) {
   dispatch({ type: "flyout-open", kind: "order", alertId: null });
 }
 
+/** Let the record play its exit, then take it out of the state. */
+let closeTimer;
+function closePlayer() {
+  const s = getState();
+  if (!s.playerId || s.playerClosing) return;
+  dispatch({ type: "close-player-start" });
+  window.clearTimeout(closeTimer);
+  closeTimer = window.setTimeout(() => dispatch({ type: "close-player" }), 200);
+}
+
 const resolve = (alertId, message) => dispatch({ type: "resolve", alertId, message });
 
 /** One place decides what an alert action does, wherever it was pressed. */
@@ -71,10 +81,6 @@ function handleAction(alert, action) {
   const goTable = (tab) => dispatch({ type: "go-table", podId: alert.podId, tableId: alert.tableId, tab });
 
   switch (action.intent) {
-    case "hold-pod":
-      dispatch({ type: "toggle-hold", podId: alert.podId });
-      dispatch({ type: "toast", message: `${findPod(getState().pods, alert.podId).name} placed on hold. All four tables suspended.` });
-      break;
     case "dismiss":
       dispatch({ type: "toast", message: "Rejected. A note goes on the audit trail." });
       break;
@@ -86,7 +92,7 @@ function handleAction(alert, action) {
       goTable("chips");
       dispatch({ type: "flyout-open", kind: "adjust", alertId: alert.id });
       break;
-    case "authorise-fill":
+    case "authorize-fill":
       goTable("chips");
       dispatch({ type: "flyout-open", kind: "fill", alertId: alert.id });
       break;
@@ -114,21 +120,23 @@ function handleAction(alert, action) {
 /* -------------------------------------------------------------------- view */
 
 function device(state) {
+  const paper = wallpaper(state.wallpaper);
+
   // Three layers, bottom to top: the room, a crimson-to-black veil that kills
   // its detail and most of its light, then two soft glows that keep the corners
   // from going dead. Everything above this is glass, and glass needs something
-  // behind it or it reads as grey plastic.
+  // behind it or it reads as gray plastic.
   const ambient = h(
     "div.ambient",
     { "aria-hidden": "true" },
-    h("div.ambient__photo", { style: { backgroundImage: `url(${LOBBY})` } }),
+    h("div.ambient__photo", { style: { backgroundImage: paper.image ? `url(${paper.image})` : "none" } }),
     h("div.ambient__veil"),
     h("span", { style: { left: "-200px", top: "-320px", width: "820px", height: "620px", background: "radial-gradient(circle, rgba(168,30,51,.18), rgba(168,30,51,0) 68%)" } }),
     h("span", { style: { right: "-180px", bottom: "-220px", width: "760px", height: "620px", background: "radial-gradient(circle, rgba(36,86,138,.2), rgba(36,86,138,0) 70%)" } })
   );
 
   if (!state.signedIn) {
-    return h("div.ltg", { data: { theme: state.theme } }, ambient, loginScreen(state, dispatch));
+    return h("div.ltg", { data: { theme: state.theme, wallpaper: paper.id } }, ambient, loginScreen(state, dispatch));
   }
 
   const wide = state.level === "section" && state.mode === "alerts";
@@ -166,7 +174,7 @@ function device(state) {
 
   return h(
     "div.ltg",
-    { data: { theme: state.theme } },
+    { data: { theme: state.theme, wallpaper: paper.id } },
     ambient,
     topBar(state, dispatch),
     h(
@@ -181,7 +189,7 @@ function device(state) {
     ),
     h("button.scrim", { data: { open: !!state.flyout }, "aria-label": "Close panel", on: { click: () => dispatch({ type: "flyout-close" }) } }),
     flyout(state, dispatch, { onScan: runScan, onResolve: resolve }),
-    state.playerId ? playerSheet(state, dispatch) : null,
+    state.playerId ? playerSheet(state, dispatch, closePlayer) : null,
     state.sheet === "help" ? helpSheet(state, dispatch) : null,
     state.sheet === "account" ? accountSheet(state, dispatch) : null,
     state.sheet === "thresholds" ? thresholdSheet(state, dispatch) : null,
@@ -234,11 +242,26 @@ function page(state) {
       h(
         "div.theme-switch",
         { role: "group", "aria-label": "Theme" },
-        [["light", "Light"], ["square", "Square"], ["glass", "Glass"], ["dark", "Dark"]].map(([t, label]) =>
+        [["glass", "Glass"], ["square", "Square"], ["simple", "Simple"], ["dark", "Dark"]].map(([t, label]) =>
           h("button", {
             text: label,
             "aria-pressed": String(state.theme === t),
             on: { click: () => dispatch({ type: "theme", theme: t }) },
+          })
+        )
+      ),
+      // What sits behind the glass, separately from the theme. Changing theme
+      // moves this to the pairing that theme was built on; changing it here is
+      // how you go somewhere else.
+      h(
+        "div.theme-switch.theme-switch--paper",
+        { role: "group", "aria-label": "Wallpaper" },
+        h("span.theme-switch__label", { text: "Wallpaper" }),
+        WALLPAPERS.map((w) =>
+          h("button", {
+            text: w.label,
+            "aria-pressed": String(state.wallpaper === w.id),
+            on: { click: () => dispatch({ type: "wallpaper", wallpaper: w.id }) },
           })
         )
       )
@@ -264,6 +287,15 @@ function fit() {
 }
 
 let toastTimer;
+
+/** The toast clears itself. Dispatched as a plain toast action, so it takes the
+    same patch path on the way out as it did on the way in. */
+function scheduleToastClear(state) {
+  if (!state.toast) return;
+  window.clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => dispatch({ type: "toast", message: null }), 2600);
+}
+
 function render(action) {
   const state = getState();
 
@@ -271,6 +303,20 @@ function render(action) {
   // replayed every entry animation under the user once a second, which is what
   // the flicker was. Patch the numbers and leave the DOM alone.
   if (action && action.type === "tick" && patchLive(root, state)) return;
+
+  // A toast changes one string, and raising one from inside the player record
+  // rebuilt the whole screen and replayed the record's entry animation. From
+  // the outside that looked like the screen flashing and nothing happening,
+  // which is exactly what it was. Same treatment as the clock.
+  if (action && action.type === "toast") {
+    const el = root.querySelector(".toast");
+    if (el) {
+      el.textContent = state.toast || "";
+      el.dataset.open = String(!!state.toast);
+      scheduleToastClear(state);
+      return;
+    }
+  }
 
   document.body.dataset.pageTheme = state.theme;
   clear(root).appendChild(page(state));
@@ -298,10 +344,7 @@ function render(action) {
     });
   }
 
-  if (state.toast) {
-    window.clearTimeout(toastTimer);
-    toastTimer = window.setTimeout(() => dispatch({ type: "toast", message: null }), 2600);
-  }
+  scheduleToastClear(state);
 }
 
 window.addEventListener("resize", fit);
@@ -313,7 +356,7 @@ window.setInterval(() => {
   // Hold the clock while a panel, sheet or record is open, or a scan is
   // running. A re-render must never interrupt something the user is in the
   // middle of, and a full re-render restarts every entry animation under it.
-  if (s.signedIn && !s.flyout && !s.scanning && !s.sheet && !s.playerId) dispatch({ type: "tick" });
+  if (s.signedIn && !s.flyout && !s.scanning && !s.sheet && !s.playerId && !s.playerClosing) dispatch({ type: "tick" });
 }, 1000);
 
 render();

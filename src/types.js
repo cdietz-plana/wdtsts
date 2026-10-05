@@ -6,7 +6,7 @@
  * in checkJs mode.
  */
 
-/** @typedef {"light"|"dark"} Theme */
+/** @typedef {"glass"|"square"|"simple"|"dark"} Theme */
 
 /** Which pane carries the weight. Neither pane ever changes side.
  * @typedef {"floor"|"alerts"} Mode */
@@ -59,7 +59,7 @@
  */
 
 /**
- * @typedef {"open-table"|"open-players"|"hold-pod"|"rescan"|"adjust"|"authorise-fill"|"approve-rating"|"dismiss"} ActionIntent
+ * @typedef {"open-table"|"open-players"|"rescan"|"adjust"|"authorize-fill"|"approve-rating"|"dismiss"} ActionIntent
  */
 
 /**

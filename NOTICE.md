@@ -2,9 +2,9 @@
 
 This repository contains design work produced for **Walker Digital Table
 Systems (WDTS)** in connection with the Linked Table Games Mobile Manager
-programme, and includes WDTS trade marks and brand assets.
+program, and includes WDTS trade marks and brand assets.
 
-- It is **not** open source. No licence is granted.
+- It is **not** open source. No license is granted.
 - The source documents behind it are marked *Proprietary and confidential*.
 - `src/assets/` contains WDTS logo files, used here with the client's knowledge
   for the purpose of this engagement only.

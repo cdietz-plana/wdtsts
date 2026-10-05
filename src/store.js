@@ -3,6 +3,7 @@ import { initialAlerts } from "./data/alerts.js";
 import { players as namedPlayers, withAnonymousFill } from "./data/players.js";
 import { thresholds as initialThresholds } from "./data/thresholds.js";
 import { wallClock } from "./lib/format.js";
+import { WALLPAPER_FOR_THEME } from "./assets.js";
 
 /**
  * One state object, one reducer, one subscriber. Actions are plain data, so a
@@ -13,7 +14,14 @@ import { wallClock } from "./lib/format.js";
 const ALL_PODS = initialPods;
 
 export const initialState = {
-  /** @type {import("./types.js").Theme} */ theme: "dark",
+  /** @type {import("./types.js").Theme} */ theme: "glass",
+  /**
+   * What sits behind the glass. A separate choice from the theme, but changing
+   * theme moves it, because the pairings matter: dark glass over a bright room
+   * is unreadable and the reverse is worse. Choosing one explicitly is how you
+   * go somewhere else on purpose.
+   */
+  wallpaper: WALLPAPER_FOR_THEME.glass,
   /** The prototype starts where the shift starts. Nothing here authenticates. */
   signedIn: false,
   login: { id: "" },
@@ -26,7 +34,13 @@ export const initialState = {
   expanded: { p1: true },
   /** @type {"all"|"critical"|"blocks-roll"|"needs-signature"} */ filter: "all",
   /** @type {null|{kind:string, alertId:string, step:number, reason?:string, verified?:boolean, pin:string}} */ flyout: null,
-  held: {},
+  /**
+      * Pods the dealer has put on hold. Read only: a hold is raised at the
+      * table, never from a tablet, so nothing in the product sets this. Pod 3
+      * is seeded held because its shoe has finished and its own alert says all
+      * four tables are stopped. The pod screen used to say "Dealing" anyway.
+      */
+  held: { p3: true },
   scanning: false,
   toast: null,
   /** At pod level the right pane carries either the alerts or the people. */
@@ -49,6 +63,8 @@ export const initialState = {
   /** @type {null|"help"|"account"} */ sheet: null,
   /** Which player's detail is open, on the Players and Session tabs. */
   playerId: null,
+  /** True while the record is playing its exit. See closePlayer() in app.js. */
+  playerClosing: false,
   /** Draft text in the notes composer, so a half-written note survives a re-render. */
   noteDraft: "",
   /** Draft loyalty card number, keyed or scanned. */
@@ -67,7 +83,8 @@ export const initialState = {
 
 export function reducer(s, a) {
   switch (a.type) {
-    case "theme": return { ...s, theme: a.theme };
+    case "theme": return { ...s, theme: a.theme, wallpaper: WALLPAPER_FOR_THEME[a.theme] || s.wallpaper };
+    case "wallpaper": return { ...s, wallpaper: a.wallpaper };
     case "player-rank": return { ...s, playerRank: a.rank };
     case "area-size": {
       const pods = ALL_PODS.slice(0, a.size);
@@ -88,7 +105,7 @@ export function reducer(s, a) {
     }
     case "login-id": return { ...s, login: { ...s.login, id: a.id } };
     case "sign-in": return { ...s, signedIn: true };
-    case "sign-out": return { ...initialState, theme: s.theme, areaSize: s.areaSize, pods: s.pods, alerts: s.alerts, players: s.players };
+    case "sign-out": return { ...initialState, theme: s.theme, wallpaper: s.wallpaper, areaSize: s.areaSize, pods: s.pods, alerts: s.alerts, players: s.players };
     case "mode": return { ...s, mode: a.mode };
     case "sheet": return { ...s, sheet: a.sheet };
     case "pod-pane": return { ...s, podPane: a.pane };
@@ -102,8 +119,9 @@ export function reducer(s, a) {
       };
     case "threshold-notify":
       return { ...s, thresholds: s.thresholds.map((t) => (t.id === a.id ? { ...t, notify: a.notify } : t)) };
-    case "open-player": return { ...s, playerId: a.playerId, noteDraft: "", cardDraft: "" };
-    case "close-player": return { ...s, playerId: null, noteDraft: "", cardDraft: "" };
+    case "open-player": return { ...s, playerId: a.playerId, playerClosing: false, noteDraft: "", cardDraft: "" };
+    case "close-player-start": return s.playerId ? { ...s, playerClosing: true } : s;
+    case "close-player": return { ...s, playerId: null, playerClosing: false, noteDraft: "", cardDraft: "" };
     case "note-draft": return { ...s, noteDraft: a.text };
     case "card-draft": return { ...s, cardDraft: a.text };
     case "add-note":
@@ -131,12 +149,14 @@ export function reducer(s, a) {
     case "go-pod": return { ...s, level: "pod", podId: a.podId, flyout: null };
     case "go-table": return { ...s, level: "table", podId: a.podId, tableId: a.tableId, tab: a.tab || s.tab, flyout: null };
     case "tab": return { ...s, tab: a.tab };
-    case "flyout-open": return { ...s, flyout: { kind: a.kind, alertId: a.alertId, step: 1, pin: "" } };
+    case "flyout-open":
+      return { ...s, flyout: { kind: a.kind, alertId: a.alertId, step: 1, pin: "", overrideId: a.overrideId || null, position: null, reason: null } };
     case "flyout-close": return { ...s, flyout: null };
     case "flyout-step": return s.flyout ? { ...s, flyout: { ...s.flyout, step: a.step } } : s;
     case "flyout-reason": return s.flyout ? { ...s, flyout: { ...s.flyout, reason: a.reason } } : s;
     case "flyout-pin": return s.flyout ? { ...s, flyout: { ...s.flyout, pin: a.pin } } : s;
     case "flyout-amount": return s.flyout ? { ...s, flyout: { ...s.flyout, amount: a.amount } } : s;
+    case "flyout-position": return s.flyout ? { ...s, flyout: { ...s.flyout, position: a.position } } : s;
     case "scan-start": return { ...s, scanning: true };
     case "scan-done":
       return {
@@ -152,7 +172,6 @@ export function reducer(s, a) {
         flyout: null,
         toast: a.message,
       };
-    case "toggle-hold": return { ...s, held: { ...s.held, [a.podId]: !s.held[a.podId] } };
     case "toast": return { ...s, toast: a.message };
     case "tick":
       return {
@@ -168,7 +187,7 @@ export function reducer(s, a) {
 
 /**
  * Clearing an alert changes the world, not just the list: an adjusted tray
- * reconciles, an authorised fill puts the table back in play.
+ * reconciles, an authorized fill puts the table back in play.
  */
 function applyResolution(pods, alertId) {
   const effects = {

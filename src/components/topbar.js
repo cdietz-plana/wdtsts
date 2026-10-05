@@ -10,8 +10,8 @@ import { ICON } from "../assets.js";
 /** Fixed so the whole prototype agrees on a date. A gaming day is not a calendar day. */
 const GAMING_DAY = "Fri 25 Sep";
 
-/** The supervisor's own area. Not a fixed section: see the area control. */
-export const AREA_NAME = "My whole area";
+/** What the supervisor is responsible for this shift. */
+export const AREA_NAME = "My Section";
 
 const MODES = [
   ["floor", "Floor", iconGrid],

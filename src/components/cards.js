@@ -20,6 +20,7 @@ const SIZES = {
   sm: { w: 26, h: 36, rank: 13, suit: 12, radius: 3 },
   md: { w: 34, h: 48, rank: 17, suit: 15, radius: 4 },
   lg: { w: 52, h: 73, rank: 25, suit: 22, radius: 6 },
+  xl: { w: 72, h: 101, rank: 35, suit: 31, radius: 8 },
 };
 
 export function playingCard(card, size = "md") {
@@ -53,7 +54,7 @@ const side = (label, cards, totalValue, size, holdSlot) =>
     { style: { display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" } },
     h(
       "div",
-      { style: { display: "flex", gap: size === "lg" ? "6px" : "4px", alignItems: "center" } },
+      { style: { display: "flex", gap: size === "xl" ? "8px" : size === "lg" ? "6px" : "4px", alignItems: "center" } },
       cards.map((c) => playingCard(c, size)),
       holdSlot ? cardSlot(size) : null
     ),
@@ -61,7 +62,7 @@ const side = (label, cards, totalValue, size, holdSlot) =>
       "div",
       { style: { display: "flex", alignItems: "baseline", gap: "6px" } },
       h("span", { text: label, style: { fontSize: "var(--t-micro)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: "700", color: "var(--on-felt-2)" } }),
-      h("span.mono", { text: String(totalValue), style: { fontSize: size === "lg" ? "var(--t-title)" : "var(--t-body)", fontWeight: "700", color: "var(--on-felt)" } })
+      h("span.mono", { text: String(totalValue), style: { fontSize: size === "xl" ? "var(--t-metric)" : size === "lg" ? "var(--t-title)" : "var(--t-body)", fontWeight: "700", color: "var(--on-felt)" } })
     )
   );
 
@@ -73,7 +74,7 @@ const side = (label, cards, totalValue, size, holdSlot) =>
 export function handView(hand, { size = "md" } = {}) {
   return h(
     "div",
-    { style: { display: "flex", alignItems: "center", gap: size === "lg" ? "28px" : "18px" } },
+    { style: { display: "flex", alignItems: "center", gap: size === "xl" ? "40px" : size === "lg" ? "28px" : "18px" } },
     side("Player", hand.player, hand.playerTotal, size, hand.player.length < 3),
     side("Banker", hand.banker, hand.bankerTotal, size, hand.banker.length < 3)
   );

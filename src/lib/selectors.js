@@ -78,7 +78,7 @@ export const topPlayers = (players, limit = 5) => [...players].sort((a, b) => b.
  * `winLoss` on a player is the HOUSE's result against that player. A player
  * who is up is therefore a negative figure, which is why the winners list
  * sorts ascending. Getting that backwards puts the quietest table at the top
- * of a list labelled "biggest winners", so it is worth being explicit.
+ * of a list labeled "biggest winners", so it is worth being explicit.
  */
 
 export const RANKINGS = [

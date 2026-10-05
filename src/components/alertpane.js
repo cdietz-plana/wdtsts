@@ -6,7 +6,7 @@ import { iconChevron, iconPerson } from "./icons.js";
 import { panePodSwitch } from "./performance.js";
 import { felt } from "./seats.js";
 
-/** The right-hand pane. Narrow it summarises; wide it becomes the main canvas. */
+/** The right-hand pane. Narrow it summarizes; wide it becomes the main canvas. */
 export function alertPane(state, dispatch, wide, onAction) {
   return wide ? wideTree(state, dispatch, onAction) : narrowList(state, dispatch, onAction);
 }
@@ -74,7 +74,7 @@ function narrowList(state, dispatch, onAction) {
         },
       })
     ),
-    h("div", { style: { flex: "1", padding: "0 8px 10px", display: "flex", flexDirection: "column", gap: "6px", minHeight: "0", overflow: "hidden" } }, body),
+    h("div", { style: { flex: "1", padding: "0 8px 10px", display: "flex", flexDirection: "column", gap: "9px", minHeight: "0", overflow: "hidden" } }, body),
     h(
       "div",
       { style: { flexShrink: "0", borderTop: "1px solid var(--line)", padding: "11px 14px", display: "flex", alignItems: "center", gap: "9px" } },
@@ -254,10 +254,10 @@ function wideTree(state, dispatch, onAction) {
 
   return h(
     "div",
-    { style: { display: "flex", flexDirection: "column", gap: "11px", padding: "14px 16px 12px 14px", height: "100%", minHeight: "0" } },
+    { style: { display: "flex", flexDirection: "column", gap: "10px", padding: "12px 16px 10px 14px", height: "100%", minHeight: "0" } },
     header,
     key,
-    h("div", { style: { flex: "1", display: "flex", flexDirection: "column", gap: "4px", minHeight: "0", overflow: "hidden" } }, visible.length ? groups : empty)
+    h("div", { style: { flex: "1", display: "flex", flexDirection: "column", gap: "7px", minHeight: "0", overflow: "hidden" } }, visible.length ? groups : empty)
   );
 }
 

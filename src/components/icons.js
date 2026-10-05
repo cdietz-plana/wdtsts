@@ -51,3 +51,49 @@ export const iconPrev = (s = 16) =>
 
 export const iconNote = (s = 15) =>
   svg(s, '<path d="M6 3.5h9l4 4V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z"/><path d="M14.5 3.7V8h4.2"/><path d="M8.5 12.5h7M8.5 16h4.5"/>', 'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"');
+
+/* --- Override controls ------------------------------------------------------
+   Eight glyphs for the Override screen, drawn on the same 24px grid and in the
+   same stroke language as everything above.
+
+   These correspond to named Lucide icons, listed beside each one. They are
+   drawn here rather than pulled from the library because the prototype takes
+   no runtime dependency: it runs from a folder with nothing installed, and an
+   icon set fetched from a CDN is one blocked request away from a screen full
+   of empty boxes on a casino network. Swapping in the real Lucide assets is a
+   one-line change per icon if WDTS wants pixel-exact.
+   --------------------------------------------------------------------------- */
+
+const stroke = 'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
+
+/** lucide: copy-slash. Voiding a hand is a copy with a line through it. */
+export const iconVoid = (s = 24) =>
+  svg(s, '<rect x="9" y="9" width="12.5" height="12.5" rx="2.4"/><path d="M5.5 15H4.5a2 2 0 0 1-2-2V4.5a2 2 0 0 1 2-2H13a2 2 0 0 1 2 2v1"/><path d="m11.8 18.7 6.9-6.9"/>', stroke);
+
+/** lucide: replace. */
+export const iconReplace = (s = 24) =>
+  svg(s, '<rect x="2.5" y="13.5" width="8.5" height="8.5" rx="2.2"/><path d="M14 3.6a2 2 0 0 1 2-2"/><path d="M20 1.6a2 2 0 0 1 2 2"/><path d="M22 7.6a2 2 0 0 1-2 2"/><path d="M16 9.6a2 2 0 0 1-2-2"/><path d="M6.8 10.6V5.8a3 3 0 0 1 3-3h1.4"/><path d="m3.8 7.6 3 3 3-3"/>', stroke);
+
+/** lucide: hand-coins. Settling a position by hand, with the money in it. */
+export const iconSettle = (s = 24) =>
+  svg(s, '<circle cx="6.4" cy="5.8" r="3"/><circle cx="16.8" cy="8.4" r="2.6"/><path d="M10.6 15.4h2.2a1.9 1.9 0 0 0 0-3.8H10c-.6 0-1.1.2-1.5.6L3.2 17.4"/><path d="m7.2 21.6 1.6-1.5c.4-.4.9-.6 1.5-.6h3.8c1 0 2-.4 2.7-1.1l3.8-3.6"/><path d="m2.2 16.4 5.4 5.4"/>', stroke);
+
+/** lucide: copy-x. */
+export const iconCancelBets = (s = 24) =>
+  svg(s, '<rect x="9" y="9" width="12.5" height="12.5" rx="2.4"/><path d="M5.5 15H4.5a2 2 0 0 1-2-2V4.5a2 2 0 0 1 2-2H13a2 2 0 0 1 2 2v1"/><path d="m12.2 12.2 6.1 6.1M18.3 12.2l-6.1 6.1"/>', stroke);
+
+/** lucide: flame. */
+export const iconFlame = (s = 24) =>
+  svg(s, '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>', stroke);
+
+/** lucide: playing-cards. The buffer is cards read ahead of the deal. */
+export const iconCardBuffer = (s = 24) =>
+  svg(s, '<rect x="9.6" y="4.4" width="11.6" height="17.2" rx="2.2"/><path d="M6.9 19.9 2.9 9.1a2 2 0 0 1 1.1-2.6l4.4-1.7"/>', stroke);
+
+/** lucide: book-bookmark. */
+export const iconBook = (s = 24) =>
+  svg(s, '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M9.2 2v8.2l2.6-2 2.6 2V2"/>', stroke);
+
+/** lucide: scroll-text. */
+export const iconScroll = (s = 24) =>
+  svg(s, '<path d="M19 17V5a2 2 0 0 0-2-2H4.5"/><path d="M8 21h11a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H10a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2h4"/><path d="M14.8 8H9.6"/><path d="M14.8 12H9.6"/>', stroke);

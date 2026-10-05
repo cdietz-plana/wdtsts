@@ -1,5 +1,5 @@
 /* =============================================================================
-   Components. Every colour here comes from a token in tokens.css.
+   Components. Every color here comes from a token in tokens.css.
    ========================================================================== */
 
 .ltg {
@@ -16,7 +16,7 @@
   transition: background var(--dur-theme) ease, color var(--dur-theme) ease;
 }
 
-.ltg[data-theme="light"] {
+.ltg[data-theme="simple"] {
   border: 1px solid var(--line-strong);
 }
 
@@ -41,7 +41,7 @@
   transform: scale(1.04);
 }
 /* Crimson at the top left where the glass ceiling is, black everywhere else.
-   Deliberately faint. Colour in this product has exactly one job, which is
+   Deliberately faint. Color in this product has exactly one job, which is
    "needs attention", and a crimson wash across half the screen takes that job
    away from the alerts. The warmth should be felt, not seen.
 
@@ -174,7 +174,7 @@
 /* Six equal cards, three across. Equal cells are the point: no pod outranks
    another, so nothing in the geometry is allowed to say otherwise. */
 .plan {
-  flex: 1; min-height: 0; border-radius: 14px; overflow: hidden;
+  flex: 1; min-height: 0; border-radius: var(--r-lg); overflow: visible;
   background: var(--plan-bg); border: 1px solid var(--plan-border);
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
   grid-auto-rows: 1fr; gap: 14px; padding: var(--plan-pad);
@@ -195,22 +195,17 @@
    so it is where the room gets to be a room. */
 /* Not fully transparent: the rows carry small faint text, and small faint text
    over a photograph is where legibility goes to die. A thin sheet of the same
-   neutralising glass keeps the room visible and gives the type a floor. */
+   neutralizing glass keeps the room visible and gives the type a floor. */
 
 
 .ltg[data-theme="dark"] .pane--content,
 .ltg[data-theme="glass"] .pane--content { padding: 16px 18px; }
 /* When the pods collapse to a rail they carry small type too, so the rail gets
    the same thin floor the alert rail has. The room still reads through it. */
-.ltg[data-theme="dark"] .pane--content[data-narrow="true"] {
-  background: rgba(9, 8, 13, 0.52);
-  backdrop-filter: blur(2px) saturate(80%) brightness(0.85);
-  -webkit-backdrop-filter: blur(2px) saturate(80%) brightness(0.85);
-}
-.ltg[data-theme="glass"] .pane--content[data-narrow="true"] {
-  background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(3px) saturate(60%) brightness(1.25);
-  -webkit-backdrop-filter: blur(3px) saturate(60%) brightness(1.25);
+.pane--content[data-narrow="true"] {
+  background: var(--narrow-rail-bg);
+  backdrop-filter: var(--floor-blur, none);
+  -webkit-backdrop-filter: var(--floor-blur, none);
 }
 
 .pod { display: flex; min-width: 0; min-height: 0; cursor: pointer; border: 0; padding: 0; background: none; text-align: left; font: inherit; color: inherit; transition: transform 180ms ease; }
@@ -234,7 +229,7 @@
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 
-/* A seat dot is a person. Colour is the value band, size follows it, and the
+/* A seat dot is a person. Color is the value band, size follows it, and the
    ring means the player is ahead of the house. See lib/playervalue.js. */
 .seat { border-radius: 50%; background: var(--seat); flex-shrink: 0; display: block; }
 .seat--empty { background: none; border: 1.5px solid var(--seat); }
@@ -352,7 +347,13 @@
   padding: 13px 14px; border-radius: 12px; border: 1px solid var(--line); cursor: pointer;
   font: inherit; font-size: var(--t-action); background: var(--surface); color: var(--ink); text-align: left; width: 100%;
 }
-.option[aria-pressed="true"] { border-color: var(--critical); background: var(--critical-wash); }
+.option[aria-pressed="true"] {
+  border-color: var(--ink); background: var(--surface-sunken); font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--ink);
+}
+/* Five choices and a position picker in one step. The rule is that no step
+   scrolls, so the options get tighter rather than the step getting taller. */
+.option--tight { padding: 9px 12px; font-size: var(--t-body); border-radius: var(--r-md); }
 
 .keypad { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; align-content: start; min-height: 0; }
 .key {
@@ -376,7 +377,7 @@
 
 /* --- toast ----------------------------------------------------------------- */
 .toast {
-  position: absolute; z-index: 12; left: 50%; bottom: 22px;
+  position: absolute; z-index: 72; left: 50%; bottom: 22px;
   transform: translate(-50%, 24px); opacity: 0; transition: all var(--dur-theme);
   padding: 12px 20px; border-radius: 12px; font-size: var(--t-action); font-weight: 500; pointer-events: none;
   background: var(--ink); color: var(--bg);
@@ -410,7 +411,7 @@
   flex-shrink: 0;
   box-shadow: var(--shadow-card);
 }
-.ltg[data-theme="light"] .login__plate,
+.ltg[data-theme="simple"] .login__plate,
 .ltg[data-theme="square"] .login__plate { box-shadow: none; padding: 0; }
 
 .login__logo { display: block; width: 292px; height: auto; }
@@ -504,9 +505,9 @@
 .segmented--sm button { font-size: var(--t-detail); padding: 6px 10px; gap: 6px; }
 /* The wall clock is reference, not pressure. It sits in the same strip as the
    two countdowns and must not outrank them. */
-/* Baseline alignment was pushing the pair off-centre in the pill: the micro
+/* Baseline alignment was pushing the pair off-center in the pill: the micro
    label and the numerals have different line boxes, so sharing a baseline is
-   not the same as sharing a centre. Centre both, and give the label a line
+   not the same as sharing a center. Center both, and give the label a line
    height so its box matches its ink. */
 /* The two figures that replaced the countdowns on the bar. Right aligned and
    set in the metric size, because they are read as numbers rather than as
@@ -543,12 +544,21 @@ textarea.field { min-height: 62px; line-height: 1.45; }
 /* --- dark: type that sits on the room rather than on a panel ---------------
    The legend and the hint have no card under them. A shadow is cheaper and
    more honest than putting a slab behind three words. */
-.plan-legend { color: var(--legend-ink); text-shadow: var(--legend-shadow); }
+.plan-legend {
+  color: var(--legend-ink);
+  text-shadow: var(--legend-shadow);
+  background: var(--legend-bg);
+  backdrop-filter: var(--legend-blur);
+  -webkit-backdrop-filter: var(--legend-blur);
+  border-radius: var(--r-md);
+  padding: 7px 12px;
+  flex-shrink: 0;
+}
 /* The legend sits directly on the room in two themes, so its labels take the
    legend's ink rather than the quiet ink they would use inside a card. */
 .plan-legend .micro, .plan-legend b { color: var(--legend-ink); }
 /* Status chips over a photograph need their own floor, or the wash disappears
-   and the coloured text is left sitting on whatever is behind it. */
+   and the colored text is left sitting on whatever is behind it. */
 .ltg[data-theme="dark"] .pill,
 .ltg[data-theme="dark"] .tag {
   backdrop-filter: blur(12px) saturate(25%) brightness(0.34);
@@ -588,7 +598,7 @@ textarea.field { min-height: 62px; line-height: 1.45; }
 /* Nearly opaque: this one is being read, not glanced at, and the room behind
    the glass competes with a paragraph in a way it does not with a figure. */
 .ltg[data-theme="dark"] .tiptip { background: rgba(21, 19, 27, 0.97); }
-.ltg[data-theme="light"] .tiptip,
+.ltg[data-theme="simple"] .tiptip,
 .ltg[data-theme="square"] .tiptip,
 .ltg[data-theme="glass"] .tiptip { background: #fff; }
 .tiptip[data-open="true"] { opacity: 1; pointer-events: auto; transform: none; }
@@ -612,4 +622,46 @@ textarea.field { min-height: 62px; line-height: 1.45; }
 }
 .rank-chip[aria-pressed="true"] {
   background: var(--seat-on); border-color: var(--seat-on); color: var(--bg);
+}
+
+/* Six names with two figures each, read down the column rather than scanned.
+   A hairline between them does what the gap was failing to do, and it costs
+   nothing on a surface this quiet. */
+.player-list > .row + .row { border-top-color: var(--line); border-radius: 0; }
+.player-list > .row:hover { border-radius: var(--r-md); }
+
+/* Position keys on the override panel. Seat numbers, at key size, because the
+   supervisor is matching them against the felt in front of them. */
+.seat-key {
+  width: 46px; height: 46px; border-radius: var(--r-md);
+  border: 1px solid var(--line-strong); background: var(--surface);
+  font: inherit; font-size: var(--t-action); font-weight: 700; color: var(--ink);
+  cursor: pointer;
+}
+.seat-key[aria-pressed="true"] { background: var(--seat-on); border-color: var(--seat-on); color: var(--bg); }
+.seat-key[disabled] { opacity: 0.34; cursor: default; }
+
+/* A section label that sits on the pane rather than inside a card. In the two
+   themes with a room behind the pane it needs a floor, for the same reason the
+   floor legend does: small type over a photograph has nothing to sit against. */
+.section-head {
+  background: var(--legend-bg);
+  backdrop-filter: var(--legend-blur);
+  -webkit-backdrop-filter: var(--legend-blur);
+  border-radius: var(--r-sm);
+  padding: 5px 9px;
+  align-self: flex-start;
+  max-width: 100%;
+}
+
+/* The player record rises from the bottom edge and goes back down the way it
+   came. Mount and unmount are not symmetrical in a re-render-everything model,
+   so the exit is driven by a data attribute while the element is still there,
+   and the store is told once the animation has run. */
+.sheet--rise { animation: sheet-rise 260ms cubic-bezier(0.22, 0.9, 0.3, 1) both; }
+.sheet--rise[data-closing="true"] { animation: sheet-fall 200ms cubic-bezier(0.55, 0, 0.78, 0.2) both; }
+@keyframes sheet-rise { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes sheet-fall { from { transform: none; } to { transform: translateY(100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .sheet--rise, .sheet--rise[data-closing="true"] { animation: none; }
 }

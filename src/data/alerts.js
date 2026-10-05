@@ -4,7 +4,7 @@
  * Every count in the UI derives from this list. Add an alert here and it
  * appears everywhere it belongs, with the totals still agreeing.
  *
- * NOT MODELLED YET, and undefined in the WDTS requirements: acknowledge,
+ * NOT MODELED YET, and undefined in the WDTS requirements: acknowledge,
  * escalate, auto-clear, expiry, and what happens to an alert nobody opens.
  * The tree cannot ship without those.
  *
@@ -16,10 +16,7 @@ export const initialAlerts = [
     title: "Table offline",
     detail: "Stopped responding at 18:18. Last good chip count 18:04.",
     ageSeconds: 252,
-    actions: [
-      { label: "Hold pod", intent: "hold-pod" },
-      { label: "Diagnose", primary: true, intent: "open-table" },
-    ],
+    actions: [{ label: "Diagnose", primary: true, intent: "open-table" }],
   },
   {
     id: "a2", podId: "p1", tableId: "t3", severity: "critical", flags: ["blocks-roll"],
@@ -42,12 +39,12 @@ export const initialAlerts = [
   },
   {
     id: "a4", podId: "p4", tableId: "t14", severity: "critical", flags: ["blocks-roll", "needs-signature"],
-    title: "Fill awaiting your authorisation",
+    title: "Fill awaiting your authorization",
     detail: "500,000 requested. Chips are delivered to BA0104, the Primary, not to the table that asked.",
     ageSeconds: 123,
     actions: [
       { label: "Reject", intent: "dismiss" },
-      { label: "Authorise", primary: true, intent: "authorise-fill" },
+      { label: "Authorize", primary: true, intent: "authorize-fill" },
     ],
   },
   {
@@ -101,10 +98,7 @@ export const initialAlerts = [
     title: "Shoe finished, cards needed",
     detail: "Cut card reached on the Primary. All four tables are stopped until the new shoe is loaded, because the pod shares one Shoe ID.",
     ageSeconds: 96,
-    actions: [
-      { label: "Hold pod", intent: "hold-pod" },
-      { label: "Cards on the way", primary: true, intent: "dismiss" },
-    ],
+    actions: [{ label: "Cards on the way", primary: true, intent: "dismiss" }],
   },
   {
     id: "a10", podId: "p3", tableId: "t10", severity: "low", flags: [],

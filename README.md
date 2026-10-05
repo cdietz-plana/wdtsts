@@ -1,13 +1,13 @@
 # LTG Supervisor Tablet — interaction prototype
 
 A clickable prototype of the **Mobile Manager** supervisor tablet for Walker
-Digital Table Systems' Linked Table Games programme. It exists to settle
+Digital Table Systems' Linked Table Games program. It exists to settle
 interaction questions the requirements documents leave open, and to be argued
 with. It is not production code.
 
 ![Floor view, dark theme](docs/floor-dark.png)
 
-<sub>Floor. Six equal pods; colour only where something needs attention.</sub>
+<sub>Floor. Six equal pods; color only where something needs attention.</sub>
 
 ![Performance view, dark theme](docs/performance-dark.png)
 
@@ -127,7 +127,7 @@ it. Each entry says what the term means and why it changes a design decision.
 
 **Two themes.** Light is WDTS brand. Dark is a glass treatment over a
 photograph of a room, where every frosted surface desaturates and dims what is
-behind it, so the room keeps its colour in the gutters and a card over the red
+behind it, so the room keeps its color in the gutters and a card over the red
 ceiling still reads as a neutral card.
 
 **Type and contrast are measured, not judged.** Every piece of text in both
@@ -164,7 +164,7 @@ src/
     dom.js                 a 30-line view layer (h / fragment / clear)
     selectors.js           every derived count lives here
     format.js              money, ages, clocks
-    severity.js            colour has exactly one job: needs attention.
+    severity.js            color has exactly one job: needs attention.
                            sevColor marks, sevInk words, sevOn words reversed
                            out of a filled chip
     live.js                the four values that change every second
@@ -189,7 +189,7 @@ tree, the filter chips and the footer tally cannot drift apart. An earlier
 draft stored these separately and immediately contradicted itself.
 
 **`styles/tokens.css` is the deliverable.** Both themes are defined there and
-nowhere else; no component hard-codes a colour. Dark is not a tint of light —
+nowhere else; no component hard-codes a color. Dark is not a tint of light —
 the brand crimson `#a81e33` all but vanishes on a dark ground, so dark mode
 runs a lifted `#ff5c72`. That is a design-system decision for WDTS to confirm,
 not a styling whim.
@@ -207,12 +207,12 @@ Built out: sign-in, the floor plan in all three states, the pod switcher, the
 alert tree at all three levels, pod detail with a panel that switches between
 alerts and people, table detail with the Live / Chips / Players / Sessions /
 Games tabs, the player record, notification thresholds, help, the account
-sheet, the Adjust, Authorise-fill and Approve-rating flyouts, pod hold, and
+sheet, the Adjust, Authorize-fill and Approve-rating flyouts, pod hold, and
 scanning.
 
 Stubbed with an explanation on screen: the **Override** tab.
 
-Not modelled at all, because the WDTS requirements do not define it: the
+Not modeled at all, because the WDTS requirements do not define it: the
 **alert lifecycle** — acknowledge, escalate, auto-clear, expiry, and what
 happens to an alert nobody ever opens. The tree cannot ship without it, and
 that is the first thing to settle with the client.

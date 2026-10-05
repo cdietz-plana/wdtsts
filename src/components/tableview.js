@@ -5,6 +5,7 @@ import { currentHand, gamesFor } from "../data/games.js";
 import { alertsForTable, findPod, findTable, limitsLabel, playersForTable, shortTableLabel } from "../lib/selectors.js";
 import { handView } from "./cards.js";
 import { iconScan } from "./icons.js";
+import { overrideTab } from "./override.js";
 import { felt, seats } from "./seats.js";
 
 /**
@@ -30,15 +31,16 @@ export function tableView(state, dispatch, { onScan, onAdjust, onOrderFill, onRe
     )
   );
 
+  const pod = findPod(state.pods, state.podId);
+
   let body;
   if (state.tab === "chips") body = chipsTab(state, table, onScan, onAdjust, onOrderFill);
   else if (state.tab === "live") body = liveTab(state, table, dispatch);
   else if (state.tab === "players") body = playersTab(state, table, dispatch, onResolve);
   else if (state.tab === "sessions") body = sessionsTab(state, table, dispatch);
   else if (state.tab === "games") body = gamesTab(table);
-  else body = stubTab(state.tab);
+  else body = overrideTab(state, table, pod, dispatch);
 
-  const pod = findPod(state.pods, state.podId);
   // "Easy navigation from table to table": the other three are one tap away
   // and never more than one tap, because a supervisor comparing two tables in
   // a pod should not have to climb out and back in.
@@ -133,7 +135,7 @@ function chipsTab(state, table, onScan, onAdjust, onOrderFill) {
       table.variance
         ? h("button.btn.btn--big", { text: "Adjust the tray", on: { click: () => onAdjust(table.id) } })
         : null,
-      // Review feedback: a supervisor could authorise a fill somebody else
+      // Review feedback: a supervisor could authorize a fill somebody else
       // asked for but had no way to raise one, which is the half of the job
       // they actually start.
       h("button.btn.btn--ghost.btn--big", {
@@ -176,15 +178,15 @@ function liveTab(state, table, dispatch) {
   const hand = currentHand(table.id);
   return h(
     "div.card.fade-in",
-    { style: { flex: "1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "18px", padding: "24px" } },
+    { style: { flex: "1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-evenly", gap: "10px", padding: "18px" } },
     seats(table, playersForTable(state.players, table.id), {
-      scale: 1.55,
-      gap: 10,
+      tap: true,
+      gap: 14,
       onPick: (player) => dispatch({ type: "open-player", playerId: player.id }),
     }),
     // Rank and suit, as asked. Up to now this drew four blank rectangles,
     // which told a supervisor that cards exist.
-    felt(table, { width: 480, height: 168, children: handView(hand, { size: "lg" }) }),
+    felt(table, { width: 640, height: 232, children: handView(hand, { size: "xl" }) }),
     h(
       "div",
       { style: { display: "flex", gap: "28px" } },
@@ -375,20 +377,4 @@ function gameRow(g) {
       );
 }
 
-const STUB_COPY = {
-  override: [
-    "Override",
-    "Void hand, cancel bets, settle, card buffer. Every control here is urgent and consequential, so it opens as a confirmed action rather than a flat form. On a Secondary this screen is visibly smaller: Card Buffer, Void Hand and Burn Cards belong to the Primary.",
-  ],
-};
 
-function stubTab(tab) {
-  const [title, body] = STUB_COPY[tab];
-  return h(
-    "div.card.fade-in",
-    { style: { flex: "1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "12px", padding: "30px", textAlign: "center" } },
-    h("div.display", { text: title, style: { fontSize: "var(--t-metric)", fontWeight: "700" } }),
-    h("div", { text: body, style: { fontSize: "var(--t-action)", color: "var(--ink-2)", maxWidth: "520px", lineHeight: "1.55" } }),
-    h("div", { text: "Not built out in this prototype.", style: { fontSize: "var(--t-detail)", color: "var(--ink-3)" } })
-  );
-}

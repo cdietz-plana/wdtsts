@@ -1,5 +1,5 @@
 /**
- * Colour has exactly one job in this system: needs attention.
+ * Color has exactly one job in this system: needs attention.
  * Table identity and seat occupancy are carried by shape and fill weight.
  */
 export const sevColor = (s) =>
@@ -8,7 +8,7 @@ export const sevColor = (s) =>
 /**
  * The same severity, for TEXT sitting on its own wash.
  *
- * A signal colour is chosen to be seen against the page. Printed as type on a
+ * A signal color is chosen to be seen against the page. Printed as type on a
  * tinted chip of itself it loses most of its contrast, which is why the alert
  * counts were the only thing in the product that could not reach AA. Dots,
  * bars and borders keep sevColor; words get this.

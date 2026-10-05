@@ -17,8 +17,8 @@ const HELP = [
     a: "Four tables share one shoe, one countdown and one gaming day. A card change or a roll stops all four, and the chips and signed slips route through the Primary. Treating a pod as four independent tables is what makes the old dashboard hard to read.",
   },
   {
-    q: "What does colour mean?",
-    a: "One thing: needs attention. Crimson is critical, amber is high, green is settled. Colour is never used for identity, so nothing is red because of what it is.",
+    q: "What does color mean?",
+    a: "One thing: needs attention. Crimson is critical, amber is high, green is settled. Color is never used for identity, so nothing is red because of what it is.",
   },
   {
     q: "Floor, Performance, Alerts",
@@ -30,11 +30,11 @@ const HELP = [
   },
   {
     q: "Adjusting a chip tray",
-    a: "Reason code, verification scan, second signature. The signature is a real authorisation and it goes on the audit trail with your ID. Confirming it clears the alert everywhere it appears at once.",
+    a: "Reason code, verification scan, second signature. The signature is a real authorization and it goes on the audit trail with your ID. Confirming it clears the alert everywhere it appears at once.",
   },
   {
     q: "Something is wrong and it is not listed",
-    a: "Call the pit manager. This tablet records and authorises; it does not replace the phone.",
+    a: "Call the pit manager. This tablet records and authorizes; it does not replace the phone.",
   },
 ];
 
@@ -97,10 +97,10 @@ export function accountSheet(state, dispatch) {
       h(
         "div.card",
         { style: { width: "460px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "4px" } },
-        field("Section", "Section 4 · North Baccarat"),
+        field("Section", "My Section · North Baccarat"),
         field("Assigned", "6 pods · 24 tables"),
         field("Shift", `Swing · signed in 17:52 · now ${wallClock(state.clockSeconds)}`),
-        field("Authority", "Approve ratings, authorise fills, adjust trays"),
+        field("Authority", "Approve ratings, authorize fills, adjust trays"),
         h(
           "div",
           { style: { display: "flex", gap: "10px", marginTop: "14px" } },

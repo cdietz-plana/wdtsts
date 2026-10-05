@@ -12,7 +12,7 @@
  *
  * ASSUMED, NOT SPECIFIED: tiers, marker and RIM balances, front money and
  * bankroll history all live in the loyalty and casino management systems, not
- * in the table system. They are modelled here so the screens can be designed.
+ * in the table system. They are modeled here so the screens can be designed.
  * Which system serves each field is an open integration question.
  *
  * @type {import("../types.js").Player[]}

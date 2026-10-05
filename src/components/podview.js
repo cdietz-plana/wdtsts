@@ -45,7 +45,7 @@ const metric = (label, value, color) =>
 const tile = (label, value, color) =>
   h(
     "div",
-    { style: { background: "var(--surface-soft)", borderRadius: "var(--r-md)", padding: "9px 11px" } },
+    { style: { background: "var(--surface-soft)", borderRadius: "var(--r-md)", border: "1px solid var(--line-strong)", padding: "9px 11px" } },
     h("div.micro", { text: label }),
     h("div.mono.display", { text: value, style: { fontSize: "var(--t-title)", fontWeight: "600", color: color || "" } })
   );
@@ -83,7 +83,7 @@ export function podView(state, dispatch, onAlertAction) {
 
   const strip = h(
     "div.card",
-    { style: { flexShrink: "0", height: "88px", display: "flex", alignItems: "center", padding: "0 18px", gap: "30px" } },
+    { style: { flexShrink: "0", height: "88px", display: "flex", alignItems: "center", padding: "0 18px", gap: "26px" } },
     metric("Win / loss", money(perf.win), perf.win < 0 ? "var(--critical-ink)" : "var(--ok-ink)"),
     metric("Buy-in", money(totals.buyIn)),
     metric("Handle", compact(perf.handle)),
@@ -91,17 +91,20 @@ export function podView(state, dispatch, onAlertAction) {
     h("span", { style: { flex: "1" } }),
     h(
       "div",
-      { style: { textAlign: "right" } },
+      { style: { textAlign: "right", flexShrink: "0", whiteSpace: "nowrap" } },
       h("div.micro", { text: "Shared shoe" }),
       h("div.mono.display", { text: "Shoe 9 · game 9", style: { fontSize: "var(--t-body)", fontWeight: "600" } }),
-      h("div", { text: "one shoe across all four tables", style: { fontSize: "var(--t-micro)", color: "var(--ink-3)" } })
+      // The caption explaining that the shoe is shared is the first thing to
+      // go when the header is carrying a hold: the hold says the same thing
+      // more usefully, because a held pod IS all four tables stopping.
+      held ? null : h("div", { text: "one shoe across all four tables", style: { fontSize: "var(--t-micro)", color: "var(--ink-3)" } })
     ),
     held
       ? h(
           "span.pill",
-          { style: { background: "var(--high-wash)", borderColor: "var(--high-edge)", color: "var(--high-ink)" } },
+          { style: { background: "var(--high-wash)", borderColor: "var(--high-edge)", color: "var(--high-ink)", flexShrink: "0" } },
           h("span.dot", { style: { background: "var(--high)" } }),
-          "Pod held by the dealer"
+          "Held by dealer"
         )
       : null
   );
@@ -121,12 +124,19 @@ export function podView(state, dispatch, onAlertAction) {
         h("span.tag", { text: "PRIMARY · CHIP DOOR", style: { background: "var(--surface-soft)", color: "var(--ink)" } }),
         h("div.display", { text: primary.name, style: { fontSize: "var(--t-metric)", fontWeight: "700", marginTop: "6px" } })
       ),
-      h(
-        "span.pill",
-        { style: { background: "var(--ok-wash)", borderColor: "var(--ok-edge)", color: "var(--ok-ink)" } },
-        h("span.dot", { style: { background: "var(--ok)" } }),
-        held ? "Held" : "Dealing"
-      )
+      held
+        ? h(
+            "span.pill",
+            { style: { background: "var(--high-wash)", borderColor: "var(--high-edge)", color: "var(--high-ink)" } },
+            h("span.dot", { style: { background: "var(--high)" } }),
+            "Held"
+          )
+        : h(
+            "span.pill",
+            { style: { background: "var(--ok-wash)", borderColor: "var(--ok-edge)", color: "var(--ok-ink)" } },
+            h("span.dot", { style: { background: "var(--ok)" } }),
+            "Dealing"
+          )
     ),
     h(
       "div",

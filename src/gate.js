@@ -79,6 +79,10 @@ async function boot() {
 }
 
 function wire() {
+  // The repo's index.html sets this on <body> directly. Published as an
+  // artifact the skeleton owns <body>, so the gate sets it itself.
+  document.body.setAttribute("data-gated", "");
+
   const form = document.getElementById("gate-form");
   const input = document.getElementById("gate-code");
   const error = document.getElementById("gate-error");

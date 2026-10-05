@@ -1,14 +1,31 @@
 import { h } from "../lib/dom.js";
 import { money } from "../lib/format.js";
-import { findTable } from "../lib/selectors.js";
+import { findTable, playersForTable, podOfTable } from "../lib/selectors.js";
+import { findOverride } from "./override.js";
 import { iconBackspace, iconCard, iconClose, iconScan, iconTick } from "./icons.js";
 
 const TITLES = {
   adjust: ["Adjust chip tray", "BA0101B · variance (1,000)"],
-  fill: ["Authorise fill", "BA0104A · 500,000"],
+  fill: ["Authorize fill", "BA0104A · 500,000"],
   rating: ["Approve rating", "BA0102 · seat 3"],
   order: ["Order a fill", "Chips to this pod"],
+  override: ["Override", "Changes a settled result"],
 };
+
+/**
+ * Why an override was raised. Deliberately not the tray reasons: a tray is out
+ * of balance for accounting reasons, a result is overridden for gameplay ones,
+ * and a shared list would make both useless on the audit trail.
+ *
+ * ASSUMED. The requirements name no reason codes at all.
+ */
+const OVERRIDE_REASONS = [
+  "Dealer error at pay or take",
+  "Card misread by the table",
+  "Bet placed after the cut-off",
+  "Player dispute, floor decision",
+  "Other, add a note",
+];
 
 /** Preset amounts. A fill is ordered in round numbers, not typed to the dollar. */
 const FILL_AMOUNTS = [100000, 250000, 500000, 1000000];
@@ -33,7 +50,8 @@ export function flyout(state, dispatch, { onScan, onResolve }) {
 
   const kind = fly.kind;
   const steps = kind === "adjust" ? 3 : 2;
-  const [title, subtitle] = TITLES[kind];
+  const over = kind === "override" ? findOverride(fly.overrideId) : null;
+  const [title, subtitle] = over ? [over.label, "Changes a settled result"] : TITLES[kind];
 
   panel.appendChild(
     h(
@@ -66,6 +84,7 @@ export function flyout(state, dispatch, { onScan, onResolve }) {
   if (kind === "fill") fillBody(panel, state, dispatch, onResolve);
   if (kind === "rating") ratingBody(panel, state, dispatch, onResolve);
   if (kind === "order") orderBody(panel, state, dispatch);
+  if (kind === "override") overrideBody(panel, state, dispatch, over);
 
   return panel;
 }
@@ -130,7 +149,7 @@ function adjustBody(panel, state, dispatch, onScan, onResolve) {
     panel.appendChild(h("button.btn.btn--ghost.btn--big", { text: "Back", style: { flexShrink: "0" }, on: { click: () => dispatch({ type: "flyout-step", step: 1 }) } }));
   } else {
     panel.appendChild(
-      authorisation(state, dispatch, "Confirm adjustment", () =>
+      authorization(state, dispatch, "Confirm adjustment", () =>
         onResolve("a2", "Tray adjusted. BA0101B is back in balance and no longer blocks the roll.")
       )
     );
@@ -177,15 +196,15 @@ function fillBody(panel, state, dispatch, onResolve) {
     );
   } else {
     panel.appendChild(
-      authorisation(state, dispatch, "Confirm fill", () =>
-        onResolve("a4", "Fill authorised. Chips are on their way to BA0104, the Primary.")
+      authorization(state, dispatch, "Confirm fill", () =>
+        onResolve("a4", "Fill authorized. Chips are on their way to BA0104, the Primary.")
       )
     );
   }
 }
 
 /**
- * Ordering a fill, as opposed to authorising one somebody else asked for.
+ * Ordering a fill, as opposed to authorizing one somebody else asked for.
  *
  * Review feedback: the prototype could approve a fill request but a supervisor
  * had no way to raise one, which is the half of the job they actually start.
@@ -248,9 +267,121 @@ function orderBody(panel, state, dispatch) {
     );
   } else {
     panel.appendChild(
-      authorisation(state, dispatch, "Order the fill", () => {
+      authorization(state, dispatch, "Order the fill", () => {
         dispatch({ type: "flyout-close" });
         dispatch({ type: "toast", message: `Fill ordered. ${money(amount)} to ${primary.name}, the Primary.` });
+      })
+    );
+  }
+}
+
+/**
+ * Raising an override.
+ *
+ * Two steps, and the first one will not pass until the supervisor has named a
+ * position (where the action needs one) and a reason. That is the whole design
+ * argument for this screen: the rest of the product is built to remove taps,
+ * and this one is built to add them, because an override that was easy to
+ * raise is the one nobody can explain afterwards.
+ */
+function overrideBody(panel, state, dispatch, action) {
+  const fly = state.flyout;
+  const table = findTable(state.pods, state.tableId);
+  const pod = podOfTable(state.pods, state.tableId);
+  const seated = playersForTable(state.players, table.id);
+  const needsPosition = !!action.needsPosition;
+  const ready = (!needsPosition || fly.position) && fly.reason;
+
+  if (fly.step > 1) {
+    const what = needsPosition ? `Seat ${fly.position} · ${fly.reason}` : fly.reason;
+    panel.appendChild(stepDone("Raising", what, () => dispatch({ type: "flyout-step", step: 1 })));
+  }
+
+  if (fly.step === 1) {
+    const blast = h(
+      "div.card",
+      { style: { padding: "13px 15px" } },
+      h("div.micro", { text: "What this changes" }),
+      h("div", { text: action.what, style: { fontSize: "var(--t-body)", marginTop: "4px", lineHeight: "1.5" } }),
+      action.group === "game"
+        ? h("div", {
+            text: `${pod.name} shares one shoe, so this stops all four tables, not just ${table.name}.`,
+            style: { fontSize: "var(--t-detail)", color: "var(--critical-ink)", marginTop: "8px", lineHeight: "1.45", fontWeight: "600" },
+          })
+        : null
+    );
+
+    const positions = needsPosition
+      ? h(
+          "div.card",
+          { style: { padding: "13px 15px", display: "flex", flexDirection: "column", gap: "9px" } },
+          h("div.micro", { text: "Position" }),
+          h(
+            "div",
+            { style: { display: "flex", flexWrap: "wrap", gap: "7px" } },
+            Array.from({ length: table.seats }, (_, i) => i + 1).map((seat) => {
+              const person = seated.find((p) => p.seat === seat);
+              return h("button.seat-key", {
+                text: String(seat),
+                "aria-pressed": String(fly.position === seat),
+                "aria-label": person ? `Seat ${seat}, ${person.name}` : `Seat ${seat}, empty`,
+                title: person ? person.name : "Empty",
+                disabled: !person,
+                on: { click: () => dispatch({ type: "flyout-position", position: seat }) },
+              });
+            })
+          ),
+          h("div", {
+            text: fly.position
+              ? (seated.find((p) => p.seat === fly.position) || {}).name || ""
+              : "Empty seats cannot be overridden.",
+            style: { fontSize: "var(--t-detail)", color: "var(--ink-2)" },
+          })
+        )
+      : null;
+
+    const reasons = h(
+      "div.card",
+      { style: { padding: "12px 14px", display: "flex", flexDirection: "column", gap: "6px" } },
+      h("div.micro", { text: "Reason, required" }),
+      OVERRIDE_REASONS.map((r) =>
+        h("button.option.option--tight", {
+          text: r,
+          "aria-pressed": String(fly.reason === r),
+          on: { click: () => dispatch({ type: "flyout-reason", reason: r }) },
+        })
+      )
+    );
+
+    panel.appendChild(
+      h(
+        "div",
+        { style: { flex: "1", minHeight: "0", overflow: "auto", display: "flex", flexDirection: "column", gap: "9px" } },
+        blast,
+        positions,
+        reasons
+      )
+    );
+    panel.appendChild(
+      navRow(
+        h("button.btn.btn--ghost.btn--big", { text: "Cancel", style: { flex: "1" }, on: { click: () => dispatch({ type: "flyout-close" }) } }),
+        h("button.btn.btn--big", {
+          text: "Continue",
+          style: { flex: "2" },
+          disabled: !ready,
+          on: { click: () => ready && dispatch({ type: "flyout-step", step: 2 }) },
+        })
+      )
+    );
+  } else {
+    panel.appendChild(
+      authorization(state, dispatch, `Authorize ${action.label.toLowerCase()}`, () => {
+        dispatch({ type: "flyout-close" });
+        const where = action.needsPosition ? ` on seat ${fly.position}` : "";
+        dispatch({
+          type: "toast",
+          message: `${action.label}${where} authorized. Both IDs and the reason are on the audit trail.`,
+        });
       })
     );
   }
@@ -283,7 +414,7 @@ function ratingBody(panel, state, dispatch, onResolve) {
       )
     );
   } else {
-    panel.appendChild(authorisation(state, dispatch, "Confirm rating", () => onResolve("a6", "Rating approved and sent to the loyalty system.")));
+    panel.appendChild(authorization(state, dispatch, "Confirm rating", () => onResolve("a6", "Rating approved and sent to the loyalty system.")));
   }
 }
 
@@ -294,7 +425,7 @@ const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "clear", "0", "delete
  * and this is that moment: a manager signs on this device, mid-task, standing
  * at a live table, without the supervisor losing what they had entered.
  */
-function authorisation(state, dispatch, confirmLabel, onConfirm) {
+function authorization(state, dispatch, confirmLabel, onConfirm) {
   const pin = (state.flyout && state.flyout.pin) || "";
 
   const press = (k) => {
@@ -309,9 +440,9 @@ function authorisation(state, dispatch, confirmLabel, onConfirm) {
     h(
       "div",
       { style: { flexShrink: "0" } },
-      h("div.display", { text: "Authorisation", style: { fontSize: "var(--t-body)", fontWeight: "600" } }),
+      h("div.display", { text: "Authorization", style: { fontSize: "var(--t-body)", fontWeight: "600" } }),
       h("div", {
-        text: "You do not hold this permission. An authorised user signs here, on this device, without losing the entry.",
+        text: "You do not hold this permission. An authorized user signs here, on this device, without losing the entry.",
         style: { fontSize: "var(--t-detail)", color: "var(--ink-2)", lineHeight: "1.45", marginTop: "3px" },
       })
     ),
@@ -322,7 +453,7 @@ function authorisation(state, dispatch, confirmLabel, onConfirm) {
       h(
         "div",
         { style: { flex: "1" } },
-        h("div.micro", { text: "Authorised by" }),
+        h("div.micro", { text: "Authorized by" }),
         h("div.mono", {
           text: pin ? "•".repeat(pin.length) : "Swipe card, or enter ID",
           style: { fontSize: "var(--t-body)", marginTop: "1px", letterSpacing: "0.2em", color: pin ? "var(--ink)" : "var(--ink-3)" },

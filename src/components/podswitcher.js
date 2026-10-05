@@ -5,14 +5,14 @@ import { iconChevron } from "./icons.js";
 import { felt } from "./seats.js";
 
 /**
- * The floor, compressed. Same glyphs and same colours as the plan, so the two
+ * The floor, compressed. Same glyphs and same colors as the plan, so the two
  * states of the left pane read as one thing at two sizes rather than as two
  * different screens.
  */
 export function podSwitcher(state, dispatch) {
   return h(
     "div",
-    { style: { display: "flex", flexDirection: "column", gap: "2px", flex: "1", minHeight: "0", overflow: "hidden" } },
+    { style: { display: "flex", flexDirection: "column", gap: "6px", flex: "1", minHeight: "0", overflow: "hidden" } },
     h("div.micro", { text: "Jump to", style: { padding: "2px 10px 8px" } }),
     state.pods.map((pod) => {
       const alerts = alertsForPod(state.alerts, pod.id);

@@ -34,12 +34,12 @@ import { AREA_NAME } from "./topbar.js";
 const tile = (label, value, color) =>
   h(
     "div",
-    { style: { background: "var(--surface-soft)", borderRadius: "var(--r-md)", padding: "9px 10px", minWidth: "0" } },
+    { style: { background: "var(--surface-soft)", borderRadius: "var(--r-md)", border: "1px solid var(--line-strong)", padding: "10px 11px", minWidth: "0" } },
     h("div.micro", { text: label }),
     h("div.mono.display", {
       text: value,
       style: {
-        fontSize: value.length >= 6 ? "var(--t-metric-2)" : "var(--t-metric)",
+        fontSize: value.length >= 6 ? "var(--t-stat-2)" : "var(--t-stat)",
         fontWeight: "700", color: color || "", whiteSpace: "nowrap", marginTop: "1px", lineHeight: "1.1",
         letterSpacing: "-0.01em",
       },
@@ -93,7 +93,7 @@ export function performanceCards(state, dispatch) {
           { style: { flex: "1", display: "flex", flexDirection: "column", gap: "10px", justifyContent: "center", padding: "10px 0" } },
           h(
             "div",
-            { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" } },
+            { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" } },
             tile("Win", compact(perf.win), winColor),
             tile("Drop", compact(perf.drop)),
             tile("Handle", compact(perf.handle)),
@@ -239,7 +239,7 @@ export function playersPanel(state, dispatch, scope, switchEl) {
     ),
     h(
       "div",
-      { style: { flex: "1", padding: "0 8px 10px", display: "flex", flexDirection: "column", gap: "4px", minHeight: "0", overflow: "hidden" } },
+      { class: "player-list", style: { flex: "1", padding: "0 8px 10px", display: "flex", flexDirection: "column", minHeight: "0", overflow: "hidden" } },
       rows.length ? rows : h("div", { text: "Nobody is seated.", style: { padding: "12px 6px", fontSize: "var(--t-body)", color: "var(--ink-3)" } })
     )
   );
