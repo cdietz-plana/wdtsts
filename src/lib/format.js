@@ -51,3 +51,19 @@ export function wallClock(secondsPastMidnight) {
   const m = Math.floor(secondsPastMidnight / 60);
   return `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 }
+
+/**
+ * Limits, the way the pit says them out loud. 5,000 to 500,000 becomes
+ * 5K to 500K, because on a card the magnitude is the message and the exact
+ * figure belongs on the table screen.
+ */
+export const kShort = (n) => {
+  if (n === null || n === undefined) return "—";
+  const abs = Math.abs(n);
+  if (abs >= 1e6) return `${String((abs / 1e6).toFixed(1)).replace(/\.0$/, "")}M`;
+  if (abs >= 1e3) return `${String((abs / 1e3).toFixed(abs >= 1e4 ? 0 : 1)).replace(/\.0$/, "")}K`;
+  return String(abs);
+};
+
+/** "5K → 500K". The arrow is the range; the words PT or ST sit outside this. */
+export const limitShort = (limits) => `${kShort(limits.min)} → ${kShort(limits.max)}`;

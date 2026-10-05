@@ -113,3 +113,21 @@ body[data-page-theme="dark"] .theme-switch button[aria-pressed="true"] {
 .chip--tips { gap: 8px; }
 .chip--tips[aria-pressed="true"] { background: #1c2530; border-color: #1c2530; color: #fff; }
 body[data-page-theme="dark"] .chip--tips[aria-pressed="true"] { background: #fff; border-color: #fff; color: #10141b; }
+
+/* Pods-in-area control. Review chrome, outside the device: it stands in for
+   Load Pods, which is deliberately undesigned. */
+.area-switch {
+  display: flex; align-items: center; gap: 2px;
+  padding: 3px; border-radius: 9px; background: rgba(0, 0, 0, 0.06);
+}
+body[data-page-theme="dark"] .area-switch { background: rgba(255, 255, 255, 0.08); }
+.area-switch__label {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  opacity: 0.6; padding: 0 6px;
+}
+.area-switch button {
+  width: 26px; height: 26px; border: 0; border-radius: 6px; background: none;
+  font: inherit; font-size: 13px; font-weight: 600; color: inherit; cursor: pointer; opacity: 0.65;
+}
+.area-switch button[aria-pressed="true"] { background: #fff; opacity: 1; }
+body[data-page-theme="dark"] .area-switch button[aria-pressed="true"] { background: rgba(255, 255, 255, 0.92); color: #11151c; }

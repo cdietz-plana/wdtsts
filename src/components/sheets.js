@@ -48,8 +48,8 @@ function sheet(title, subtitle, dispatch, body) {
       h(
         "div",
         {},
-        h("div.display", { text: title, style: { fontSize: "24px", fontWeight: "700" } }),
-        h("div", { text: subtitle, style: { fontSize: "15px", color: "var(--ink-3)", marginTop: "2px" } })
+        h("div.display", { text: title, style: { fontSize: "var(--t-metric)", fontWeight: "700" } }),
+        h("div", { text: subtitle, style: { fontSize: "var(--t-detail)", color: "var(--ink-3)", marginTop: "2px" } })
       ),
       h("span", { style: { flex: "1" } }),
       h("button.icon-btn", { "aria-label": "Close", on: { click: () => dispatch({ type: "sheet", sheet: null }) } }, iconClose())
@@ -70,8 +70,8 @@ export function helpSheet(state, dispatch) {
         h(
           "div.card",
           { style: { padding: "13px 15px", display: "flex", flexDirection: "column", gap: "5px" } },
-          h("div.display", { text: item.q, style: { fontSize: "17px", fontWeight: "600" } }),
-          h("div", { text: item.a, style: { fontSize: "15px", color: "var(--ink-2)", lineHeight: "1.5" } })
+          h("div.display", { text: item.q, style: { fontSize: "var(--t-action)", fontWeight: "600" } }),
+          h("div", { text: item.a, style: { fontSize: "var(--t-detail)", color: "var(--ink-2)", lineHeight: "1.5" } })
         )
       )
     )
@@ -83,7 +83,7 @@ const field = (label, value) =>
     "div",
     { style: { display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "12px", padding: "10px 0", borderBottom: "1px solid var(--line)" } },
     h("span.micro", { text: label }),
-    h("span", { text: value, style: { fontSize: "17px", fontWeight: "600" } })
+    h("span", { text: value, style: { fontSize: "var(--t-action)", fontWeight: "600" } })
   );
 
 export function accountSheet(state, dispatch) {
@@ -122,7 +122,7 @@ export function accountSheet(state, dispatch) {
         ),
         h("div", {
           text: "Signing out ends the shift record on this device. Anything unsigned stays open and goes to the pit manager.",
-          style: { fontSize: "15px", color: "var(--ink-3)", marginTop: "10px", lineHeight: "1.5" },
+          style: { fontSize: "var(--t-detail)", color: "var(--ink-3)", marginTop: "10px", lineHeight: "1.5" },
         })
       )
     )
@@ -151,14 +151,14 @@ export function thresholdSheet(state, dispatch) {
         "div",
         { style: { display: "flex", alignItems: "center", gap: "8px" } },
         h("span.tag", { text: t.scope.toUpperCase(), style: { background: "var(--surface-soft)", color: "var(--ink-2)" } }),
-        h("span", { text: t.metric, style: { fontSize: "16px", fontWeight: "600" } }),
+        h("span", { text: t.metric, style: { fontSize: "var(--t-body)", fontWeight: "600" } }),
         h("span", { style: { flex: "1" } }),
         locked ? h("span.tag", { text: t.owner === "compliance" ? "COMPLIANCE" : "PROPERTY", style: { background: "var(--high-wash)", color: "var(--high)" } }) : null
       ),
       h(
         "div",
         { style: { display: "flex", alignItems: "center", gap: "10px" } },
-        h("span.mono.display", { text: value, style: { fontSize: "25px", fontWeight: "700", flex: "1" } }),
+        h("span.mono.display", { text: value, style: { fontSize: "var(--t-metric)", fontWeight: "700", flex: "1" } }),
         locked
           ? null
           : h(
@@ -182,7 +182,7 @@ export function thresholdSheet(state, dispatch) {
           })
         )
       ),
-      t.note ? h("div", { text: t.note, style: { fontSize: "14px", color: "var(--ink-3)", lineHeight: "1.45" } }) : null
+      t.note ? h("div", { text: t.note, style: { fontSize: "var(--t-micro)", color: "var(--ink-3)", lineHeight: "1.45" } }) : null
     );
   };
 

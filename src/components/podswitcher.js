@@ -27,7 +27,7 @@ export function podSwitcher(state, dispatch) {
           on: { click: () => dispatch({ type: "toggle-pod", podId: pod.id }) },
         },
         h("span", { style: { color: "var(--ink-2)", display: "flex" } }, iconChevron(13, open ? "down" : "right")),
-        h("span", { text: pod.name, style: { flex: "1", fontSize: "17px", fontWeight: open ? "600" : "500" } }),
+        h("span", { text: pod.name, style: { flex: "1", fontSize: "var(--t-action)", fontWeight: open ? "600" : "500" } }),
         h("span.dot", { data: { severity }, style: { background: sevColor(severity) } })
       );
 
@@ -52,7 +52,7 @@ export function podSwitcher(state, dispatch) {
             felt(t, { hasAlert: ta.length > 0, width: 16, height: 10, chip: true }),
             h(
               "span",
-              { style: { flex: "1", fontSize: "16px", color: ta.length ? sevInk(tsev) : "var(--ink-2)", fontWeight: ta.length ? "600" : "400" } },
+              { style: { flex: "1", fontSize: "var(--t-body)", color: ta.length ? sevInk(tsev) : "var(--ink-2)", fontWeight: ta.length ? "600" : "400" } },
               t.name,
               t.role === "PT" ? h("span", { text: " PT", style: { color: "var(--ink-3)" } }) : null
             ),

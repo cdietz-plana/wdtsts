@@ -1,7 +1,12 @@
 import { h } from "../lib/dom.js";
-import { age, ageLong, countdown, money } from "../lib/format.js";
-import { alertsForTable, findPod, limitsLabel, seatedInPod, shoeWinLossForPod, worstSeverity } from "../lib/selectors.js";
+import { age, compact, limitShort, money } from "../lib/format.js";
+import {
+  alertsForTable, findPod, playerTotals, playersForPod, playersForTable,
+  podPerformance, seatedInPod, worstSeverity,
+} from "../lib/selectors.js";
 import { sevColor, sevEdge, sevInk, sevWash } from "../lib/severity.js";
+import { currentHand } from "../data/games.js";
+import { handView } from "./cards.js";
 import { felt, seats } from "./seats.js";
 
 const STATUS_LABEL = {
@@ -10,10 +15,10 @@ const STATUS_LABEL = {
 };
 
 function statusColor(t) {
-  if (t.status === "offline" || t.status === "tray-short") return "var(--critical)";
-  if (t.status === "fill-open") return "var(--high)";
+  if (t.status === "offline" || t.status === "tray-short") return "var(--critical-ink)";
+  if (t.status === "fill-open") return "var(--high-ink)";
   if (t.status === "idle") return "var(--ink-3)";
-  return "var(--ok)";
+  return "var(--ok-ink)";
 }
 
 const figure = (label, value, { color, big, live } = {}) =>
@@ -21,15 +26,28 @@ const figure = (label, value, { color, big, live } = {}) =>
     "div",
     { style: { whiteSpace: "nowrap" } },
     h("div.micro", { text: label, style: color ? { color } : {} }),
-    h("div.mono.display", { text: value, data: live ? { live } : undefined, style: { fontSize: big ? "19px" : "15px", fontWeight: big ? "700" : "600", color: color || "" } })
+    h("div.mono.display", {
+      text: value,
+      data: live ? { live } : undefined,
+      style: { fontSize: big ? "var(--t-body)" : "var(--t-detail)", fontWeight: big ? "700" : "600", color: color || "" },
+    })
+  );
+
+/** The four figures the pod header carries, set at metric weight. */
+const metric = (label, value, color) =>
+  h(
+    "div",
+    { style: { whiteSpace: "nowrap" } },
+    h("div.micro", { text: label }),
+    h("div.mono.display", { text: value, style: { fontSize: "var(--t-metric)", fontWeight: "700", lineHeight: "1.1", color: color || "" } })
   );
 
 const tile = (label, value, color) =>
   h(
     "div",
-    { style: { background: "var(--surface-soft)", borderRadius: "11px", padding: "9px 11px" } },
+    { style: { background: "var(--surface-soft)", borderRadius: "var(--r-md)", padding: "9px 11px" } },
     h("div.micro", { text: label }),
-    h("div.mono.display", { text: value, style: { fontSize: "21px", fontWeight: "600", color: color || "" } })
+    h("div.mono.display", { text: value, style: { fontSize: "var(--t-title)", fontWeight: "600", color: color || "" } })
   );
 
 const quiet = (label, value) =>
@@ -37,22 +55,20 @@ const quiet = (label, value) =>
     "div",
     { style: { display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "10px" } },
     h("span.micro", { text: label }),
-    h("span.mono", { text: value, style: { fontSize: "15px", fontWeight: "600", color: "var(--ink-2)", whiteSpace: "nowrap" } })
+    h("span.mono", { text: value, style: { fontSize: "var(--t-detail)", fontWeight: "600", color: "var(--ink-2)", whiteSpace: "nowrap" } })
   );
 
-const card = (dashed) =>
-  h("span", {
-    style: {
-      width: "30px", height: "42px", borderRadius: "4px", display: "block",
-      background: dashed ? "rgba(255,255,255,.3)" : "rgba(255,255,255,.8)",
-      border: dashed ? "1px dashed rgba(255,255,255,.45)" : "",
-    },
-  });
-
 /**
- * One pod, four tables. Shared state sits across the top exactly once, because
- * the pod shares it: one shoe, one countdown, one gaming day. Everything below
- * is per table. That split is the argument that a pod is one machine.
+ * One pod, four tables.
+ *
+ * Review feedback took two things out of the header. The shared countdown
+ * went: it is a dealer's clock, it moved every second, and it was the loudest
+ * object on a screen where nothing about it is actionable. Hold the pod went
+ * with it, because a hold is raised by the dealer at the table, not by a
+ * supervisor pressing a button on a tablet.
+ *
+ * What is there instead is the four figures a supervisor is actually asked
+ * for at pod level: win or loss, buy-in, handle, and how many seats are full.
  */
 export function podView(state, dispatch, onAlertAction) {
   const pod = findPod(state.pods, state.podId);
@@ -61,52 +77,39 @@ export function podView(state, dispatch, onAlertAction) {
   const [primary, ...secondaries] = pod.tables;
   const { seated, capacity } = seatedInPod(pod);
   const held = !!state.held[pod.id];
+  const perf = podPerformance(pod);
+  const totals = playerTotals(playersForPod(state.players, pod));
+  const openPlayer = (player) => dispatch({ type: "open-player", playerId: player.id });
 
   const strip = h(
     "div.card",
-    { style: { flexShrink: "0", height: "76px", display: "flex", alignItems: "center", padding: "0 16px", gap: "22px" } },
+    { style: { flexShrink: "0", height: "88px", display: "flex", alignItems: "center", padding: "0 18px", gap: "30px" } },
+    metric("Win / loss", money(perf.win), perf.win < 0 ? "var(--critical-ink)" : "var(--ok-ink)"),
+    metric("Buy-in", money(totals.buyIn)),
+    metric("Handle", compact(perf.handle)),
+    metric("Seated", `${seated} / ${capacity}`),
+    h("span", { style: { flex: "1" } }),
     h(
       "div",
-      { style: { display: "flex", alignItems: "center", gap: "11px" } },
-      h(
-        "div",
-        // All four borders as longhands. A `border:` shorthand holding a var()
-        // cannot be overridden per side and still serialise, which breaks any
-        // tool that reads the rendered DOM back out (Figma import, for one).
-        {
-          style: {
-            width: "50px", height: "50px", borderRadius: "50%",
-            borderWidth: "3px", borderStyle: "solid",
-            borderTopColor: "var(--ok)", borderLeftColor: "var(--ok)",
-            borderRightColor: "var(--line)", borderBottomColor: "var(--line)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          },
-        },
-        h("span.mono.display", { text: countdown(state.countdown), data: { live: "countdown" }, style: { fontSize: "17px", fontWeight: "600" } })
-      ),
-      h("div", {}, h("div.micro", { text: "Shared countdown" }), h("div", { text: "all four tables", style: { fontSize: "15px", color: "var(--ink-2)" } }))
+      { style: { textAlign: "right" } },
+      h("div.micro", { text: "Shared shoe" }),
+      h("div.mono.display", { text: "Shoe 9 · game 9", style: { fontSize: "var(--t-body)", fontWeight: "600" } }),
+      h("div", { text: "one shoe across all four tables", style: { fontSize: "var(--t-micro)", color: "var(--ink-3)" } })
     ),
-    h("div", { style: { width: "1px", height: "40px", background: "var(--line)" } }),
-    figure("Shared shoe", "Game 9 · 36 left"),
-    figure("Shoe W/L, pod", money(shoeWinLossForPod(pod))),
-    figure("Seated", `${seated} / ${capacity}`),
-    h("span", { style: { flex: "1" } }),
-    h("button.btn.btn--ghost.btn--big", {
-      text: held ? "Resume the pod" : "Hold the pod",
-      style: held ? {} : { color: "var(--critical)", borderColor: "var(--critical-edge)" },
-      on: {
-        click: () => {
-          dispatch({ type: "toggle-hold", podId: pod.id });
-          dispatch({ type: "toast", message: held ? `${pod.name} resumed.` : `${pod.name} held. All four tables suspended.` });
-        },
-      },
-    })
+    held
+      ? h(
+          "span.pill",
+          { style: { background: "var(--high-wash)", borderColor: "var(--high-edge)", color: "var(--high-ink)" } },
+          h("span.dot", { style: { background: "var(--high)" } }),
+          "Pod held by the dealer"
+        )
+      : null
   );
 
   const hero = h(
     "button.card",
     {
-      style: { width: "348px", flexShrink: "0", padding: "15px 16px", display: "flex", flexDirection: "column", gap: "12px", cursor: "pointer", textAlign: "left", font: "inherit", color: "inherit" },
+      style: { width: "368px", flexShrink: "0", padding: "15px 16px", display: "flex", flexDirection: "column", gap: "12px", cursor: "pointer", textAlign: "left", font: "inherit", color: "inherit" },
       on: { click: () => dispatch({ type: "go-table", podId: pod.id, tableId: primary.id, tab: "live" }) },
     },
     h(
@@ -116,47 +119,41 @@ export function podView(state, dispatch, onAlertAction) {
         "div",
         {},
         h("span.tag", { text: "PRIMARY · CHIP DOOR", style: { background: "var(--surface-soft)", color: "var(--ink)" } }),
-        h("div.display", { text: primary.name, style: { fontSize: "26px", fontWeight: "700", marginTop: "6px" } })
+        h("div.display", { text: primary.name, style: { fontSize: "var(--t-metric)", fontWeight: "700", marginTop: "6px" } })
       ),
       h(
         "span.pill",
-        { style: { background: "var(--ok-wash)", borderColor: "var(--ok-edge)", color: "var(--ok)" } },
+        { style: { background: "var(--ok-wash)", borderColor: "var(--ok-edge)", color: "var(--ok-ink)" } },
         h("span.dot", { style: { background: "var(--ok)" } }),
         held ? "Held" : "Dealing"
       )
     ),
     h(
       "div",
-      { style: { display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", padding: "8px 0 4px" } },
-      seats(primary.seats, primary.seated, 12, 9),
-      felt(primary, {
-        width: 246,
-        height: 74,
-        children: h(
-          "span",
-          { style: { display: "flex", gap: "9px", alignItems: "center" } },
-          card(), card(), h("span", { style: { width: "1px", height: "44px", background: "rgba(255,255,255,.3)" } }), card(), card(true)
-        ),
-      }),
-      h("span", { text: "Banker 7 · Player 4 · drawing", style: { fontSize: "14px", color: "var(--ink-3)" } })
+      { style: { display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", padding: "10px 0 6px", flex: "1", justifyContent: "center" } },
+      seats(primary, playersForTable(state.players, primary.id), { scale: 1.35, gap: 10, onPick: openPlayer }),
+      // The cards, with rank and suit. This is the screen that stands in for
+      // looking at the felt, so it shows what is on the felt.
+      felt(primary, { width: 330, height: 120, children: handView(currentHand(primary.id), { size: "md" }) })
     ),
     h(
       "div",
       { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" } },
       tile("Shoe W/L", money(primary.shoeWinLoss)),
-      tile("Variance", money(primary.variance), primary.variance ? "var(--critical)" : "var(--ok)")
+      tile("Variance", money(primary.variance), primary.variance ? "var(--critical-ink)" : "var(--ok-ink)")
     ),
     // Reference figures, not numbers you react to, so they sit quietly under
-    // the two that are.
+    // the two that are. Limits live here and at table level, never on the
+    // all-pod floor: a limit is a reference figure, not an exception.
     h(
       "div",
       { style: { display: "flex", flexDirection: "column", gap: "7px" } },
-      quiet("Table limits", limitsLabel(primary)),
+      quiet("PT limits", limitShort(primary.limits)),
+      quiet("Dealer", primary.dealer || "unassigned"),
       quiet("Seated", `${primary.seated} of ${primary.seats}`),
       quiet("Opened", primary.opener)
     ),
-    h("span", { style: { flex: "1" } }),
-    h("span", { text: "Tap to open the table", style: { fontSize: "15px", color: "var(--ink-3)" } })
+    h("span", { text: "Tap to open the table", style: { fontSize: "var(--t-detail)", color: "var(--ink-3)" } })
   );
 
   const rows = secondaries.map((t) => {
@@ -169,12 +166,13 @@ export function podView(state, dispatch, onAlertAction) {
         ? [
             figure("Last scan", "18:04"),
             figure("Inventory", money(t.actualInventory)),
-            figure("Dark for", age(ta[0] ? ta[0].ageSeconds : 0), { color: "var(--critical)", big: true, live: ta[0] ? `age:${ta[0].id}` : null }),
+            figure("Dark for", age(ta[0] ? ta[0].ageSeconds : 0), { color: "var(--critical-ink)", big: true, live: ta[0] ? `age:${ta[0].id}` : null }),
           ]
         : [
-            figure("Shoe W/L", money(t.shoeWinLoss)),
-            figure("Variance", money(t.variance), { color: t.variance ? "var(--critical)" : "var(--ok)", big: !!t.variance }),
-            figure(bad ? "Open" : "Settled", bad ? age(ta[0].ageSeconds) : "on pace", { color: bad ? sevInk(sev) : "", live: bad ? `age:${ta[0].id}` : null }),
+            figure("Win / loss", money(t.dayWin), { color: t.dayWin < 0 ? "var(--critical-ink)" : "var(--ok-ink)", big: true }),
+            figure("Buy-in", compact(playerTotals(playersForTable(state.players, t.id)).buyIn)),
+            figure("Handle", compact(t.handle)),
+            figure("Variance", money(t.variance), { color: t.variance ? "var(--critical-ink)" : "var(--ok-ink)", big: !!t.variance }),
           ];
 
     return h(
@@ -190,8 +188,9 @@ export function podView(state, dispatch, onAlertAction) {
       h(
         "div",
         { style: { display: "flex", alignItems: "center", gap: "10px", minWidth: "0" } },
-        h("span.display", { text: t.name, style: { fontSize: "22px", fontWeight: "600" } }),
-        h("span.mono", { text: limitsLabel(t), style: { fontSize: "14px", color: "var(--ink-3)", whiteSpace: "nowrap", flexShrink: "0" } }),
+        h("span.display", { text: t.name, style: { fontSize: "var(--t-title)", fontWeight: "600" } }),
+        h("span.mono", { text: `ST ${limitShort(t.limits)}`, style: { fontSize: "var(--t-micro)", color: "var(--ink-3)", whiteSpace: "nowrap", flexShrink: "0" } }),
+        h("span", { text: t.dealer || "unassigned", style: { fontSize: "var(--t-micro)", color: "var(--ink-3)", whiteSpace: "nowrap", flexShrink: "0" } }),
         h(
           "span.pill",
           { style: { background: bad ? sevWash(sev) : "transparent", borderColor: bad ? sevEdge(sev) : "var(--line)", color: statusColor(t) } },
@@ -220,7 +219,7 @@ export function podView(state, dispatch, onAlertAction) {
         h(
           "div",
           { style: { display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", flexShrink: "0", opacity: t.status === "offline" ? "0.42" : "1" } },
-          seats(t.seats, t.seated, 10, 6),
+          seats(t, playersForTable(state.players, t.id), { scale: 0.95, gap: 5, onPick: openPlayer }),
           felt(t, { hasAlert: t.status === "tray-short", width: 124, height: 28 })
         ),
         figs

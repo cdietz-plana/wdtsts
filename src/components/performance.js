@@ -1,36 +1,48 @@
 import { h } from "../lib/dom.js";
 import { compact, money, percent } from "../lib/format.js";
 import {
-  alertsForPod, limitsLabel, playersForPod, podPerformance,
-  seatedInPod, sectionPerformance, topPlayers, worstSeverity,
+  RANKINGS, alertsForPod, playerTotals, playersForPod, podPerformance, rankPlayers,
+  ranking, seatedInPod, sectionPerformance, worstSeverity,
 } from "../lib/selectors.js";
 import { sevColor, sevEdge, sevInk, sevWash } from "../lib/severity.js";
+import { AREA_NAME } from "./topbar.js";
 
 /**
  * The Performance state of the floor.
  *
- * The PRD wants Handle, Win, Drop, table limits and the top players on the
- * first screen. The Floor state wants none of it, because its job is to let a
+ * The requirements want Handle, Win, Drop and the top players on the first
+ * screen. The Floor state wants none of it, because its job is to let a
  * supervisor find trouble in one glance from across a pit, and five figures on
- * each of six cards destroys that glance.
+ * each of six cards destroys that glance. Both are right, so the toggle in the
+ * bar carries the difference: same cards, same grid, same positions, different
+ * content.
  *
- * Both are right, so the toggle already in the bar carries the difference.
- * Same six cards, same grid, same positions: only what is printed on them
- * changes. Nothing has to be re-learned and the exception view stays clean.
- *
- * Figures here are compact (41.2M) because this is still a scan. The exact
- * number lives in the panel and on the table screen, where it is the answer to
- * a question rather than a shape.
+ * Review feedback rebuilt what is printed here. The card now carries four
+ * figures at one weight (win, drop, handle, theo) instead of two big ones and
+ * five small lines in three different sizes, which is what made it hard to
+ * read. Limits came off entirely: at six pods a limit is reference material
+ * nobody is acting on, and it was taking the space the figures needed. Limits
+ * live at pod and table level, where a supervisor is close enough to care.
  */
 
+/**
+ * A figure on a pod card. Six characters of tabular mono at the metric size
+ * is wider than half a card, so a long figure steps down one notch rather
+ * than being truncated or allowed to spill. Optical fitting, not a different
+ * level in the hierarchy.
+ */
 const tile = (label, value, color) =>
   h(
     "div",
-    { style: { background: "var(--surface-soft)", borderRadius: "11px", padding: "10px 11px", minWidth: "0" } },
+    { style: { background: "var(--surface-soft)", borderRadius: "var(--r-md)", padding: "9px 10px", minWidth: "0" } },
     h("div.micro", { text: label }),
     h("div.mono.display", {
       text: value,
-      style: { fontSize: "24px", fontWeight: "700", color: color || "", whiteSpace: "nowrap", marginTop: "2px" },
+      style: {
+        fontSize: value.length >= 6 ? "var(--t-metric-2)" : "var(--t-metric)",
+        fontWeight: "700", color: color || "", whiteSpace: "nowrap", marginTop: "1px", lineHeight: "1.1",
+        letterSpacing: "-0.01em",
+      },
     })
   );
 
@@ -39,7 +51,7 @@ const line = (label, value, color) =>
     "div",
     { style: { display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "8px" } },
     h("span.micro", { text: label }),
-    h("span.mono", { text: value, style: { fontSize: "15px", fontWeight: "600", color: color || "var(--ink-2)", whiteSpace: "nowrap" } })
+    h("span.mono", { text: value, style: { fontSize: "var(--t-detail)", fontWeight: "600", color: color || "var(--ink-2)", whiteSpace: "nowrap" } })
   );
 
 /** Six pod cards, same grid as the Floor state, carrying figures instead of a drawing. */
@@ -48,10 +60,11 @@ export function performanceCards(state, dispatch) {
     const alerts = alertsForPod(state.alerts, pod.id);
     const severity = worstSeverity(alerts);
     const perf = podPerformance(pod);
-    const best = topPlayers(playersForPod(state.players, pod), 1)[0];
-    const primary = pod.tables[0];
+    const people = playersForPod(state.players, pod);
+    const totals = playerTotals(people);
+    const best = rankPlayers(people, "theo", 1)[0];
     const { seated, capacity } = seatedInPod(pod);
-    const winColor = perf.win < 0 ? "var(--critical)" : "var(--ok)";
+    const winColor = perf.win < 0 ? "var(--critical-ink)" : "var(--ok-ink)";
 
     return h(
       "button.pod",
@@ -65,7 +78,7 @@ export function performanceCards(state, dispatch) {
         h(
           "div",
           { style: { display: "flex", alignItems: "center", justifyContent: "space-between" } },
-          h("span.display", { text: pod.name, style: { fontSize: "18px", fontWeight: "600" } }),
+          h("span.display", { text: pod.name, style: { fontSize: "var(--t-title)", fontWeight: "600" } }),
           alerts.length
             ? h(
                 "span.pill",
@@ -77,32 +90,37 @@ export function performanceCards(state, dispatch) {
         ),
         h(
           "div",
-          { style: { flex: "1", display: "flex", flexDirection: "column", gap: "12px", justifyContent: "center", padding: "12px 0" } },
+          { style: { flex: "1", display: "flex", flexDirection: "column", gap: "10px", justifyContent: "center", padding: "10px 0" } },
           h(
             "div",
             { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" } },
             tile("Win", compact(perf.win), winColor),
-            tile("Drop", compact(perf.drop))
+            tile("Drop", compact(perf.drop)),
+            tile("Handle", compact(perf.handle)),
+            // Theo moved up here from the footer. It is a figure of the same
+            // kind as the other three and down there it read as a caption.
+            tile("Theo", compact(totals.theo))
           ),
           h(
             "div",
-            { style: { display: "flex", flexDirection: "column", gap: "7px" } },
-            line("Handle", compact(perf.handle)),
-            line("Hold", percent(perf.hold), perf.hold < 0 ? "var(--critical)" : "var(--ink-2)"),
-            line("Seated", `${seated} of ${capacity}`),
-            // Limits on the first screen, as the requirements ask. They belong
-            // here rather than on the Floor card: a limit is a reference
-            // figure, never an interruption.
-            line("PT limits", limitsLabel(primary)),
-            line("ST limits", limitsLabel(pod.tables[1]))
+            { style: { display: "flex", flexDirection: "column", gap: "6px" } },
+            line("Hold", percent(perf.hold), perf.hold < 0 ? "var(--critical-ink)" : "var(--ink-2)"),
+            line("Seated", `${seated} of ${capacity}`)
           )
         ),
+        // Review feedback: a bare name here was read as the dealer. Every name
+        // in the product now says what the person is.
         best
           ? h(
               "div.pod__foot",
-              { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" } },
-              h("span", { text: best.name, style: { fontSize: "15px", fontWeight: "600", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }),
-              h("span.mono", { text: `theo ${compact(best.theoWin)}`, style: { fontSize: "14px", color: "var(--ink-3)", whiteSpace: "nowrap" } })
+              { style: { display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "8px" } },
+              h(
+                "span",
+                { style: { minWidth: "0", display: "flex", alignItems: "baseline", gap: "6px" } },
+                h("span.micro", { text: "Top player" }),
+                h("span", { text: best.name, style: { fontSize: "var(--t-detail)", fontWeight: "700", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } })
+              ),
+              h("span.mono", { text: compact(best.theoWin), style: { fontSize: "var(--t-detail)", color: "var(--ink-3)", whiteSpace: "nowrap" } })
             )
           : h("div.pod__foot", { text: "No rated players seated", style: { color: "var(--ink-3)" } })
       )
@@ -111,8 +129,8 @@ export function performanceCards(state, dispatch) {
 
   const legend = h(
     "div.plan-legend",
-    { style: { display: "flex", alignItems: "center", gap: "16px", fontSize: "14px" } },
-    h("span", { text: "Gaming day to now. Hold is win over drop." }),
+    { style: { display: "flex", alignItems: "center", gap: "16px", fontSize: "var(--t-micro)" } },
+    h("span", { text: "Gaming day to now. Hold is win over drop. Limits are on the pod and table screens." }),
     h("span", { style: { flex: "1" } }),
     h("span", { text: "Tap a pod to open it" })
   );
@@ -120,29 +138,47 @@ export function performanceCards(state, dispatch) {
   return h(
     "div",
     { style: { display: "flex", flexDirection: "column", gap: "11px", flex: "1", minHeight: "0" } },
-    h("div.plan", {}, cards),
+    h("div.plan", { data: { count: String(Math.min(6, state.pods.length)) } }, cards),
     legend
   );
 }
 
 /**
- * The panel beside it: section totals, then the people.
+ * The panel beside it: totals, then the people.
  *
- * Ranked by theoretical win rather than by what they are up or down. A
- * supervisor asked who is in their section is being asked about value, and a
- * player losing heavily on small bets is not the answer.
+ * Review feedback replaced a fixed sort by theoretical win with a choice.
+ * Theo is what the loyalty system rates on, but a supervisor asked who to
+ * watch right now wants what actually happened, and which of those questions
+ * they are asking changes through a shift. So the ranking is a control, and
+ * it starts on actuals.
  */
 export function playersPanel(state, dispatch, scope, switchEl) {
-  const list = topPlayers(scope.players, 6);
+  const rank = ranking(state.playerRank);
+  const list = rankPlayers(scope.players, state.playerRank, 6);
   const perf = scope.performance;
+  const totals = playerTotals(scope.players);
 
-  const totals = h(
+  const figures = h(
     "div",
-    { style: { padding: "0 14px 12px", display: "flex", flexDirection: "column", gap: "7px", flexShrink: "0" } },
+    { style: { padding: "0 14px 12px", display: "flex", flexDirection: "column", gap: "6px", flexShrink: "0" } },
     line("Handle", money(perf.handle)),
-    line("Win", money(perf.win), perf.win < 0 ? "var(--critical)" : "var(--ok)"),
+    line("Win", money(perf.win), perf.win < 0 ? "var(--critical-ink)" : "var(--ok-ink)"),
     line("Drop", money(perf.drop)),
+    line("Buy-in", money(totals.buyIn)),
     line("Hold", percent(perf.hold))
+  );
+
+  const chips = h(
+    "div",
+    { role: "group", "aria-label": "Rank players by", style: { display: "flex", flexWrap: "wrap", gap: "5px" } },
+    RANKINGS.map((r) =>
+      h("button.rank-chip", {
+        text: r.label.replace("Biggest ", "").replace("Top ", ""),
+        title: r.note,
+        "aria-pressed": String(state.playerRank === r.id),
+        on: { click: () => dispatch({ type: "player-rank", rank: r.id }) },
+      })
+    )
   );
 
   const rows = list.map((p, i) =>
@@ -154,27 +190,33 @@ export function playersPanel(state, dispatch, scope, switchEl) {
       },
       h("span.mono", {
         text: String(i + 1),
-        style: { width: "18px", flexShrink: "0", fontSize: "15px", color: "var(--ink-3)", fontWeight: "600" },
+        style: { width: "18px", flexShrink: "0", fontSize: "var(--t-detail)", color: "var(--ink-3)", fontWeight: "600" },
       }),
       h(
         "span",
         { style: { flex: "1", minWidth: "0" } },
         h("span", {
           text: p.name,
-          style: { display: "block", fontSize: "16px", fontWeight: "600", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+          style: { display: "block", fontSize: "var(--t-body)", fontWeight: "600", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
         }),
         h("span", {
           text: p.rated ? `${p.tier} · seat ${p.seat}` : `Anonymous · seat ${p.seat}`,
-          style: { display: "block", fontSize: "14px", color: "var(--ink-3)" },
+          style: { display: "block", fontSize: "var(--t-micro)", color: "var(--ink-3)" },
         })
       ),
       h(
         "span",
         { style: { textAlign: "right", flexShrink: "0" } },
-        h("span.mono", { text: compact(p.theoWin), style: { display: "block", fontSize: "16px", fontWeight: "700" } }),
+        h("span.mono", {
+          text: compact(rank.value(p)),
+          style: {
+            display: "block", fontSize: "var(--t-body)", fontWeight: "700",
+            color: rank.signed ? (rank.value(p) < 0 ? "var(--critical-ink)" : "var(--ok-ink)") : "",
+          },
+        }),
         h("span", {
-          text: `w/l ${compact(p.winLoss)}`,
-          style: { display: "block", fontSize: "14px", color: p.winLoss < 0 ? "var(--critical)" : "var(--ok)" },
+          text: rank.id === "theo" ? `w/l ${compact(p.winLoss)}` : `theo ${compact(p.theoWin)}`,
+          style: { display: "block", fontSize: "var(--t-micro)", color: "var(--ink-3)" },
         })
       )
     )
@@ -186,25 +228,26 @@ export function playersPanel(state, dispatch, scope, switchEl) {
     h(
       "div",
       { style: { padding: "14px 14px 10px", flexShrink: "0" } },
-      switchEl || h("span.display", { text: scope.heading, style: { fontSize: "20px", fontWeight: "600" } })
+      switchEl || h("span.display", { text: scope.heading, style: { fontSize: "var(--t-title)", fontWeight: "600" } })
     ),
-    totals,
+    figures,
     h(
       "div",
-      { style: { padding: "0 14px 8px", flexShrink: "0", borderTop: "1px solid var(--line)", paddingTop: "11px" } },
-      h("span.micro", { text: "Top players, by theoretical win" })
+      { style: { padding: "11px 14px 9px", flexShrink: "0", borderTop: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: "7px" } },
+      h("span.micro", { text: rank.note }),
+      chips
     ),
     h(
       "div",
-      { style: { flex: "1", padding: "0 8px 10px", display: "flex", flexDirection: "column", gap: "5px", minHeight: "0", overflow: "hidden" } },
-      rows.length ? rows : h("div", { text: "Nobody rated is seated.", style: { padding: "12px 6px", fontSize: "16px", color: "var(--ink-3)" } })
+      { style: { flex: "1", padding: "0 8px 10px", display: "flex", flexDirection: "column", gap: "4px", minHeight: "0", overflow: "hidden" } },
+      rows.length ? rows : h("div", { text: "Nobody is seated.", style: { padding: "12px 6px", fontSize: "var(--t-body)", color: "var(--ink-3)" } })
     )
   );
 }
 
-/** Scope objects, so the section and the pod use one panel. */
+/** Scope objects, so the area and the pod use one panel. */
 export const sectionScope = (state) => ({
-  heading: "Section 4",
+  heading: AREA_NAME,
   players: state.players,
   performance: sectionPerformance(state.pods),
 });
@@ -216,7 +259,7 @@ export const podScope = (state, pod) => ({
 });
 
 /**
- * The pod level switch. At section level the bar carries the choice; inside a
+ * The pod level switch. At area level the bar carries the choice; inside a
  * pod the bar is a breadcrumb, so the choice lives in the panel it changes.
  * Both panels render this, which is why it never appears to move.
  */

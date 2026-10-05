@@ -26,7 +26,7 @@ const stat = (label, value, color) =>
     "div",
     { style: { background: "var(--surface-soft)", borderRadius: "10px", padding: "9px 11px" } },
     h("div.micro", { text: label }),
-    h("div.mono.display", { text: value, style: { fontSize: "21px", fontWeight: "700", color: color || "", marginTop: "1px" } })
+    h("div.mono.display", { text: value, style: { fontSize: "var(--t-title)", fontWeight: "700", color: color || "", marginTop: "1px" } })
   );
 
 const row = (left, right, sub, color) =>
@@ -36,10 +36,10 @@ const row = (left, right, sub, color) =>
     h(
       "span",
       { style: { minWidth: "0" } },
-      h("span", { text: left, style: { display: "block", fontSize: "16px", fontWeight: "600" } }),
-      sub ? h("span", { text: sub, style: { display: "block", fontSize: "14px", color: "var(--ink-3)" } }) : null
+      h("span", { text: left, style: { display: "block", fontSize: "var(--t-body)", fontWeight: "600" } }),
+      sub ? h("span", { text: sub, style: { display: "block", fontSize: "var(--t-micro)", color: "var(--ink-3)" } }) : null
     ),
-    h("span.mono", { text: right, style: { fontSize: "16px", fontWeight: "600", color: color || "var(--ink-2)", whiteSpace: "nowrap" } })
+    h("span.mono", { text: right, style: { fontSize: "var(--t-body)", fontWeight: "600", color: color || "var(--ink-2)", whiteSpace: "nowrap" } })
   );
 
 const column = (title, body, foot) =>
@@ -110,7 +110,7 @@ export function playerSheet(state, dispatch) {
       "div",
       { style: { display: "flex", flexDirection: "column", gap: "12px" } },
       h("div", {}, h("div.micro", { text: "Sessions", style: { marginBottom: "2px" } }), sessions),
-      h("div", {}, h("div.micro", { text: "Transactions", style: { marginBottom: "2px" } }), transactions.length ? transactions : h("div", { text: "None today.", style: { fontSize: "16px", color: "var(--ink-3)", padding: "8px 0" } }))
+      h("div", {}, h("div.micro", { text: "Transactions", style: { marginBottom: "2px" } }), transactions.length ? transactions : h("div", { text: "None today.", style: { fontSize: "var(--t-body)", color: "var(--ink-3)", padding: "8px 0" } }))
     )
   );
 
@@ -120,15 +120,15 @@ export function playerSheet(state, dispatch) {
         h(
           "div",
           { style: { padding: "9px 0", borderBottom: "1px solid var(--line)" } },
-          h("div", { text: n.text, style: { fontSize: "16px", lineHeight: "1.5" } }),
-          h("div", { text: `${n.by} · ${n.at}`, style: { fontSize: "14px", color: "var(--ink-3)", marginTop: "3px" } })
+          h("div", { text: n.text, style: { fontSize: "var(--t-body)", lineHeight: "1.5" } }),
+          h("div", { text: `${n.by} · ${n.at}`, style: { fontSize: "var(--t-micro)", color: "var(--ink-3)", marginTop: "3px" } })
         )
       )
     : h(
         "div",
         { style: { display: "flex", flexDirection: "column", alignItems: "center", gap: "7px", padding: "26px 0", color: "var(--ink-3)" } },
         iconNote(20),
-        h("span", { text: "Nothing written down yet.", style: { fontSize: "16px" } })
+        h("span", { text: "Nothing written down yet.", style: { fontSize: "var(--t-body)" } })
       );
 
   const composer = h(
@@ -183,12 +183,12 @@ export function playerSheet(state, dispatch) {
         h(
           "div",
           { style: { display: "flex", alignItems: "center", gap: "9px" } },
-          h("div.display", { text: p.name, style: { fontSize: "24px", fontWeight: "700" } }),
+          h("div.display", { text: p.name, style: { fontSize: "var(--t-metric)", fontWeight: "700" } }),
           p.rated
             ? h("span.tag", { text: p.tier.toUpperCase(), style: { background: "var(--critical-wash)", color: "var(--brand)" } })
             : h("span.tag", { text: "ANONYMOUS", style: { background: "var(--surface-soft)", color: "var(--ink-3)" } })
         ),
-        h("div", { text: `${table ? table.name : ""} · seat ${p.seat}`, style: { fontSize: "15px", color: "var(--ink-3)", marginTop: "2px" } })
+        h("div", { text: `${table ? table.name : ""} · seat ${p.seat}`, style: { fontSize: "var(--t-detail)", color: "var(--ink-3)", marginTop: "2px" } })
       ),
       h("span", { style: { flex: "1" } }),
       rateAction,

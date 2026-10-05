@@ -58,6 +58,12 @@ function openAdjust(tableId) {
   dispatch({ type: "flyout-open", kind: "adjust", alertId: "a2" });
 }
 
+function orderFill(tableId) {
+  const pod = podOfTable(getState().pods, tableId);
+  if (pod) dispatch({ type: "go-table", podId: pod.id, tableId, tab: "chips" });
+  dispatch({ type: "flyout-open", kind: "order", alertId: null });
+}
+
 const resolve = (alertId, message) => dispatch({ type: "resolve", alertId, message });
 
 /** One place decides what an alert action does, wherever it was pressed. */
@@ -143,7 +149,7 @@ function device(state) {
           : floorPlan(state, dispatch)
       : state.level === "pod"
         ? podView(state, dispatch, handleAction)
-        : tableView(state, dispatch, { onScan: runScan, onAdjust: openAdjust, onResolve: resolve });
+        : tableView(state, dispatch, { onScan: runScan, onAdjust: openAdjust, onOrderFill: orderFill, onResolve: resolve });
 
   // The right pane is the alert tree by default. It carries people instead
   // when the floor is in Performance, or when a pod's own switch asks for it.
@@ -195,6 +201,24 @@ function page(state) {
       {},
       h("span.page-title", { text: "LTG Supervisor Tablet" }),
       h("span.page-sub", { html: "Interaction prototype. Designed for a 10&Prime; tablet in landscape; scaled to fit this window." }),
+      // Review control, not product. An area is assigned at the start of a
+      // shift, not picked from a toolbar, and Load Pods is undesigned. This is
+      // here so the floor layouts for one, two and four pods can be seen
+      // without shipping four screenshots.
+      state.signedIn
+        ? h(
+            "div.area-switch",
+            { role: "group", "aria-label": "Pods in the area" },
+            h("span.area-switch__label", { text: "Pods" }),
+            [1, 2, 3, 4, 5, 6].map((n) =>
+              h("button", {
+                text: String(n),
+                "aria-pressed": String(state.areaSize === n),
+                on: { click: () => dispatch({ type: "area-size", size: n }) },
+              })
+            )
+          )
+        : null,
       state.signedIn ? h("button.chip", { text: "Sign out", on: { click: () => dispatch({ type: "sign-out" }) } }) : null,
       // Outside the device on purpose: this teaches the design team the
       // vocabulary, and nothing in the product should be shaped by it.
@@ -204,12 +228,15 @@ function page(state) {
         h("span.gloss__i", { text: "i", "aria-hidden": "true" }),
         "Jargon tips"
       ),
+      // Four themes now. Light reads as a wireframe to the client, so Square
+      // and Glass are two different answers to the same complaint: one adds
+      // structure, the other adds depth. Both are complete, not skins.
       h(
         "div.theme-switch",
         { role: "group", "aria-label": "Theme" },
-        ["light", "dark"].map((t) =>
+        [["light", "Light"], ["square", "Square"], ["glass", "Glass"], ["dark", "Dark"]].map(([t, label]) =>
           h("button", {
-            text: t === "light" ? "Light · WDTS" : "Dark · glass",
+            text: label,
             "aria-pressed": String(state.theme === t),
             on: { click: () => dispatch({ type: "theme", theme: t }) },
           })

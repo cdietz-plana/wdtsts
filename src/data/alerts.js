@@ -43,7 +43,7 @@ export const initialAlerts = [
   {
     id: "a4", podId: "p4", tableId: "t14", severity: "critical", flags: ["blocks-roll", "needs-signature"],
     title: "Fill awaiting your authorisation",
-    detail: "500,000 requested. Chips are delivered to NB0104, the Primary, not to the table that asked.",
+    detail: "500,000 requested. Chips are delivered to BA0104, the Primary, not to the table that asked.",
     ageSeconds: 123,
     actions: [
       { label: "Reject", intent: "dismiss" },
@@ -118,7 +118,7 @@ export const initialAlerts = [
   {
     id: "a11", podId: "p4", tableId: "t13", severity: "high", flags: [],
     title: "Table win over threshold",
-    detail: "NB0104 is up 1,642,000 against a notify level of 1,500,000. Set on the thresholds screen.",
+    detail: "BA0104 is up 1,642,000 against a notify level of 1,500,000. Set on the thresholds screen.",
     ageSeconds: 810,
     actions: [
       { label: "Thresholds", intent: "thresholds" },

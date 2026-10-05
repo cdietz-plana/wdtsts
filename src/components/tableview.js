@@ -1,8 +1,9 @@
 import { h } from "../lib/dom.js";
 import { chipTray } from "../data/pods.js";
 import { age, money } from "../lib/format.js";
-import { gamesFor } from "../data/games.js";
-import { alertsForTable, findPod, findTable, playersForTable, shortTableLabel } from "../lib/selectors.js";
+import { currentHand, gamesFor } from "../data/games.js";
+import { alertsForTable, findPod, findTable, limitsLabel, playersForTable, shortTableLabel } from "../lib/selectors.js";
+import { handView } from "./cards.js";
 import { iconScan } from "./icons.js";
 import { felt, seats } from "./seats.js";
 
@@ -17,7 +18,7 @@ const TABS = [
   ["sessions", "Sessions"], ["games", "Games"], ["override", "Override"],
 ];
 
-export function tableView(state, dispatch, { onScan, onAdjust, onResolve }) {
+export function tableView(state, dispatch, { onScan, onAdjust, onOrderFill, onResolve }) {
   const table = findTable(state.pods, state.tableId);
   if (!table) return h("div");
 
@@ -30,8 +31,8 @@ export function tableView(state, dispatch, { onScan, onAdjust, onResolve }) {
   );
 
   let body;
-  if (state.tab === "chips") body = chipsTab(state, table, onScan, onAdjust);
-  else if (state.tab === "live") body = liveTab(table);
+  if (state.tab === "chips") body = chipsTab(state, table, onScan, onAdjust, onOrderFill);
+  else if (state.tab === "live") body = liveTab(state, table, dispatch);
   else if (state.tab === "players") body = playersTab(state, table, dispatch, onResolve);
   else if (state.tab === "sessions") body = sessionsTab(state, table, dispatch);
   else if (state.tab === "games") body = gamesTab(table);
@@ -74,10 +75,10 @@ const stat = (label, value, alarming, live) =>
       // rebuilt once a second.
       live ? h("span", { text: age(live.ageSeconds), data: { live: `age:${live.id}` } }) : null
     ),
-    h("div.mono.display", { text: value, style: { fontSize: "32px", fontWeight: "700", marginTop: "4px", color: alarming ? "var(--critical)" : "" } })
+    h("div.mono.display", { text: value, style: { fontSize: "var(--t-hero)", fontWeight: "700", marginTop: "4px", color: alarming ? "var(--critical)" : "" } })
   );
 
-function chipsTab(state, table, onScan, onAdjust) {
+function chipsTab(state, table, onScan, onAdjust, onOrderFill) {
   const varianceAlert = alertsForTable(state.alerts, table.id).find((a) => a.title.includes("tray"));
   const totalChips = chipTray.reduce((n, d) => n + d.count, 0);
 
@@ -88,13 +89,13 @@ function chipsTab(state, table, onScan, onAdjust) {
       "button.scan-dial",
       { data: { scanning: state.scanning }, "aria-label": "Scan the chip tray", on: { click: onScan } },
       iconScan(),
-      state.scanning ? null : h("span.display", { text: "Scan", style: { fontSize: "20px", fontWeight: "600" } })
+      state.scanning ? null : h("span.display", { text: "Scan", style: { fontSize: "var(--t-title)", fontWeight: "600" } })
     ),
     h(
       "div",
       { style: { textAlign: "center" } },
       h("div.micro", { text: "Last scan" }),
-      h("div.mono", { text: "18:21 · 2 failed before", style: { fontSize: "16px", color: "var(--ink-2)", marginTop: "2px" } })
+      h("div.mono", { text: "18:21 · 2 failed before", style: { fontSize: "var(--t-body)", color: "var(--ink-2)", marginTop: "2px" } })
     )
   );
 
@@ -118,17 +119,28 @@ function chipsTab(state, table, onScan, onAdjust) {
     h(
       "div",
       { style: { display: "flex", alignItems: "center", justifyContent: "space-between" } },
-      h("span.display", { text: "Chip tray · both trays", style: { fontSize: "18px", fontWeight: "600" } }),
+      h("span.display", { text: "Chip tray · both trays", style: { fontSize: "var(--t-body)", fontWeight: "600" } }),
       h("span.tag", { text: `${totalChips} CHIPS`, style: { background: "var(--surface-soft)", color: "var(--ink-2)" } })
     ),
     denominations,
     h("div", {
       text: table.variance ? "Only the denomination that moved is called out. The rest stay quiet." : "Balanced. Nothing to chase.",
-      style: { fontSize: "14px", color: "var(--ink-3)" },
+      style: { fontSize: "var(--t-micro)", color: "var(--ink-3)" },
     }),
-    table.variance
-      ? h("button.btn.btn--big", { text: "Adjust the tray", style: { alignSelf: "flex-start" }, on: { click: () => onAdjust(table.id) } })
-      : null
+    h(
+      "div",
+      { style: { display: "flex", gap: "9px", alignSelf: "flex-start", marginTop: "2px" } },
+      table.variance
+        ? h("button.btn.btn--big", { text: "Adjust the tray", on: { click: () => onAdjust(table.id) } })
+        : null,
+      // Review feedback: a supervisor could authorise a fill somebody else
+      // asked for but had no way to raise one, which is the half of the job
+      // they actually start.
+      h("button.btn.btn--ghost.btn--big", {
+        text: "Order a fill",
+        on: { click: () => onOrderFill(table.id) },
+      })
+    )
   );
 
   return h(
@@ -145,46 +157,46 @@ function chipsTab(state, table, onScan, onAdjust) {
   );
 }
 
-const rect = (dashed) =>
-  h("span", {
-    style: {
-      width: "46px", height: "64px", borderRadius: "5px", display: "block",
-      background: dashed ? "rgba(255,255,255,.3)" : "rgba(255,255,255,.85)",
-      border: dashed ? "1px dashed rgba(255,255,255,.5)" : "",
-    },
-  });
-
 const big = (label, value) =>
-  h("div", { style: { textAlign: "center" } }, h("div.micro", { text: label }), h("div.mono.display", { text: value, style: { fontSize: "26px", fontWeight: "700" } }));
+  h("div", { style: { textAlign: "center" } }, h("div.micro", { text: label }), h("div.mono.display", { text: value, style: { fontSize: "var(--t-metric)", fontWeight: "700" } }));
 
-function liveTab(table) {
+function liveTab(state, table, dispatch) {
   if (table.status === "offline") {
     return h(
       "div.card.fade-in",
       { style: { flex: "1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "18px", padding: "24px", textAlign: "center" } },
-      h("div.display", { text: "Table is dark", style: { fontSize: "28px", fontWeight: "700", color: "var(--critical)" } }),
+      h("div.display", { text: "Table is dark", style: { fontSize: "var(--t-hero)", fontWeight: "700", color: "var(--critical)" } }),
       h("div", {
         text: `No live view while ${table.name} is offline. The pod is still dealing on the other three. Last good chip count was 18:04.`,
-        style: { fontSize: "17px", color: "var(--ink-2)", maxWidth: "420px", lineHeight: "1.5" },
+        style: { fontSize: "var(--t-action)", color: "var(--ink-2)", maxWidth: "420px", lineHeight: "1.5" },
       })
     );
   }
 
+  const hand = currentHand(table.id);
   return h(
     "div.card.fade-in",
     { style: { flex: "1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "18px", padding: "24px" } },
-    seats(table.seats, table.seated, 16, 11),
-    felt(table, {
-      width: 420,
-      height: 130,
-      children: h(
-        "span",
-        { style: { display: "flex", gap: "12px", alignItems: "center" } },
-        rect(), rect(), h("span", { style: { width: "1px", height: "70px", background: "rgba(255,255,255,.3)" } }), rect(), rect(true)
-      ),
+    seats(table, playersForTable(state.players, table.id), {
+      scale: 1.55,
+      gap: 10,
+      onPick: (player) => dispatch({ type: "open-player", playerId: player.id }),
     }),
-    h("div", { style: { display: "flex", gap: "28px" } }, big("Banker", "7"), big("Player", "4"), big("Seated", `${table.seated} / ${table.seats}`)),
-    h("div", { text: "Mirroring the Primary.", style: { fontSize: "15px", color: "var(--ink-3)" } })
+    // Rank and suit, as asked. Up to now this drew four blank rectangles,
+    // which told a supervisor that cards exist.
+    felt(table, { width: 480, height: 168, children: handView(hand, { size: "lg" }) }),
+    h(
+      "div",
+      { style: { display: "flex", gap: "28px" } },
+      big("Shoe", String(hand.shoe)),
+      big("Game", String(hand.game)),
+      big("Seated", `${table.seated} / ${table.seats}`),
+      big("Limits", limitsLabel(table))
+    ),
+    h("div", {
+      text: "Tap a seat to open that player. ASSUMED: this is our drawing of the game, not the dealer display itself.",
+      style: { fontSize: "var(--t-detail)", color: "var(--ink-3)" },
+    })
   );
 }
 
@@ -193,7 +205,7 @@ const seatChip = (n) =>
     text: String(n),
     style: {
       width: "36px", height: "36px", borderRadius: "10px", background: "var(--surface-soft)",
-      display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "700", fontSize: "18px", flexShrink: "0",
+      display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "700", fontSize: "var(--t-body)", flexShrink: "0",
     },
   });
 
@@ -202,7 +214,7 @@ const seatChip = (n) =>
 const emptySeats = (table, seated) =>
   h(
     "div",
-    { style: { fontSize: "15px", color: "var(--ink-3)", padding: "2px 4px" } },
+    { style: { fontSize: "var(--t-detail)", color: "var(--ink-3)", padding: "2px 4px" } },
     `${table.seats - seated} of ${table.seats} seats open`
   );
 
@@ -219,8 +231,8 @@ function playersTab(state, table, dispatch, onResolve) {
       h(
         "div",
         { style: { flex: "1", minWidth: "0" } },
-        h("div", { text: p.name, style: { fontSize: "18px", fontWeight: "600" } }),
-        h("div", { text: p.rated ? `${p.tier} · card ${p.card}` : "Anonymous · no card", style: { fontSize: "15px", color: "var(--ink-3)" } })
+        h("div", { text: p.name, style: { fontSize: "var(--t-body)", fontWeight: "600" } }),
+        h("div", { text: p.rated ? `${p.tier} · card ${p.card}` : "Anonymous · no card", style: { fontSize: "var(--t-detail)", color: "var(--ink-3)" } })
       ),
       figureCell("Buy-in today", money(p.buyIn), flagged ? "var(--high)" : ""),
       figureCell("Theo win", money(p.theoWin)),
@@ -247,7 +259,7 @@ const figureCell = (label, value, color) =>
     "div",
     { style: { textAlign: "right", flexShrink: "0", minWidth: "96px" } },
     h("div.micro", { text: label }),
-    h("div.mono.display", { text: value, style: { fontSize: "20px", fontWeight: "600", color: color || "", whiteSpace: "nowrap" } })
+    h("div.mono.display", { text: value, style: { fontSize: "var(--t-title)", fontWeight: "600", color: color || "", whiteSpace: "nowrap" } })
   );
 
 /**
@@ -265,7 +277,7 @@ function sessionsTab(state, table, dispatch) {
   const header = h(
     "div.card",
     { style: { display: "flex", alignItems: "center", gap: "22px", padding: "14px 18px", flexShrink: "0" } },
-    h("div", {}, h("div.micro", { text: "Rated sessions open" }), h("div.mono.display", { text: String(seated.filter((p) => p.rated).length), style: { fontSize: "24px", fontWeight: "700" } })),
+    h("div", {}, h("div.micro", { text: "Rated sessions open" }), h("div.mono.display", { text: String(seated.filter((p) => p.rated).length), style: { fontSize: "var(--t-metric)", fontWeight: "700" } })),
     h("span", { style: { flex: "1" } }),
     figureCell("Table handle", money(totals.handle)),
     figureCell("Theoretical win", money(totals.theo)),
@@ -284,8 +296,8 @@ function sessionsTab(state, table, dispatch) {
         h(
           "div",
           { style: { flex: "1", minWidth: "0" } },
-          h("div", { text: p.name, style: { fontSize: "17px", fontWeight: "600" } }),
-          h("div", { text: `${sx.day} · ${sx.from} to ${sx.to} · ${sx.table}`, style: { fontSize: "15px", color: "var(--ink-3)" } })
+          h("div", { text: p.name, style: { fontSize: "var(--t-action)", fontWeight: "600" } }),
+          h("div", { text: `${sx.day} · ${sx.from} to ${sx.to} · ${sx.table}`, style: { fontSize: "var(--t-detail)", color: "var(--ink-3)" } })
         ),
         figureCell("Handle", money(sx.handle)),
         figureCell("Theo", money(sx.theoWin)),
@@ -347,18 +359,18 @@ function gameRow(g) {
             ...(g.corrected ? { borderColor: "var(--high-edge)", background: "var(--high-wash)" } : {}),
           },
         },
-        h("span.mono", { text: `${g.shoe}-${g.game}`, style: { width: "52px", fontSize: "16px", fontWeight: "700", color: "var(--ink-3)" } }),
-        h("span.mono", { text: g.at, style: { width: "54px", fontSize: "16px", color: "var(--ink-3)" } }),
-        h("span", { text: g.outcome, style: { width: "74px", fontSize: "17px", fontWeight: "600" } }),
+        h("span.mono", { text: `${g.shoe}-${g.game}`, style: { width: "52px", fontSize: "var(--t-body)", fontWeight: "700", color: "var(--ink-3)" } }),
+        h("span.mono", { text: g.at, style: { width: "54px", fontSize: "var(--t-body)", color: "var(--ink-3)" } }),
+        h("span", { text: g.outcome, style: { width: "74px", fontSize: "var(--t-action)", fontWeight: "600" } }),
         g.corrected
           ? h("span.tag", { text: g.corrected.toUpperCase(), style: { background: "var(--high-wash)", color: "var(--high)" } })
           : h("span", { style: { flex: "1" } }),
         g.corrected ? h("span", { style: { flex: "1" } }) : null,
-        h("span.mono", { text: `${g.banker} / ${g.player}`, style: { fontSize: "16px", color: "var(--ink-2)" } }),
-        h("span.mono", { text: money(g.handle), style: { width: "96px", textAlign: "right", fontSize: "16px" } }),
+        h("span.mono", { text: `${g.banker} / ${g.player}`, style: { fontSize: "var(--t-body)", color: "var(--ink-2)" } }),
+        h("span.mono", { text: money(g.handle), style: { width: "96px", textAlign: "right", fontSize: "var(--t-body)" } }),
         h("span.mono", {
           text: money(g.result),
-          style: { width: "96px", textAlign: "right", fontSize: "16px", fontWeight: "600", color: g.result < 0 ? "var(--critical)" : "var(--ok)" },
+          style: { width: "96px", textAlign: "right", fontSize: "var(--t-body)", fontWeight: "600", color: g.result < 0 ? "var(--critical)" : "var(--ok)" },
         })
       );
 }
@@ -375,8 +387,8 @@ function stubTab(tab) {
   return h(
     "div.card.fade-in",
     { style: { flex: "1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "12px", padding: "30px", textAlign: "center" } },
-    h("div.display", { text: title, style: { fontSize: "25px", fontWeight: "700" } }),
-    h("div", { text: body, style: { fontSize: "17px", color: "var(--ink-2)", maxWidth: "520px", lineHeight: "1.55" } }),
-    h("div", { text: "Not built out in this prototype.", style: { fontSize: "15px", color: "var(--ink-3)" } })
+    h("div.display", { text: title, style: { fontSize: "var(--t-metric)", fontWeight: "700" } }),
+    h("div", { text: body, style: { fontSize: "var(--t-action)", color: "var(--ink-2)", maxWidth: "520px", lineHeight: "1.55" } }),
+    h("div", { text: "Not built out in this prototype.", style: { fontSize: "var(--t-detail)", color: "var(--ink-3)" } })
   );
 }

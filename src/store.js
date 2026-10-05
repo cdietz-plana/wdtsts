@@ -9,6 +9,9 @@ import { wallClock } from "./lib/format.js";
  * session is replayable and every screen is a pure function of state.
  */
 
+/** The full floor. An area is a slice of it. */
+const ALL_PODS = initialPods;
+
 export const initialState = {
   /** @type {import("./types.js").Theme} */ theme: "dark",
   /** The prototype starts where the shift starts. Nothing here authenticates. */
@@ -28,6 +31,18 @@ export const initialState = {
   toast: null,
   /** At pod level the right pane carries either the alerts or the people. */
   /** @type {"alerts"|"players"} */ podPane: "alerts",
+  /**
+   * How the people lists are ranked. Starts on actuals, not on theoretical
+   * win: a supervisor asked who to watch wants what is happening now.
+   * @type {"winners"|"losers"|"buyin"|"handle"|"theo"}
+   */
+  playerRank: "winners",
+  /**
+   * How many pods are in this supervisor's area. Review control, not product:
+   * an area is assigned, not chosen, and Load Pods is undesigned. It is here
+   * so the adaptive floor layouts can actually be seen.
+   */
+  areaSize: 6,
   /** Learning aid for the design team, switched from the page chrome. Not product. */
   helpTips: false,
   /** An overlay that covers the whole device: help, or the account sheet. */
@@ -53,9 +68,27 @@ export const initialState = {
 export function reducer(s, a) {
   switch (a.type) {
     case "theme": return { ...s, theme: a.theme };
+    case "player-rank": return { ...s, playerRank: a.rank };
+    case "area-size": {
+      const pods = ALL_PODS.slice(0, a.size);
+      const ids = new Set(pods.map((p) => p.id));
+      return {
+        ...s,
+        areaSize: a.size,
+        pods,
+        // Everything derived from the pods has to narrow with them, or the
+        // tree lists alerts for tables that are no longer in the area.
+        alerts: s.alerts.filter((x) => ids.has(x.podId)),
+        players: s.players.filter((p) => pods.some((pod) => pod.tables.some((t) => t.id === p.tableId))),
+        level: "section",
+        podId: null,
+        tableId: null,
+        flyout: null,
+      };
+    }
     case "login-id": return { ...s, login: { ...s.login, id: a.id } };
     case "sign-in": return { ...s, signedIn: true };
-    case "sign-out": return { ...initialState, theme: s.theme };
+    case "sign-out": return { ...initialState, theme: s.theme, areaSize: s.areaSize, pods: s.pods, alerts: s.alerts, players: s.players };
     case "mode": return { ...s, mode: a.mode };
     case "sheet": return { ...s, sheet: a.sheet };
     case "pod-pane": return { ...s, podPane: a.pane };
@@ -103,6 +136,7 @@ export function reducer(s, a) {
     case "flyout-step": return s.flyout ? { ...s, flyout: { ...s.flyout, step: a.step } } : s;
     case "flyout-reason": return s.flyout ? { ...s, flyout: { ...s.flyout, reason: a.reason } } : s;
     case "flyout-pin": return s.flyout ? { ...s, flyout: { ...s.flyout, pin: a.pin } } : s;
+    case "flyout-amount": return s.flyout ? { ...s, flyout: { ...s.flyout, amount: a.amount } } : s;
     case "scan-start": return { ...s, scanning: true };
     case "scan-done":
       return {

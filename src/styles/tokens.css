@@ -1,9 +1,9 @@
 /* =============================================================================
    Design tokens — LTG Supervisor Tablet
    -----------------------------------------------------------------------------
-   Two themes, one system. Structure, spacing and hit targets are identical in
-   both; only surface and colour change. Every value below is referenced by name
-   in components.css — never hard-code a colour in a component.
+   Four themes, one system. Structure and hit targets are identical in all four;
+   surface, colour and radius change. Every value below is referenced by name in
+   components.css — never hard-code a colour or a size in a component.
 
    LIGHT is WDTS brand. Those values were sampled from the 21 Aug deck, NOT from
    a brand guide. Confirm them against the real guide before this leaves Plan A.
@@ -11,15 +11,39 @@
    DARK is not a tint of light. The brand crimson (#a81e33) all but disappears
    on a dark ground, so dark mode runs a lifted #ff5c72. That is a design-system
    decision, not a styling whim.
+
+   SQUARE and GLASS exist because review feedback was that light reads as a
+   wireframe: true white cards on a near-white ground, separated by a hairline,
+   give the eye no surface to land on. Square answers it with structure (hard
+   corners, real edges, a deeper ground). Glass answers it with depth (frosted
+   translucent surfaces over a lit room). Neither changes a single layout rule.
    ========================================================================== */
 
 .ltg {
-  /* Type ------------------------------------------------------------------ */
+  /* Type -------------------------------------------------------------------
+     Seven steps, each with one job. The previous ladder had fourteen sizes
+     between 14 and 32px, which is why nothing on a screen looked more
+     important than anything else.
+
+     Review feedback: when the labels were bumped, EVERYTHING was bumped, so
+     the hierarchy that was already weak got flattened completely. The fix is
+     directional, not uniform. Primary text and anything you touch went up;
+     detail labels came back down below where they started. */
+  --t-micro: 11px;     /* uppercase category labels. Never carries a value.   */
+  --t-detail: 13px;    /* supporting detail under a primary line              */
+  --t-support: 15px;   /* secondary reading text                              */
+  --t-body: 17px;      /* primary reading text, the first line of a row       */
+  --t-action: 18px;    /* buttons, tabs, anything a thumb lands on            */
+  --t-title: 21px;     /* card and screen titles                              */
+  --t-metric: 27px;    /* the number a card exists to show                    */
+  --t-metric-2: 23px;  /* same job, but the figure ran long (142.3M)          */
+  --t-hero: 34px;      /* the single figure a full-bleed layout is about      */
+
   --font-display: "Sora", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-ui: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
 
-  /* Radius ---------------------------------------------------------------- */
+  /* Radius. Overridden per theme: Square flattens it, Glass opens it. ------ */
   --r-sm: 8px;
   --r-md: 11px;
   --r-lg: 15px;
@@ -35,22 +59,43 @@
   --tap-key: 56px;
   --tap-chip: 40px;
 
+  /* Player value -----------------------------------------------------------
+     A SECOND colour language, deliberately sharing no hue with severity.
+     Severity is warm (crimson, amber) plus one green. Value is entirely cool:
+     slate, blue, indigo, violet. A pod full of whales can never read as a pod
+     with a fault, which is the whole reason the floor view works at distance.
+
+     Position (a player ahead of the house) is not a third colour. It is a
+     neutral ring on the dot, so it reads as a modifier on a person rather
+     than as a new category to learn. See lib/playervalue.js. */
+  --value-1: #78859a;
+  --value-2: #3a6fd0;
+  --value-3: #6446cf;
+  --value-4: #9b3fd0;
+  --ring-up: rgba(20, 27, 36, 0.5);
+  --ring-hot: #141b24;
+
   /* Motion ---------------------------------------------------------------- */
   --ease-pane: cubic-bezier(0.66, 0, 0.22, 1);
   --dur-pane: 460ms;
   --dur-fly: 380ms;
   --dur-theme: 300ms;
+
+  /* Ambient room. Themes that do not want it set opacity to 0. ------------- */
+  --ambient-opacity: 0;
+  --ambient-filter: none;
+  --ambient-veil: transparent;
 }
 
 /* --- LIGHT (WDTS brand) --------------------------------------------------- */
 .ltg[data-theme="light"] {
-  --bg: #f4f5f6;
+  --bg: #eef0f3;
   --surface: #ffffff;
   --surface-raised: #ffffff;
-  --surface-sunken: #eceef1;
-  --surface-soft: #f4f5f6;
-  --line: #e0e4e9;
-  --line-strong: #cdd2d8;
+  --surface-sunken: #e6e9ed;
+  --surface-soft: #f2f4f7;
+  --line: #dde1e7;
+  --line-strong: #c6ccd4;
 
   --ink: #141b24;
   --ink-2: #3b4653;
@@ -61,7 +106,7 @@
   --critical-ink: #8e1a2b;
   --high-ink: #8a5a10;
   --ok-ink: #1f6146;
-  --high: #b4791a;
+  --high: #c9901f;
   --ok: #2e7d5b;
 
   --critical-wash: #fbeaed;
@@ -80,12 +125,38 @@
 
   --on-accent: #ffffff;
   --on-high: #1a1200;
-  --shadow-card: none;
+  /* A card now casts a little. The ground went a step deeper too. Both are
+     answers to "it looks like a wireframe": white on near-white with a
+     hairline is a drawing of a card, not a card. */
+  --shadow-card: 0 1px 2px rgba(20, 30, 45, 0.07), 0 4px 12px rgba(20, 30, 45, 0.05);
   --shadow-raised: 0 1px 3px rgba(20, 30, 45, 0.16);
   --glass-blur: none;
+
+  /* Floor tray and alert rail. Themes with a room behind them drop the tray
+     and thin the rail so the room is visible; flat themes keep both. */
+  --plan-bg: var(--surface-sunken);
+  --plan-border: var(--line);
+  --plan-pad: 14px;
+  --rail-bg: var(--surface);
+  --rail-bg-wide: transparent;
+  --rail-blur-wide: none;
+  --legend-ink: var(--ink-2);
+  --legend-shadow: none;
+
+
+  --bar-bg: var(--surface);
+  --seg-bg: #e7eaee;
+  --seg-edge: transparent;
+  --seg-on: #ffffff;
+  --scrim: rgba(28, 37, 48, 0.35);
+  --flyout-bg: #ffffff;
+  --flyout-shadow: -30px 0 70px rgba(28, 37, 48, 0.22);
+  --dial-bg: linear-gradient(155deg, #fff, #eceef1);
+  --dial-shadow: 0 8px 24px rgba(28, 37, 48, 0.12);
+
 }
 
-/* --- DARK (glass) --------------------------------------------------------- */
+/* --- DARK (glass over the room) ------------------------------------------- */
 .ltg[data-theme="dark"] {
   --bg: #0a0d13;
   --surface: rgba(16, 14, 20, 0.56);
@@ -123,14 +194,229 @@
   --seat: rgba(255, 255, 255, 0.22);
   --seat-on: rgba(255, 255, 255, 0.78);
 
-  --on-accent: #12151b;
-  --on-high: #12151b;
+  /* Lifted so a dot reads on a dark ground. */
+  --value-1: #9aa6b8;
+  --value-2: #6d9bff;
+  --value-3: #a088ff;
+  --value-4: #d47aff;
+  --ring-up: rgba(255, 255, 255, 0.6);
+  --ring-hot: #ffffff;
+
+  /* Measured, not chosen. Chromium composites opaque children inside an
+     element that has a backdrop-filter about 19% darker than the colour they
+     were given, so a severity chip in the alert rail renders near #cf4a5c
+     rather than #ff5c72. The ink on those chips is set against what actually
+     renders, which is why it is darker than it looks like it needs to be. */
+  --on-accent: #0b0d11;
+  --on-high: #0b0d11;
   --shadow-card: 0 12px 32px rgba(0, 0, 0, 0.35);
   --shadow-raised: 0 2px 10px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
-  /* Blur sits behind the content. It never touches a number. */
   /* Frosted, not tinted. The blur softens the room behind a panel; the
      desaturation and the dim take its COLOUR away, so a card sitting over the
      red ceiling does not read as a card with a problem. The room keeps its
      colour everywhere a panel is not. */
   --glass-blur: blur(26px) saturate(28%) brightness(0.44);
+
+  --ambient-opacity: 1;
+  --ambient-filter: blur(14px) saturate(108%) brightness(0.72);
+  --ambient-veil:
+    radial-gradient(150% 38% at 50% -8%, rgba(150, 26, 44, 0.3), rgba(150, 26, 44, 0) 72%),
+    linear-gradient(176deg, rgba(20, 9, 13, 0.2) 0%, rgba(8, 9, 14, 0.32) 30%, rgba(5, 7, 11, 0.42) 100%);
+
+  --plan-bg: transparent;
+  --plan-border: transparent;
+  --plan-pad: 2px;
+  --rail-bg: rgba(9, 8, 13, 0.42);
+  --rail-bg-wide: rgba(9, 8, 13, 0.34);
+  --rail-blur-wide: blur(2px) saturate(75%) brightness(0.8);
+  --legend-ink: var(--ink);
+  --legend-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+
+
+  --bar-bg: var(--surface);
+  --seg-bg: var(--surface-sunken);
+  --seg-edge: var(--line);
+  --seg-on: var(--surface-raised);
+  --scrim: rgba(0, 0, 0, 0.5);
+  --flyout-bg: var(--surface-raised);
+  --flyout-shadow: -30px 0 70px rgba(0, 0, 0, 0.45);
+  --dial-bg: linear-gradient(155deg, var(--surface-raised), var(--surface));
+  --dial-shadow: var(--shadow-card);
+
+}
+
+/* --- SQUARE (structure, not decoration) -----------------------------------
+   Hard corners and real edges. The ground is deeper than light so a surface
+   sits ON something, and the surfaces are very slightly translucent with a
+   small blur, which is what stops the hard corners reading as a wireframe
+   again. Lines do the work that shadow does elsewhere. */
+.ltg[data-theme="square"] {
+  --r-sm: 2px;
+  --r-md: 3px;
+  --r-lg: 4px;
+  --r-xl: 5px;
+  --r-pill: 3px;
+
+  --bg: #dfe3e9;
+  --surface: rgba(255, 255, 255, 0.84);
+  --surface-raised: rgba(255, 255, 255, 0.93);
+  --surface-sunken: rgba(207, 214, 223, 0.6);
+  --surface-soft: rgba(233, 237, 242, 0.78);
+  --line: #c2cad4;
+  --line-strong: #97a3b2;
+
+  --ink: #10161e;
+  --ink-2: #333e4b;
+  --ink-3: #4c5968;
+
+  --brand: #a81e33;
+  --critical: #a81e33;
+  --critical-ink: #8b1829;
+  --high-ink: #7d510e;
+  --ok-ink: #1b5740;
+  --high: #c2881a;
+  --ok: #2a7454;
+
+  --critical-wash: rgba(168, 30, 51, 0.1);
+  --critical-edge: rgba(168, 30, 51, 0.38);
+  --high-wash: rgba(180, 121, 26, 0.12);
+  --high-edge: rgba(180, 121, 26, 0.42);
+  --ok-wash: rgba(46, 125, 91, 0.1);
+  --ok-edge: rgba(46, 125, 91, 0.34);
+
+  --felt: rgba(166, 177, 190, 0.5);
+  --felt-edge: #9aa6b4;
+  --felt-primary: #3d4c60;
+  --felt-primary-edge: #2f3c4d;
+  --seat: #adb8c5;
+  --seat-on: #3d4c60;
+
+  --value-1: #6c798e;
+  --value-2: #2f63c6;
+  --value-3: #583bc4;
+  --value-4: #8f32c6;
+  --ring-up: rgba(16, 22, 30, 0.55);
+  --ring-hot: #10161e;
+
+  --on-accent: #ffffff;
+  --on-high: #1a1200;
+  --shadow-card: none;
+  --shadow-raised: 0 1px 0 rgba(16, 22, 30, 0.14);
+  --glass-blur: blur(9px) saturate(118%) brightness(1.02);
+
+  --ambient-opacity: 0.5;
+  --ambient-filter: blur(30px) saturate(26%) brightness(1.5);
+  --ambient-veil: linear-gradient(176deg, rgba(223, 227, 233, 0.78) 0%, rgba(223, 227, 233, 0.9) 100%);
+
+  --plan-bg: var(--surface-sunken);
+  --plan-border: var(--line-strong);
+  --plan-pad: 10px;
+  --rail-bg: var(--surface-raised);
+  --rail-bg-wide: transparent;
+  --rail-blur-wide: none;
+  --legend-ink: var(--ink-2);
+  --legend-shadow: none;
+
+
+  --bar-bg: var(--surface-raised);
+  --seg-bg: rgba(255, 255, 255, 0.5);
+  --seg-edge: var(--line-strong);
+  --seg-on: #ffffff;
+  --scrim: rgba(28, 37, 48, 0.38);
+  --flyout-bg: rgba(255, 255, 255, 0.96);
+  --flyout-shadow: -1px 0 0 var(--line-strong);
+  --dial-bg: linear-gradient(155deg, #fff, #e4e9ef);
+  --dial-shadow: 0 1px 0 rgba(16, 22, 30, 0.14);
+
+}
+
+/* --- GLASS (light, frosted, over a lit room) ------------------------------
+   The same construction as dark, inverted. Surfaces are white at around half
+   opacity over a brightened room, so they read as physical panes rather than
+   as filled rectangles. Ink has to work harder here than anywhere else: every
+   value below was measured against the lightest ground the room produces. */
+.ltg[data-theme="glass"] {
+  --r-sm: 12px;
+  --r-md: 16px;
+  --r-lg: 20px;
+  --r-xl: 26px;
+  --r-pill: 999px;
+
+  --bg: #dde2ea;
+  --surface: rgba(255, 255, 255, 0.58);
+  --surface-raised: rgba(255, 255, 255, 0.72);
+  --surface-sunken: rgba(255, 255, 255, 0.34);
+  --surface-soft: rgba(255, 255, 255, 0.46);
+  --line: rgba(255, 255, 255, 0.72);
+  --line-strong: rgba(86, 100, 118, 0.3);
+
+  --ink: #0e141c;
+  --ink-2: #2d3744;
+  --ink-3: #46525f;
+
+  --brand: #9c1b2f;
+  --critical: #9c1b2f;
+  --critical-ink: #78101f;
+  --high-ink: #65400a;
+  --ok-ink: #144834;
+  --high: #c68c18;
+  --ok: #216047;
+
+  /* Opaque-ish, not tinted glass: a wash this pale over a lit room stops
+     being a surface and the coloured type on it has nothing to sit against. */
+  --critical-wash: rgba(252, 229, 233, 0.9);
+  --critical-edge: rgba(156, 27, 47, 0.34);
+  --high-wash: rgba(250, 240, 221, 0.9);
+  --high-edge: rgba(166, 109, 19, 0.34);
+  --ok-wash: rgba(228, 242, 236, 0.9);
+  --ok-edge: rgba(39, 110, 79, 0.3);
+
+  --felt: rgba(255, 255, 255, 0.42);
+  --felt-edge: rgba(255, 255, 255, 0.8);
+  --felt-primary: rgba(38, 50, 66, 0.9);
+  --felt-primary-edge: rgba(38, 50, 66, 0.96);
+  --seat: rgba(70, 82, 95, 0.3);
+  --seat-on: #354458;
+
+  --value-1: #64717f;
+  --value-2: #2a5fc4;
+  --value-3: #5637c2;
+  --value-4: #8c2ec4;
+  --ring-up: rgba(14, 20, 28, 0.55);
+  --ring-hot: #0e141c;
+
+  --on-accent: #ffffff;
+  --on-high: #1a1200;
+  --shadow-card: 0 2px 6px rgba(28, 40, 58, 0.08), 0 14px 38px rgba(28, 40, 58, 0.12);
+  --shadow-raised: 0 2px 10px rgba(28, 40, 58, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  /* Brightened rather than dimmed, and desaturated for the same reason dark
+     desaturates: the room must not tint a surface that carries a number. */
+  --glass-blur: blur(28px) saturate(40%) brightness(1.5);
+
+  --ambient-opacity: 1;
+  --ambient-filter: blur(15px) saturate(88%) brightness(1.12);
+  --ambient-veil:
+    radial-gradient(150% 40% at 50% -8%, rgba(255, 238, 241, 0.42), rgba(255, 238, 241, 0) 72%),
+    linear-gradient(176deg, rgba(243, 246, 250, 0.42) 0%, rgba(232, 237, 244, 0.5) 40%, rgba(222, 229, 238, 0.58) 100%);
+
+  --plan-bg: transparent;
+  --plan-border: transparent;
+  --plan-pad: 2px;
+  --rail-bg: rgba(255, 255, 255, 0.42);
+  --rail-bg-wide: rgba(255, 255, 255, 0.3);
+  --rail-blur-wide: blur(3px) saturate(60%) brightness(1.3);
+  --legend-ink: var(--ink);
+  --legend-shadow: 0 1px 2px rgba(255, 255, 255, 0.85);
+
+
+  --bar-bg: var(--surface);
+  --seg-bg: rgba(255, 255, 255, 0.34);
+  --seg-edge: rgba(255, 255, 255, 0.7);
+  --seg-on: rgba(255, 255, 255, 0.96);
+  --scrim: rgba(40, 52, 68, 0.3);
+  --flyout-bg: rgba(250, 252, 255, 0.88);
+  --flyout-shadow: -30px 0 70px rgba(28, 40, 58, 0.2);
+  --dial-bg: linear-gradient(155deg, rgba(255,255,255,.95), rgba(255,255,255,.6));
+  --dial-shadow: var(--shadow-card);
+
 }

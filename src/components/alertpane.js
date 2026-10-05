@@ -43,16 +43,16 @@ function narrowList(state, dispatch, onAction) {
             h(
               "span",
               { style: { flex: "1", minWidth: "0" } },
-              h("span", { text: pod.name, style: { display: "block", fontSize: "17px", fontWeight: "600" } }),
-              h("span", { text: subjectSummary(alerts), style: { display: "block", fontSize: "14px", color: "var(--ink-2)" } })
+              h("span", { text: pod.name, style: { display: "block", fontSize: "var(--t-action)", fontWeight: "600" } }),
+              h("span", { text: subjectSummary(alerts), style: { display: "block", fontSize: "var(--t-micro)", color: "var(--ink-2)" } })
             ),
-            h("span.count-badge", { text: String(alerts.length), style: { minWidth: "22px", height: "22px", fontSize: "15px", background: sevColor(severity), color: sevOn(severity) } })
+            h("span.count-badge", { text: String(alerts.length), style: { minWidth: "22px", height: "22px", fontSize: "var(--t-detail)", background: sevColor(severity), color: sevOn(severity) } })
           );
           return open ? fragment(row, alerts.map((a) => miniRow(a, state, onAction, true))) : row;
         })
       : scope.length
         ? scope.map((a) => miniRow(a, state, onAction, false))
-        : h("div", { text: "Nothing open here.", style: { padding: "14px", fontSize: "16px", color: "var(--ink-3)" } });
+        : h("div", { text: "Nothing open here.", style: { padding: "14px", fontSize: "var(--t-body)", color: "var(--ink-3)" } });
 
   const blocking = withFlag(state.alerts, "blocks-roll").length;
 
@@ -64,11 +64,11 @@ function narrowList(state, dispatch, onAction) {
       { style: { padding: "14px 14px 10px", flexShrink: "0", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" } },
       state.level === "pod"
         ? panePodSwitch(state, dispatch, findPod(state.pods, state.podId))
-        : h("span.display", { text: heading, style: { fontSize: "20px", fontWeight: "600" } }),
+        : h("span.display", { text: heading, style: { fontSize: "var(--t-title)", fontWeight: "600" } }),
       h("span.count-badge", {
         text: String(scope.length),
         style: {
-          minWidth: "26px", height: "26px", fontSize: "16px",
+          minWidth: "26px", height: "26px", fontSize: "var(--t-body)",
           background: scope.length ? "var(--critical)" : "var(--surface-soft)",
           color: scope.length ? "var(--on-accent)" : "var(--ink-2)",
         },
@@ -79,8 +79,37 @@ function narrowList(state, dispatch, onAction) {
       "div",
       { style: { flexShrink: "0", borderTop: "1px solid var(--line)", padding: "11px 14px", display: "flex", alignItems: "center", gap: "9px" } },
       h("span.micro", { text: "Blocking the roll" }),
-      h("span.mono.display", { text: String(blocking), style: { fontSize: "20px", fontWeight: "600", color: blocking ? "var(--critical)" : "var(--ok)" } })
+      h("span.mono.display", { text: String(blocking), style: { fontSize: "var(--t-title)", fontWeight: "600", color: blocking ? "var(--critical-ink)" : "var(--ok-ink)" } })
     )
+  );
+}
+
+/**
+ * What the three severities mean, in the one place they are all visible.
+ *
+ * Review question from WDTS: what are the critical alerts? That the question
+ * had to be asked is the finding. The functional inventory names Critical,
+ * High and Low but does not say which event is which, so the line below is
+ * OUR reading of it and needs confirming. Writing it on the screen is how it
+ * gets argued with instead of absorbed.
+ */
+function severityKey(verbose = false) {
+  const item = (color, label, meaning) =>
+    h(
+      "span",
+      { style: { display: "flex", alignItems: "center", gap: "5px", minWidth: "0" }, title: meaning },
+      h("span.dot", { style: { background: color, flexShrink: "0" } }),
+      h("span", { text: label, style: { fontSize: "var(--t-micro)", fontWeight: "700", color: "var(--ink-2)", flexShrink: "0" } }),
+      verbose
+        ? h("span", { text: meaning, style: { fontSize: "var(--t-micro)", color: "var(--ink-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } })
+        : null
+    );
+  return h(
+    "span",
+    { style: { display: "flex", alignItems: "center", gap: "10px" } },
+    item("var(--critical)", "Critical", "stops play or blocks the roll"),
+    item("var(--high)", "High", "needs a supervisor before the shift ends"),
+    item("var(--ink-3)", "Low", "information, nothing is wrong")
   );
 }
 
@@ -98,10 +127,10 @@ function miniRow(alert, state, onAction, indent) {
     h(
       "span",
       { style: { flex: "1", minWidth: "0" } },
-      h("span", { text: alert.title, style: { display: "block", fontSize: "16px", fontWeight: "500", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }),
-      h("span", { text: where + (alert.flags.includes("blocks-roll") ? " · blocks roll" : ""), style: { display: "block", fontSize: "14px", color: "var(--ink-3)" } })
+      h("span", { text: alert.title, style: { display: "block", fontSize: "var(--t-body)", fontWeight: "500", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }),
+      h("span", { text: where + (alert.flags.includes("blocks-roll") ? " · blocks roll" : ""), style: { display: "block", fontSize: "var(--t-micro)", color: "var(--ink-3)" } })
     ),
-    h("span.mono", { text: age(alert.ageSeconds), data: { live: `age:${alert.id}` }, style: { fontSize: "16px", fontWeight: "600", color: alert.severity === "critical" ? "var(--critical)" : "var(--ink-2)" } })
+    h("span.mono", { text: age(alert.ageSeconds), data: { live: `age:${alert.id}` }, style: { fontSize: "var(--t-body)", fontWeight: "600", color: alert.severity === "critical" ? "var(--critical)" : "var(--ink-2)" } })
   );
 }
 
@@ -128,7 +157,7 @@ function wideTree(state, dispatch, onAction) {
   const header = h(
     "div",
     { style: { display: "flex", alignItems: "center", gap: "10px", flexShrink: "0", flexWrap: "wrap" } },
-    h("span.display", { text: `${state.alerts.length} alerts`, style: { fontSize: "24px", fontWeight: "700" } }),
+    h("span.display", { text: `${state.alerts.length} alerts`, style: { fontSize: "var(--t-metric)", fontWeight: "700" } }),
     h("span", { style: { flex: "1" } }),
     FILTERS.map((f) =>
       h(
@@ -140,10 +169,19 @@ function wideTree(state, dispatch, onAction) {
     )
   );
 
+  // WDTS asked what the critical alerts are. The key answers it where the
+  // severities are actually on screen, rather than in a document nobody has
+  // open at the time.
+  const key = h(
+    "div",
+    { style: { display: "flex", alignItems: "center", gap: "16px", flexShrink: "0", paddingLeft: "2px" } },
+    severityKey(true)
+  );
+
   const empty = h(
     "div.card",
-    { style: { padding: "30px", textAlign: "center", fontSize: "18px", color: "var(--ink-2)" } },
-    h("div.display", { text: "Nothing open", style: { fontSize: "23px", fontWeight: "600", color: "var(--ok)", marginBottom: "6px" } }),
+    { style: { padding: "30px", textAlign: "center", fontSize: "var(--t-body)", color: "var(--ink-2)" } },
+    h("div.display", { text: "Nothing open", style: { fontSize: "var(--t-metric)", fontWeight: "600", color: "var(--ok)", marginBottom: "6px" } }),
     "An empty list is the win condition."
   );
 
@@ -161,8 +199,8 @@ function wideTree(state, dispatch, onAction) {
         on: { click: () => dispatch({ type: "toggle-pod", podId: pod.id }) },
       },
       h("span", { style: { color: sevColor(severity), display: "flex" } }, iconChevron(15, open ? "down" : "right")),
-      h("span.display", { text: pod.name, style: { fontSize: "20px", fontWeight: "600" } }),
-      h("span", { text: subjectSummary(alerts), style: { fontSize: "16px", color: "var(--ink-2)" } }),
+      h("span.display", { text: pod.name, style: { fontSize: "var(--t-title)", fontWeight: "600" } }),
+      h("span", { text: subjectSummary(alerts), style: { fontSize: "var(--t-body)", color: "var(--ink-2)" } }),
       h("span", { style: { flex: "1" } }),
       h("span.tag", { text: `${alerts.length} OPEN`, style: { background: sevColor(severity), color: sevOn(severity) } })
     );
@@ -178,10 +216,10 @@ function wideTree(state, dispatch, onAction) {
         "button.row.row--table",
         { style: { background: "var(--surface-soft)" }, on: { click: () => dispatch({ type: "go-table", podId: pod.id, tableId, tab: "chips" }) } },
         felt(table, { hasAlert: true, width: 18, height: 11, chip: true }),
-        h("span", { text: table.name, style: { fontSize: "17px", fontWeight: "600" } }),
+        h("span", { text: table.name, style: { fontSize: "var(--t-action)", fontWeight: "600" } }),
         h("span", {
           text: `${table.role === "PT" ? "Primary" : "Secondary"} · ${table.seated} of ${table.seats} seated`,
-          style: { fontSize: "15px", color: "var(--ink-3)" },
+          style: { fontSize: "var(--t-detail)", color: "var(--ink-3)" },
         }),
         h("span", { style: { flex: "1" } }),
         h("span", { style: { color: "var(--ink-3)", display: "flex" } }, iconChevron(14, "down"))
@@ -201,8 +239,8 @@ function wideTree(state, dispatch, onAction) {
                 { style: { width: "22px", height: "22px", borderRadius: "50%", background: "var(--surface-sunken)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ink-2)" } },
                 iconPerson()
               ),
-              h("span", { text: `${a.subject.seat ? `Seat ${a.subject.seat} · ` : ""}${a.subject.name}`, style: { fontSize: "16px", fontWeight: "600" } }),
-              h("span", { text: `${a.subject.kind === "dealer" ? "Dealer" : "Rated player"} · person level`, style: { fontSize: "15px", color: "var(--ink-3)" } })
+              h("span", { text: `${a.subject.seat ? `Seat ${a.subject.seat} · ` : ""}${a.subject.name}`, style: { fontSize: "var(--t-body)", fontWeight: "600" } }),
+              h("span", { text: `${a.subject.kind === "dealer" ? "Dealer" : "Rated player"} · person level`, style: { fontSize: "var(--t-detail)", color: "var(--ink-3)" } })
             ),
             fullRow(a, 92, onAction)
           )
@@ -218,6 +256,7 @@ function wideTree(state, dispatch, onAction) {
     "div",
     { style: { display: "flex", flexDirection: "column", gap: "11px", padding: "14px 16px 12px 14px", height: "100%", minHeight: "0" } },
     header,
+    key,
     h("div", { style: { flex: "1", display: "flex", flexDirection: "column", gap: "4px", minHeight: "0", overflow: "hidden" } }, visible.length ? groups : empty)
   );
 }
@@ -244,14 +283,14 @@ function fullRow(alert, indent, onAction) {
     h(
       "div",
       { style: { flex: "1", minWidth: "0" } },
-      h("div", { style: { display: "flex", alignItems: "center", gap: "9px", flexWrap: "wrap" } }, h("span", { text: alert.title, style: { fontSize: "18px", fontWeight: "600" } }), tags),
-      h("div", { text: alert.detail, style: { fontSize: "15px", color: "var(--ink-2)", marginTop: "3px" } })
+      h("div", { style: { display: "flex", alignItems: "center", gap: "9px", flexWrap: "wrap" } }, h("span", { text: alert.title, style: { fontSize: "var(--t-body)", fontWeight: "600" } }), tags),
+      h("div", { text: alert.detail, style: { fontSize: "var(--t-detail)", color: "var(--ink-2)", marginTop: "3px" } })
     ),
     h(
       "div",
       { style: { textAlign: "right", flexShrink: "0" } },
       h("div.micro", { text: "Open" }),
-      h("div.mono.display", { text: ageLong(alert.ageSeconds), data: { live: `ageLong:${alert.id}` }, style: { fontSize: "22px", fontWeight: "600", color: alert.severity === "critical" ? "var(--critical)" : "var(--ink)" } })
+      h("div.mono.display", { text: ageLong(alert.ageSeconds), data: { live: `ageLong:${alert.id}` }, style: { fontSize: "var(--t-title)", fontWeight: "600", color: alert.severity === "critical" ? "var(--critical)" : "var(--ink)" } })
     ),
     h(
       "div",

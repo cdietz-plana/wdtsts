@@ -65,7 +65,7 @@ export function loginScreen(state, dispatch) {
           }
           return h("button.key", {
             text: k === "clear" ? "Clear" : k,
-            style: k === "clear" ? { fontSize: "16px", opacity: "0.6" } : {},
+            style: k === "clear" ? { fontSize: "var(--t-body)", opacity: "0.6" } : {},
             on: {
               click: () =>
                 dispatch({

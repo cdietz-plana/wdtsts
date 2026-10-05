@@ -47,7 +47,7 @@ export const seatedInPod = (pod) =>
 
 export const shoeWinLossForPod = (pod) => pod.tables.reduce((n, t) => n + t.shoeWinLoss, 0);
 
-/** Short label for a Secondary inside its own pod: NB0101C -> "C". */
+/** Short label for a Secondary inside its own pod: BA0101C -> "C". */
 export const shortTableLabel = (table, pod) => table.name.replace(pod.tables[0].name, "") || "Primary";
 
 /* --- people ---------------------------------------------------------------
@@ -70,6 +70,35 @@ export const findPlayer = (players, id) => players.find((p) => p.id === id);
  */
 export const topPlayers = (players, limit = 5) => [...players].sort((a, b) => b.theoWin - a.theoWin).slice(0, limit);
 
+/* --- ranking people -------------------------------------------------------
+ * Review feedback: theoretical win is the wrong default. A supervisor asked
+ * who to watch wants what is actually happening, and the answer changes by
+ * the hour. So the ranking is a choice rather than a fixed sort.
+ *
+ * `winLoss` on a player is the HOUSE's result against that player. A player
+ * who is up is therefore a negative figure, which is why the winners list
+ * sorts ascending. Getting that backwards puts the quietest table at the top
+ * of a list labelled "biggest winners", so it is worth being explicit.
+ */
+
+export const RANKINGS = [
+  { id: "winners", label: "Top winners", note: "Players furthest ahead of the house",
+    sort: (a, b) => a.winLoss - b.winLoss, value: (p) => -p.winLoss, signed: true },
+  { id: "losers", label: "Top losers", note: "Players furthest behind",
+    sort: (a, b) => b.winLoss - a.winLoss, value: (p) => p.winLoss, signed: true },
+  { id: "buyin", label: "Biggest buy-ins", note: "Cumulative buy-in this gaming day",
+    sort: (a, b) => b.buyIn - a.buyIn, value: (p) => p.buyIn, signed: false },
+  { id: "handle", label: "Biggest handle", note: "Total wagered this gaming day",
+    sort: (a, b) => b.handle - a.handle, value: (p) => p.handle, signed: false },
+  { id: "theo", label: "Biggest theo", note: "Theoretical win, what the loyalty system rates on",
+    sort: (a, b) => b.theoWin - a.theoWin, value: (p) => p.theoWin, signed: false },
+];
+
+export const ranking = (id) => RANKINGS.find((r) => r.id === id) || RANKINGS[0];
+
+export const rankPlayers = (players, id, limit = 6) =>
+  [...players].sort(ranking(id).sort).slice(0, limit);
+
 /* --- performance ----------------------------------------------------------
  * Handle is everything wagered, Win is what the house kept, Drop is what came
  * across the table in cash and markers. Hold is Win over Drop, which is the
@@ -87,6 +116,30 @@ export const podPerformance = (pod) => performance(pod.tables);
 
 export const sectionPerformance = (pods) => performance(pods.flatMap((p) => p.tables));
 
-/** "5,000 to 500,000" reads better on a tablet than a dash a thumb can hide. */
+/**
+ * Limits in full, for the table screen where the exact figure is the answer.
+ * On cards use limitShort from format.js, which gives "5K to 500K".
+ *
+ * NOT WHAT THE PRODUCT DOES TODAY: the functional inventory describes limit
+ * templates assigned to a table, previewable before they apply and effective
+ * from the next game. Printing a min and a max as two fields is a
+ * misrepresentation, and redrawing this as a named template is open work.
+ */
 export const limitsLabel = (t) =>
   `${t.limits.min.toLocaleString("en-US")} to ${t.limits.max.toLocaleString("en-US")}`;
+
+/* --- money across people --------------------------------------------------
+ * Buy-in and theo are properties of people, not of tables, so they are summed
+ * from the player list rather than read off a table row. That is why the pod
+ * header and the Players tab can never disagree about a buy-in total.
+ */
+
+export const playerTotals = (players) =>
+  players.reduce(
+    (acc, p) => ({
+      buyIn: acc.buyIn + (p.buyIn || 0),
+      theo: acc.theo + (p.theoWin || 0),
+      winLoss: acc.winLoss + (p.winLoss || 0),
+    }),
+    { buyIn: 0, theo: 0, winLoss: 0 }
+  );
