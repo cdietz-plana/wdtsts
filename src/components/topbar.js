@@ -35,7 +35,7 @@ const MODES = [
  * breadcrumb two inches to the left already does, and a bar that repeats
  * itself is a bar nobody reads.
  */
-export function topBar(state, dispatch) {
+export function topBar(state, dispatch, onMode) {
   const pod = findPod(state.pods, state.podId);
   const table = findTable(state.pods, state.tableId);
 
@@ -91,7 +91,7 @@ export function topBar(state, dispatch) {
         MODES.map(([id, label, icon]) =>
           h(
             "button",
-            { "aria-pressed": String(state.mode === id), on: { click: () => dispatch({ type: "mode", mode: id }) } },
+            { "aria-pressed": String(state.mode === id), on: { click: () => onMode(id) } },
             icon(),
             label,
             id === "alerts" && state.alerts.length ? h("span.count-badge", { text: String(state.alerts.length) }) : null

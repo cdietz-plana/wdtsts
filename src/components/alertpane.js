@@ -130,7 +130,9 @@ function miniRow(alert, state, onAction, indent) {
       h("span", { text: alert.title, style: { display: "block", fontSize: "var(--t-body)", fontWeight: "500", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }),
       h("span", { text: where + (alert.flags.includes("blocks-roll") ? " · blocks roll" : ""), style: { display: "block", fontSize: "var(--t-micro)", color: "var(--ink-3)" } })
     ),
-    h("span.mono", { text: age(alert.ageSeconds), data: { live: `age:${alert.id}` }, style: { fontSize: "var(--t-body)", fontWeight: "600", color: alert.severity === "critical" ? "var(--critical)" : "var(--ink-2)" } })
+    h("span.mono", { text: age(alert.ageSeconds), data: { live: `age:${alert.id}` }, style: { fontSize: "var(--t-body)", fontWeight: "600", // --critical is the fill red, for chips and dots. Text takes --critical-ink,
+      // which each theme sets against its own surfaces.
+      color: alert.severity === "critical" ? "var(--critical-ink)" : "var(--ink-2)" } })
   );
 }
 

@@ -31,20 +31,48 @@ import { AREA_NAME } from "./topbar.js";
  * than being truncated or allowed to spill. Optical fitting, not a different
  * level in the hierarchy.
  */
-const tile = (label, value, color) =>
+const tile = (label, value, color, set) =>
   h(
     "div",
-    { style: { background: "var(--surface-soft)", borderRadius: "var(--r-md)", border: "1px solid var(--line-strong)", padding: "10px 11px", minWidth: "0" } },
-    h("div.micro", { text: label }),
+    {
+      style: {
+        background: "var(--surface-soft)", borderRadius: "var(--r-md)",
+        border: "1px solid var(--line-strong)", padding: set.pad, minWidth: "0",
+        display: "flex", flexDirection: "column", justifyContent: "center",
+      },
+    },
+    h("div.micro", { text: label, style: set.label ? { fontSize: set.label } : {} }),
     h("div.mono.display", {
       text: value,
       style: {
-        fontSize: value.length >= 6 ? "var(--t-stat-2)" : "var(--t-stat)",
+        fontSize: value.length >= 6 ? set.step : set.value,
         fontWeight: "700", color: color || "", whiteSpace: "nowrap", marginTop: "1px", lineHeight: "1.1",
         letterSpacing: "-0.01em",
       },
     })
   );
+
+/**
+ * How the figures are set depends on how many pods are sharing the floor.
+ *
+ * At one or two pods the card has room it was not using. So every figure
+ * becomes a tile and the numbers go up: hold and seated stop being captions
+ * under the grid and join it. They are the same kind of fact as the other
+ * four, and the only reason they were ever set smaller was that at six pods
+ * there was nowhere to put them.
+ *
+ * From three pods up there is no room for six tiles, so the four a supervisor
+ * acts on stay tiles and the other two stay lines. The card says the same
+ * things either way; what changes is how much room it has to say them in.
+ */
+const FIGURES = {
+  1: { cols: 2, value: "var(--t-figure)", step: "var(--t-figure)", label: "var(--t-support)", pad: "17px 19px", gap: "14px", sixUp: true },
+  // Two pods means a half-width card. Three columns across one of those leaves
+  // a tile too narrow for its own number, so the grid turns: two across, three
+  // down. Still six tiles, still bigger than the dense set, and nothing spills.
+  2: { cols: 2, value: "var(--t-metric)", step: "var(--t-metric-2)", label: "var(--t-detail)", pad: "12px 14px", gap: "11px", sixUp: true },
+};
+const FIGURES_DENSE = { cols: 2, value: "var(--t-stat)", step: "var(--t-stat-2)", label: null, pad: "10px 11px", gap: "10px", sixUp: false };
 
 const line = (label, value, color) =>
   h(
@@ -56,6 +84,9 @@ const line = (label, value, color) =>
 
 /** Six pod cards, same grid as the Floor state, carrying figures instead of a drawing. */
 export function performanceCards(state, dispatch) {
+  const count = Math.min(6, state.pods.length);
+  const set = FIGURES[count] || FIGURES_DENSE;
+
   const cards = state.pods.map((pod) => {
     const alerts = alertsForPod(state.alerts, pod.id);
     const severity = worstSeverity(alerts);
@@ -93,20 +124,31 @@ export function performanceCards(state, dispatch) {
           { style: { flex: "1", display: "flex", flexDirection: "column", gap: "10px", justifyContent: "center", padding: "10px 0" } },
           h(
             "div",
-            { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" } },
-            tile("Win", compact(perf.win), winColor),
-            tile("Drop", compact(perf.drop)),
-            tile("Handle", compact(perf.handle)),
+            {
+              style: {
+                display: "grid", gridTemplateColumns: `repeat(${set.cols}, 1fr)`, gap: set.gap,
+                // With six tiles the grid is the card's content, so it takes
+                // the height rather than floating in the middle of it.
+                ...(set.sixUp ? { flex: "1", minHeight: "0", gridAutoRows: "1fr" } : {}),
+              },
+            },
+            tile("Win", compact(perf.win), winColor, set),
+            tile("Drop", compact(perf.drop), null, set),
+            tile("Handle", compact(perf.handle), null, set),
             // Theo moved up here from the footer. It is a figure of the same
             // kind as the other three and down there it read as a caption.
-            tile("Theo", compact(totals.theo))
+            tile("Theo", compact(totals.theo), null, set),
+            set.sixUp ? tile("Hold", percent(perf.hold), perf.hold < 0 ? "var(--critical-ink)" : null, set) : null,
+            set.sixUp ? tile("Seated", `${seated} of ${capacity}`, null, set) : null
           ),
-          h(
-            "div",
-            { style: { display: "flex", flexDirection: "column", gap: "6px" } },
-            line("Hold", percent(perf.hold), perf.hold < 0 ? "var(--critical-ink)" : "var(--ink-2)"),
-            line("Seated", `${seated} of ${capacity}`)
-          )
+          set.sixUp
+            ? null
+            : h(
+                "div",
+                { style: { display: "flex", flexDirection: "column", gap: "6px" } },
+                line("Hold", percent(perf.hold), perf.hold < 0 ? "var(--critical-ink)" : "var(--ink-2)"),
+                line("Seated", `${seated} of ${capacity}`)
+              )
         ),
         // Review feedback: a bare name here was read as the dealer. Every name
         // in the product now says what the person is.

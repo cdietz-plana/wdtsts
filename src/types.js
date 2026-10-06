@@ -6,7 +6,7 @@
  * in checkJs mode.
  */
 
-/** @typedef {"glass"|"square"|"simple"|"dark"} Theme */
+/** @typedef {"glass"|"square"|"simple"|"bw"|"dark"} Theme */
 
 /** Which pane carries the weight. Neither pane ever changes side.
  * @typedef {"floor"|"alerts"} Mode */

@@ -74,6 +74,65 @@ function closePlayer() {
   closeTimer = window.setTimeout(() => dispatch({ type: "close-player" }), 200);
 }
 
+/**
+ * Floor to Performance, and back.
+ *
+ * Both faces are the same six pods in the same six places, so the switch is
+ * staged as a turn: the cards rotate away carrying the old content, the
+ * content changes while they are edge on, and they rotate back carrying the
+ * new. It reads as one object being turned over rather than one screen
+ * replacing another, which is the thing worth saying about these two views.
+ *
+ * Only the two card faces turn. Alerts is a different shape, so it gets the
+ * ordinary swap, and so does anyone who has asked their system for less
+ * motion.
+ */
+const CARD_TURN = 130;
+let flipTimers = [];
+/**
+ * Which half is running, held outside the store on purpose.
+ *
+ * The first half must not rebuild. An animation added to an element in the
+ * same frame the element was created does not start until the engine has
+ * resolved its start time, and a rebuild of six cards pushes that past the
+ * 130ms the half is given, so the turn never runs. Dispatching for the first
+ * half rebuilds, so the first half sets the attribute on the cards already in
+ * the document and leaves the store alone. render() reads this back so a
+ * render from anywhere else does not drop it.
+ */
+let flipPhase = null;
+
+function switchMode(mode) {
+  const s = getState();
+  if (mode === s.mode) return;
+  flipTimers.forEach(window.clearTimeout);
+  flipTimers = [];
+
+  const turns = s.level === "section" && mode !== "alerts" && s.mode !== "alerts";
+  const still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const pane = document.querySelector(".pane--content");
+  if (!turns || still || !pane) {
+    flipPhase = null;
+    dispatch({ type: "mode", mode });
+    return;
+  }
+
+  flipPhase = "out";
+  pane.dataset.flip = "out";
+  flipTimers.push(
+    window.setTimeout(() => {
+      flipPhase = "in";
+      dispatch({ type: "mode", mode });
+      flipTimers.push(
+        window.setTimeout(() => {
+          flipPhase = null;
+          dispatch({ type: "flip-done" });
+        }, 430)
+      );
+    }, CARD_TURN)
+  );
+}
+
 const resolve = (alertId, message) => dispatch({ type: "resolve", alertId, message });
 
 /** One place decides what an alert action does, wherever it was pressed. */
@@ -159,32 +218,51 @@ function device(state) {
         ? podView(state, dispatch, handleAction)
         : tableView(state, dispatch, { onScan: runScan, onAdjust: openAdjust, onOrderFill: orderFill, onResolve: resolve });
 
+  // Which half of a card turn is running, if any. The content is already
+  // correct for the phase: during "out" the mode has not changed yet, so the
+  // old face is still what is being rendered.
+  const turn = flipPhase;
+
   // The right pane is the alert tree by default. It carries people instead
   // when the floor is in Performance, or when a pod's own switch asks for it.
   const showPlayers = perf || (state.level === "pod" && state.podPane === "players");
   const pod = state.podId ? findPod(state.pods, state.podId) : null;
-  const panel = showPlayers
-    ? playersPanel(
-        state,
-        dispatch,
-        perf ? sectionScope(state) : podScope(state, pod),
-        perf ? null : panePodSwitch(state, dispatch, pod)
+  // My Section is a drawer over the alert rail, not a replacement for it. So
+  // while the cards turn in, both layers are in the pane: the rail underneath,
+  // the section panel sliding across it on the way to Performance or off it on
+  // the way back. Outside that moment only one layer exists.
+  const sliding = turn === "in" && state.level === "section";
+  const panel =
+    showPlayers && !sliding
+      ? playersPanel(
+          state,
+          dispatch,
+          perf ? sectionScope(state) : podScope(state, pod),
+          perf ? null : panePodSwitch(state, dispatch, pod)
+        )
+      : alertPane(state, dispatch, wide, handleAction);
+  const drawer = sliding
+    ? h(
+        "div.drawer",
+        { data: { slide: perf ? "in" : "out" }, "aria-hidden": perf ? null : "true" },
+        playersPanel(state, dispatch, sectionScope(state), null)
       )
-    : alertPane(state, dispatch, wide, handleAction);
+    : null;
 
   return h(
     "div.ltg",
     { data: { theme: state.theme, wallpaper: paper.id } },
     ambient,
-    topBar(state, dispatch),
+    topBar(state, dispatch, switchMode),
     h(
       "div.panes",
       {},
-      h("section.pane.pane--content", { data: { narrow: wide }, style: { width: from.contentWidth } }, content),
+      h("section.pane.pane--content", { data: { narrow: wide, flip: turn }, style: { width: from.contentWidth } }, content),
       h(
         "section.pane.pane--alerts",
         { "aria-label": showPlayers ? "Players" : "Alerts", data: { wide }, style: { left: from.alertsLeft, width: from.alertsWidth } },
-        panel
+        panel,
+        drawer
       )
     ),
     h("button.scrim", { data: { open: !!state.flyout }, "aria-label": "Close panel", on: { click: () => dispatch({ type: "flyout-close" }) } }),
@@ -242,7 +320,7 @@ function page(state) {
       h(
         "div.theme-switch",
         { role: "group", "aria-label": "Theme" },
-        [["glass", "Glass"], ["square", "Square"], ["simple", "Simple"], ["dark", "Dark"]].map(([t, label]) =>
+        [["glass", "Glass"], ["square", "Square"], ["simple", "Simple"], ["bw", "B&W"], ["dark", "Dark"]].map(([t, label]) =>
           h("button", {
             text: label,
             "aria-pressed": String(state.theme === t),

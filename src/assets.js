@@ -44,4 +44,5 @@ export const WALLPAPER_FOR_THEME = {
   dark: "dark-lobby",
   square: "gray",
   simple: "gray",
+  bw: "gray",
 };

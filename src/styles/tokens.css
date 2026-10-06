@@ -40,6 +40,7 @@
   --t-stat: 23px;      /* four figures on one pod card, six cards on screen   */
   --t-stat-2: 20px;    /* and the same when one of those figures runs long    */
   --t-hero: 34px;      /* the single figure a full-bleed layout is about      */
+  --t-figure: 46px;    /* a pod card's figures when one pod has the whole floor */
 
   --font-display: "Sora", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-ui: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
@@ -474,6 +475,106 @@
 }
 
 
+/* --- B&W (dark bar, near-mono body) ---------------------------------------
+   A fifth theme, from the design team's own direction. The move is a dark bar
+   over a light body, which is a different idea from the other four: those all
+   run one surface language top to bottom.
+
+   Near-monochrome everywhere except severity and the win or loss figure. That
+   is the same rule the rest of the product follows, just with the neutral
+   palette taken all the way to black and white so the surviving color carries
+   more weight than it does anywhere else.
+
+   Generous radius and a soft cast under each card, rather than an edge. This
+   is the only light theme that separates surfaces with shadow instead of a
+   line, which is what keeps it from reading as a wireframe.
+   -------------------------------------------------------------------------- */
+.ltg[data-theme="bw"] {
+  --r-sm: 9px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 20px;
+  --r-pill: 999px;
+
+  --bg: #f1f1f3;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #e9e9ec;
+  --surface-soft: #f6f6f8;
+  --line: #e9e9ed;
+  --line-strong: #d4d4da;
+
+  --ink: #0e0e12;
+  --ink-2: #3e3f47;
+  --ink-3: #63646e;
+
+  /* Mono, including the mark. The brand red lives on severity here and
+     nowhere else, which is the whole point of the theme. */
+  --brand: #0e0e12;
+  --critical: #d12b38;
+  --critical-ink: #97101c;
+  --high: #d79a16;
+  --high-ink: #6f4e08;
+  --ok: #18a05e;
+  --ok-ink: #0f7a46;
+
+  --critical-wash: #fbebec;
+  --critical-edge: #f3d9db;
+  --high-wash: #fbf3e2;
+  --high-edge: #efe3cb;
+  --ok-wash: #e9f5ee;
+  --ok-edge: #d5ebdf;
+
+  --felt: #dededf;
+  --felt-edge: #cfcfd2;
+  --felt-primary: #2a2a31;
+  --felt-primary-edge: #1d1d23;
+  --seat: #c7c7cc;
+  --seat-on: #2a2a31;
+
+  --value-1: #74757d;
+  --value-2: #2f63c6;
+  --value-3: #5a3cc4;
+  --value-4: #8f2fc4;
+  --on-value: #ffffff;
+  --ring-up: rgba(14, 14, 18, 0.5);
+  --ring-hot: #0e0e12;
+
+  --on-accent: #ffffff;
+  --on-high: #1a1200;
+  --shadow-card: 0 1px 2px rgba(16, 16, 22, 0.05), 0 10px 26px rgba(16, 16, 22, 0.07);
+  --shadow-raised: 0 1px 3px rgba(16, 16, 22, 0.14);
+  --glass-blur: none;
+
+  /* The bar is dark and the body is light, so the bar restates its own ink.
+     See the scoped block in components.css. */
+  --bar-bg: #101014;
+  --seg-bg: #ececef;
+  --seg-edge: transparent;
+  --seg-on: #ffffff;
+  --scrim: rgba(14, 14, 18, 0.38);
+  --flyout-bg: #ffffff;
+  --flyout-shadow: -30px 0 70px rgba(16, 16, 22, 0.18);
+  --dial-bg: linear-gradient(155deg, #fff, #eeeef1);
+  --dial-shadow: 0 8px 24px rgba(16, 16, 22, 0.1);
+
+  /* No tray behind the pods. The cards cast, so they do not need a container
+     to sit in. */
+  --plan-bg: transparent;
+  --plan-border: transparent;
+  --plan-pad: 2px;
+  --rail-bg: var(--surface);
+  --rail-bg-wide: transparent;
+  --rail-blur-wide: none;
+  --legend-ink: var(--ink-2);
+  --legend-shadow: none;
+
+  --floor-bg: rgba(255, 255, 255, 0.95);
+  --floor-thin: rgba(255, 255, 255, 0.93);
+  --floor-blur: blur(3px) saturate(70%) brightness(1.15);
+}
+
+
 /* =============================================================================
    Wallpapers
    -----------------------------------------------------------------------------
@@ -591,9 +692,15 @@
    become surfaces and the cards go nearly opaque. It gives up some of the
    effect to keep the numbers readable, which is the right way round.
 
-   Square and Simple need nothing here. Their floors were already near-opaque
-   and their cards always were, which is why they survive every wallpaper once
-   the floors are switched on at all.
+   Square, Simple and B&W need nothing here. Their floors were already
+   near-opaque and their cards always were, which is why they survive every
+   wallpaper once the floors are switched on at all.
+
+   Note the ordering: every theme block above, every wallpaper block below.
+   The two kinds of selector carry the same specificity, so source order is
+   what decides them, and a wallpaper has to be able to firm up a theme's
+   floors. A theme block added below this point silently stops its own
+   wallpapers from working.
    -------------------------------------------------------------------------- */
 
 .ltg[data-theme="glass"][data-wallpaper="dark-lobby"],

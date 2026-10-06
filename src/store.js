@@ -107,6 +107,13 @@ export function reducer(s, a) {
     case "sign-in": return { ...s, signedIn: true };
     case "sign-out": return { ...initialState, theme: s.theme, wallpaper: s.wallpaper, areaSize: s.areaSize, pods: s.pods, alerts: s.alerts, players: s.players };
     case "mode": return { ...s, mode: a.mode };
+    // The cards are the same six pods in the same six places on both faces, so
+    // the switch between them is staged as a turn. Which half is running is
+    // not state: it never changes what is on screen, only how it arrives, and
+    // keeping it out of the store is what lets the first half animate without
+    // a rebuild. This action exists so the end of the turn re-renders once and
+    // drops the animation classes.
+    case "flip-done": return { ...s };
     case "sheet": return { ...s, sheet: a.sheet };
     case "pod-pane": return { ...s, podPane: a.pane };
     case "help-tips": return { ...s, helpTips: !s.helpTips };
