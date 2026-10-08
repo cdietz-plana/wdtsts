@@ -45,4 +45,11 @@ export const WALLPAPER_FOR_THEME = {
   square: "gray",
   simple: "gray",
   bw: "gray",
+  // These four paint their own ground, so the default is to show it rather
+  // than cover it with a photograph. A wallpaper is still selectable: the
+  // mismatch handling in tokens.css firms up the floors when one is chosen.
+  studio: "gray",
+  ledger: "gray",
+  rouge: "gray",
+  felt: "gray",
 };

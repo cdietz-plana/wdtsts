@@ -66,6 +66,12 @@
 }
 
 /* --- surfaces ------------------------------------------------------------- */
+/* Card-shaped buttons reset the browser's button color here rather than
+   inline, so a theme rule can still reach them. An inline color cannot be
+   overridden by a stylesheet without !important, and Felt needs to flip the
+   ink inside its cards. */
+button.card { font: inherit; color: inherit; }
+
 .card {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -291,7 +297,7 @@
   border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface);
   color: var(--ink-2); font: inherit; font-size: var(--t-body); cursor: pointer;
 }
-.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); font-weight: 600; }
+.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--on-ink); font-weight: 600; }
 
 .tag {
   height: 25px; display: inline-flex; align-items: center; padding: 0 9px;
@@ -302,7 +308,7 @@
 .btn {
   height: 40px; display: inline-flex; align-items: center; justify-content: center;
   padding: 0 16px; border-radius: var(--r-md); font-size: var(--t-body); font-weight: 600;
-  cursor: pointer; border: 1px solid var(--ink); background: var(--ink); color: var(--bg);
+  cursor: pointer; border: 1px solid var(--ink); background: var(--ink); color: var(--on-ink);
   font-family: inherit; white-space: nowrap;
 }
 .btn--ghost { background: var(--surface); border-color: var(--line-strong); color: var(--ink); font-weight: 500; }
@@ -379,7 +385,7 @@
   position: absolute; z-index: 72; left: 50%; bottom: 22px;
   transform: translate(-50%, 24px); opacity: 0; transition: all var(--dur-theme);
   padding: 12px 20px; border-radius: 12px; font-size: var(--t-action); font-weight: 500; pointer-events: none;
-  background: var(--ink); color: var(--bg);
+  background: var(--ink); color: var(--on-ink);
 }
 .toast[data-open="true"] { opacity: 1; transform: translate(-50%, 0); }
 
@@ -476,7 +482,7 @@
 .login__go {
   background: var(--ink);
   border-color: var(--ink);
-  color: var(--bg);
+  color: var(--on-ink);
   font-size: var(--t-action);
   font-weight: 600;
 }
@@ -518,7 +524,7 @@
 .avatar {
   width: 30px; height: 30px; border-radius: 50%; background: var(--seat-on);
   display: flex; align-items: center; justify-content: center;
-  font-size: var(--t-detail); font-weight: 700; color: var(--bg);
+  font-size: var(--t-detail); font-weight: 700; color: var(--on-ink);
 }
 
 .clock--quiet { flex-direction: column; gap: 1px; align-items: flex-start; }
@@ -620,7 +626,7 @@ textarea.field { min-height: 62px; line-height: 1.45; }
   padding: 5px 9px; border-radius: var(--r-pill); cursor: pointer; white-space: nowrap;
 }
 .rank-chip[aria-pressed="true"] {
-  background: var(--seat-on); border-color: var(--seat-on); color: var(--bg);
+  background: var(--ink); border-color: var(--ink); color: var(--on-ink);
 }
 
 /* Six names with two figures each, read down the column rather than scanned.
@@ -637,7 +643,7 @@ textarea.field { min-height: 62px; line-height: 1.45; }
   font: inherit; font-size: var(--t-action); font-weight: 700; color: var(--ink);
   cursor: pointer;
 }
-.seat-key[aria-pressed="true"] { background: var(--seat-on); border-color: var(--seat-on); color: var(--bg); }
+.seat-key[aria-pressed="true"] { background: var(--seat-on); border-color: var(--seat-on); color: var(--on-ink); }
 .seat-key[disabled] { opacity: 0.34; cursor: default; }
 
 /* A section label that sits on the pane rather than inside a card. In the two
@@ -671,10 +677,13 @@ textarea.field { min-height: 62px; line-height: 1.45; }
    every component in the bar about it, the bar redefines the tokens for its
    own subtree and everything inside follows without knowing why.
    -------------------------------------------------------------------------- */
-.ltg[data-theme="bw"] .bar {
+.ltg[data-theme="bw"] .bar,
+.ltg[data-theme="studio"] .bar,
+.ltg[data-theme="rouge"] .bar,
+.ltg[data-theme="felt"] .bar {
   --ink: #ffffff;
-  --ink-2: rgba(255, 255, 255, 0.9);
-  --ink-3: rgba(255, 255, 255, 0.66);
+  --ink-2: #dedee3;
+  --ink-3: #acacb3;
   --line: rgba(255, 255, 255, 0.13);
   --line-strong: rgba(255, 255, 255, 0.2);
   --surface-soft: rgba(255, 255, 255, 0.08);
@@ -683,20 +692,41 @@ textarea.field { min-height: 62px; line-height: 1.45; }
   --seg-edge: transparent;
   --seg-on: rgba(255, 255, 255, 0.14);
   --shadow-raised: none;
+  /* A filled control in the bar prints dark, and the severity inks lighten:
+     these were tuned for a light page and the bar is not one. */
+  --on-ink: #14161c;
+  --critical-ink: #ff93a0;
+  --high-ink: #f2c261;
+  --ok-ink: #5fd79b;
+  --critical-wash: rgba(255, 147, 160, 0.16);
+  --critical-edge: rgba(255, 147, 160, 0.4);
+  --high-wash: rgba(242, 194, 97, 0.16);
+  --high-edge: rgba(242, 194, 97, 0.38);
+  --ok-wash: rgba(95, 215, 155, 0.16);
+  --ok-edge: rgba(95, 215, 155, 0.34);
   color: #ffffff;
   border-bottom-color: transparent;
 }
 /* The clocks lose their boxes: on a dark bar a label above a value is enough
    separation, and five outlined chips in a row is a lot of furniture. */
-.ltg[data-theme="bw"] .bar .clock {
+.ltg[data-theme="bw"] .bar .clock,
+.ltg[data-theme="studio"] .bar .clock,
+.ltg[data-theme="rouge"] .bar .clock,
+.ltg[data-theme="felt"] .bar .clock {
   background: transparent;
   border-color: transparent;
   padding: 0 6px;
 }
 /* The wordmark plate stays white, since the mark is dark artwork. */
-.ltg[data-theme="bw"] .bar .mark { background: #ffffff; }
+.ltg[data-theme="bw"] .bar .mark,
+.ltg[data-theme="studio"] .bar .mark,
+.ltg[data-theme="rouge"] .bar .mark,
+.ltg[data-theme="felt"] .bar .mark { background: #ffffff; }
 /* Outlined rather than filled, so it reads as a person and not as a status. */
-.ltg[data-theme="bw"] .bar .avatar {
+.ltg[data-theme="bw"] .bar .avatar,
+.ltg[data-theme="studio"] .bar .avatar,
+.ltg[data-theme="rouge"] .bar .avatar,
+.ltg[data-theme="felt"] .bar .avatar {
   background: transparent;
   color: #ffffff;
   box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.55);
@@ -778,4 +808,250 @@ textarea.field { min-height: 62px; line-height: 1.45; }
 @media (prefers-reduced-motion: reduce) {
   .pane--content[data-flip] .pod__card,
   .drawer { animation: none !important; }
+}
+
+/* --- Studio ----------------------------------------------------------------
+   One inverted object in the rail. The section totals become a black card,
+   which is the only place in this theme where the page goes dark below the
+   bar, so it reads as the summary without needing a heading to say so.
+   -------------------------------------------------------------------------- */
+.ltg[data-theme="studio"] .panel-figures {
+  --ink: #ffffff;
+  --ink-2: #e2e2e4;
+  --ink-3: #a9a9af;
+  --line: rgba(255, 255, 255, 0.14);
+  /* Severity ink is lightened for the dark card. The house result is the only
+     colored figure in here and it has to stay legible without shouting. */
+  --critical-ink: #ff9aa4;
+  --ok-ink: #5fd79b;
+  --on-ink: #0d0d10;
+  background: #0d0d10;
+  color: #ffffff;
+  border-radius: var(--r-lg);
+  margin: 0 14px 12px;
+  padding: 14px 15px;
+}
+
+/* --- Ledger ----------------------------------------------------------------
+   The rail inverts to solid black and redefines its own ink for its subtree,
+   so the alert tree, the player list and the drawer all follow. --bg goes
+   with them: several components use it as a foreground against --ink, and
+   leaving it white would put white text on white inside a black rail.
+   -------------------------------------------------------------------------- */
+.ltg[data-theme="ledger"] .pane--alerts {
+  --bg: #0a0a0a;
+  --surface: #0a0a0a;
+  --surface-raised: #151515;
+  --surface-soft: #171717;
+  --surface-sunken: #121212;
+  --ink: #ffffff;
+  --ink-2: #e0e0e0;
+  --ink-3: #b0b0b0;
+  --line: rgba(255, 255, 255, 0.16);
+  --line-strong: rgba(255, 255, 255, 0.26);
+  --critical-ink: #ff8f9c;
+  --high-ink: #f0c25c;
+  --ok-ink: #5fd79b;
+  --critical-wash: rgba(200, 16, 46, 0.22);
+  --critical-edge: rgba(255, 143, 156, 0.4);
+  --high-wash: rgba(196, 138, 16, 0.2);
+  --high-edge: rgba(240, 194, 92, 0.36);
+  --ok-wash: rgba(21, 128, 61, 0.2);
+  --ok-edge: rgba(95, 215, 155, 0.34);
+  --on-accent: #ffffff;
+  --on-high: #140e00;
+  --on-ink: #0a0a0a;
+  --flyout-bg: #0a0a0a;
+  /* Set here rather than through --rail-bg, because the wallpaper blocks own
+     those tokens and a black rail is not negotiable in this theme. */
+  background: #0a0a0a;
+  color: #ffffff;
+  border-left: 1px solid var(--line-strong);
+}
+.ltg[data-theme="ledger"] .panel-figures {
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+/* A printed sheet sets its headings in caps, and here it also keeps the pod
+   names from needing a weight they cannot have on a hairline card. */
+.ltg[data-theme="ledger"] .pod__card > div:first-child .display,
+.ltg[data-theme="ledger"] .bar .crumb-link,
+.ltg[data-theme="ledger"] .bar .bar__title {
+  text-transform: uppercase;
+  letter-spacing: 0.045em;
+}
+/* An alerting pod is named in red rather than ringed, because a ring needs a
+   radius and a shadow and this theme has neither. */
+.ltg[data-theme="ledger"] .card--critical { box-shadow: none; border-color: var(--critical); }
+.ltg[data-theme="ledger"] .card--critical > div:first-child .display { color: var(--critical-ink); }
+.ltg[data-theme="ledger"] .bar { border-bottom: 1px solid var(--line-strong); }
+.ltg[data-theme="ledger"] .card { border: 1px solid var(--line); }
+
+/* --- Rouge -----------------------------------------------------------------
+   The chrome floats. The bar is a pill inset from the edges rather than a
+   band across the top, and the ground is a blush wash rather than a flat
+   neutral. The crimson summary card is the warm counterweight to it.
+   -------------------------------------------------------------------------- */
+.ltg[data-theme="rouge"] {
+  background:
+    radial-gradient(120% 70% at 50% -10%, #fdf3f1 0%, rgba(253, 243, 241, 0) 60%),
+    linear-gradient(168deg, #f9efed 0%, #f5e6e4 55%, #f1dedc 100%);
+}
+.ltg[data-theme="rouge"] .bar {
+  margin: 10px 12px 0;
+  border-radius: var(--r-xl);
+  border-bottom: none;
+  box-shadow: 0 6px 22px rgba(60, 30, 34, 0.18);
+}
+.ltg[data-theme="rouge"] .panel-figures {
+  --ink: #ffffff;
+  --ink-2: #f7e4e7;
+  --ink-3: #ecccd1;
+  --line: rgba(255, 255, 255, 0.18);
+  /* Nothing severity-colored inside: the card is already red, so a red figure
+     in it would be decoration reading as a signal. */
+  --critical-ink: #ffffff;
+  --ok-ink: #ffffff;
+  --on-ink: #8e1626;
+  background: linear-gradient(158deg, #b31f33, #8e1626);
+  color: #ffffff;
+  border-radius: var(--r-lg);
+  margin: 0 14px 12px;
+  padding: 15px 16px;
+  box-shadow: 0 8px 22px rgba(120, 20, 36, 0.24);
+}
+.ltg[data-theme="rouge"] .card--critical {
+  border-color: var(--critical);
+  box-shadow: var(--shadow-card), 0 0 0 1px var(--critical);
+}
+
+/* --- Felt ------------------------------------------------------------------
+   Baize, with two hairline gradients standing in for the weave. They are near
+   the limit of visibility on purpose: the job is to stop a large dark area
+   reading as a void, not to be noticed.
+   -------------------------------------------------------------------------- */
+.ltg[data-theme="felt"] {
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.016) 0 2px, rgba(0, 0, 0, 0.016) 2px 4px),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.012) 0 2px, rgba(0, 0, 0, 0.012) 2px 4px),
+    radial-gradient(130% 80% at 50% -6%, #1b4733 0%, rgba(27, 71, 51, 0) 62%),
+    linear-gradient(172deg, #164030 0%, #113526 58%, #0c2a1e 100%);
+}
+/* The light top edge is what makes a card read as lifted rather than pasted.
+   It goes only on things that are genuinely above the surface. */
+/* The light top edge, on the things that are genuinely raised off the baize. */
+.ltg[data-theme="felt"] .pane--content .card {
+  border-color: rgba(255, 255, 255, 0.5);
+  border-top-color: rgba(255, 255, 255, 0.92);
+}
+
+/* Paper.
+   The ink is scoped by surface, not by region. The content pane is baize at
+   the floor and a dark recess when it narrows, so it keeps the light ink
+   along with the controls that sit directly on it: tabs, segmented switches,
+   section headings. What takes dark ink is the light surfaces themselves,
+   which is to say the cards and the rows, wherever they appear.
+   The rail is excluded on purpose. It is a recess cut into the surface, not
+   paper laid on it. */
+.ltg[data-theme="felt"] .pane--content .card,
+.ltg[data-theme="felt"] .pane--content .row,
+.ltg[data-theme="felt"] .sheet,
+.ltg[data-theme="felt"] .flyout,
+.ltg[data-theme="felt"] .drawer {
+  --ink: #17140f;
+  --ink-2: #44403a;
+  --ink-3: #65605a;
+  --critical-ink: #981425;
+  --high-ink: #6d4c06;
+  --ok-ink: #0d5e39;
+  --line: #e0dcd0;
+  --line-strong: #c7c2b2;
+  --on-ink: #fbfaf6;
+  color: #17140f;
+}
+
+
+/* The rail is cut into the surface instead of laid on it, so it takes an
+   inner shadow and no border. This is the one recessed thing in the product,
+   and the alert tree is the right object for it: a well the floor drains into.
+   The ink inside flips, because the recess is darker than the baize. */
+.ltg[data-theme="felt"] .pane--alerts {
+  --surface: rgba(255, 255, 255, 0.07);
+  --surface-raised: rgba(255, 255, 255, 0.1);
+  --surface-soft: rgba(255, 255, 255, 0.08);
+  --surface-sunken: rgba(0, 0, 0, 0.16);
+  --ink: #f2f6f3;
+  --ink-2: #dce3de;
+  --ink-3: #adb6b0;
+  --line: rgba(255, 255, 255, 0.14);
+  --line-strong: rgba(255, 255, 255, 0.22);
+  --bg: #0a2619;
+  --critical-ink: #ffd2d8;
+  --high-ink: #f7dca2;
+  --ok-ink: #9eeac4;
+  --critical-wash: rgba(120, 16, 30, 0.55);
+  --critical-edge: rgba(255, 149, 161, 0.4);
+  --high-wash: rgba(110, 76, 8, 0.55);
+  --high-edge: rgba(243, 199, 104, 0.36);
+  --ok-wash: rgba(10, 74, 45, 0.55);
+  --ok-edge: rgba(99, 220, 160, 0.34);
+  --on-high: #17120a;
+  --on-ink: #0a2619;
+  --flyout-bg: #0d2e20;
+  /* Same reason as Ledger: the recess has to be darker than the baize no
+     matter which wallpaper is showing, so it does not go through --rail-bg. */
+  background: rgba(4, 20, 13, 0.46);
+  color: #f2f6f3;
+  border-left: none;
+  box-shadow:
+    inset 7px 0 10px -7px rgba(0, 0, 0, 0.75),
+    inset 0 7px 10px -7px rgba(0, 0, 0, 0.6),
+    inset 0 -7px 10px -7px rgba(0, 0, 0, 0.6);
+}
+.ltg[data-theme="felt"] .panel-figures {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+  margin-bottom: 10px;
+}
+
+/* A blocked override tile is dimmed, not hidden: it still has to teach that
+   the Primary owns the shoe. Opacity does that by fading the tile toward
+   whatever is behind it, which works on a light page and inverts on a dark
+   one, so Felt dims with its own muted surface instead. */
+.card--blocked { opacity: 0.55; }
+.ltg[data-theme="felt"] .card--blocked {
+  opacity: 1;
+  background: #ece8dd;
+  border-color: #d8d2c3;
+  box-shadow: none;
+  --ink: #4a463f;
+  --ink-2: #5b564e;
+  --ink-3: #5f5a52;
+}
+
+/* The pod switcher pane is a list of cards, so in Felt it is paper rather
+   than baize: the rows inside it are light and the ink is already dark. */
+.ltg[data-theme="felt"] .pane--content[data-narrow="true"] {
+  background: #f6f4ed;
+}
+.ltg[data-theme="felt"] .pane--content[data-narrow="true"] {
+  --ink: #17140f;
+  --ink-2: #44403a;
+  --ink-3: #65605a;
+  --critical-ink: #981425;
+  --high-ink: #6d4c06;
+  --ok-ink: #0d5e39;
+  --line: #e0dcd0;
+  --line-strong: #c7c2b2;
+  --on-ink: #fbfaf6;
+  color: #17140f;
+}
+
+/* Rouge is the only theme whose selected segment is a filled brand color
+   rather than a raised neutral, so it is the only one where the label cannot
+   be the page ink. */
+.ltg[data-theme="rouge"] .segmented button[aria-pressed="true"] {
+  color: var(--on-accent);
 }

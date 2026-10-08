@@ -200,8 +200,11 @@ export function playersPanel(state, dispatch, scope, switchEl) {
   const perf = scope.performance;
   const totals = playerTotals(scope.players);
 
+  // The section totals. Given a class of its own because several themes make
+  // this block the one dark or colored object in an otherwise light rail, and
+  // that is a surface decision rather than a structural one.
   const figures = h(
-    "div",
+    "div.panel-figures",
     { style: { padding: "0 14px 12px", display: "flex", flexDirection: "column", gap: "6px", flexShrink: "0" } },
     line("Handle", money(perf.handle)),
     line("Win", money(perf.win), perf.win < 0 ? "var(--critical-ink)" : "var(--ok-ink)"),

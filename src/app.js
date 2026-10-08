@@ -320,7 +320,7 @@ function page(state) {
       h(
         "div.theme-switch",
         { role: "group", "aria-label": "Theme" },
-        [["glass", "Glass"], ["square", "Square"], ["simple", "Simple"], ["bw", "B&W"], ["dark", "Dark"]].map(([t, label]) =>
+        [["glass", "Glass"], ["square", "Square"], ["simple", "Simple"], ["studio", "Studio"], ["ledger", "Ledger"], ["rouge", "Rouge"], ["felt", "Felt"], ["bw", "B&W"], ["dark", "Dark"]].map(([t, label]) =>
           h("button", {
             text: label,
             "aria-pressed": String(state.theme === t),

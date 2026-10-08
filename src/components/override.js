@@ -143,11 +143,11 @@ function actionTile(action, blocked, onOpen) {
 
   const style = {
     padding: "14px 15px", display: "flex", flexDirection: "column", textAlign: "left",
-    font: "inherit", color: "inherit", width: "100%", minWidth: "0", justifyContent: "flex-start",
+    font: "inherit", width: "100%", minWidth: "0", justifyContent: "flex-start",
   };
 
   if (blocked) {
-    return h("div.card", { style: { ...style, opacity: "0.55" } }, body);
+    return h("div.card.card--blocked", { style }, body);
   }
   return h(
     "button.card",

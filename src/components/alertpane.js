@@ -292,7 +292,7 @@ function fullRow(alert, indent, onAction) {
       "div",
       { style: { textAlign: "right", flexShrink: "0" } },
       h("div.micro", { text: "Open" }),
-      h("div.mono.display", { text: ageLong(alert.ageSeconds), data: { live: `ageLong:${alert.id}` }, style: { fontSize: "var(--t-title)", fontWeight: "600", color: alert.severity === "critical" ? "var(--critical)" : "var(--ink)" } })
+      h("div.mono.display", { text: ageLong(alert.ageSeconds), data: { live: `ageLong:${alert.id}` }, style: { fontSize: "var(--t-title)", fontWeight: "600", color: alert.severity === "critical" ? "var(--critical-ink)" : "var(--ink)" } })
     ),
     h(
       "div",

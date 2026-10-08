@@ -291,7 +291,7 @@ function sessionsTab(state, table, dispatch) {
       h(
         "button.card",
         {
-          style: { display: "flex", alignItems: "center", gap: "14px", padding: "12px 16px", cursor: "pointer", textAlign: "left", font: "inherit", color: "inherit", width: "100%" },
+          style: { display: "flex", alignItems: "center", gap: "14px", padding: "12px 16px", cursor: "pointer", textAlign: "left", font: "inherit", width: "100%" },
           on: { click: () => dispatch({ type: "open-player", playerId: p.id }) },
         },
         seatChip(p.seat),

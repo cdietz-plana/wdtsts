@@ -112,7 +112,7 @@ export function podView(state, dispatch, onAlertAction) {
   const hero = h(
     "button.card",
     {
-      style: { width: "368px", flexShrink: "0", padding: "15px 16px", display: "flex", flexDirection: "column", gap: "12px", cursor: "pointer", textAlign: "left", font: "inherit", color: "inherit" },
+      style: { width: "368px", flexShrink: "0", padding: "15px 16px", display: "flex", flexDirection: "column", gap: "12px", cursor: "pointer", textAlign: "left", font: "inherit" },
       on: { click: () => dispatch({ type: "go-table", podId: pod.id, tableId: primary.id, tab: "live" }) },
     },
     h(

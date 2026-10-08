@@ -29,6 +29,13 @@
      the hierarchy that was already weak got flattened completely. The fix is
      directional, not uniform. Primary text and anything you touch went up;
      detail labels came back down below where they started. */
+  /* The ink a filled control prints in. Everywhere the page ground is the
+     opposite of the text color, this is simply the ground, which is why it
+     defaults to it. Felt breaks that assumption: its ground is baize and its
+     cards are paper, so inside a card the ground is no longer the contrast
+     partner and this token is set explicitly. */
+  --on-ink: var(--bg);
+
   --t-micro: 11px;     /* uppercase category labels. Never carries a value.   */
   --t-detail: 13px;    /* supporting detail under a primary line              */
   --t-support: 15px;   /* secondary reading text                              */
@@ -575,6 +582,332 @@
 }
 
 
+/* --- STUDIO (dark bar, warm ground, one black object) ----------------------
+   A photographer's wall: warm neutral ground, white cards that cast rather
+   than outline, and a single black block in the rail carrying the section
+   totals. The black object is the whole idea. One thing on the screen is
+   inverted, so the eye goes there first and the rest stays quiet.
+   -------------------------------------------------------------------------- */
+.ltg[data-theme="studio"] {
+  --r-sm: 8px; --r-md: 11px; --r-lg: 14px; --r-xl: 18px; --r-pill: 999px;
+
+  --bg: #f2f1f1;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #eceaea;
+  --surface-soft: #f7f6f6;
+  --line: #e8e6e6;
+  --line-strong: #d5d2d2;
+
+  --ink: #15141a;
+  --ink-2: #44424c;
+  --ink-3: #66646e;
+
+  --brand: #c62a38;
+  --critical: #d1313f;
+  --critical-ink: #a81a27;
+  --high: #e0a81f;
+  --high-ink: #78540a;
+  --ok: #19a463;
+  --ok-ink: #0f7346;
+
+  --critical-wash: #fdecee;
+  --critical-edge: #f6dade;
+  --high-wash: #fbf3e2;
+  --high-edge: #f0e6d2;
+  --ok-wash: #e9f5ef;
+  --ok-edge: transparent;
+
+  --felt: #e2e0e0;
+  --felt-edge: #d2cfcf;
+  --felt-primary: #2b2a30;
+  --felt-primary-edge: #1f1e23;
+  --seat: #cdcaca;
+  --seat-on: #2b2a30;
+
+  --on-accent: #ffffff;
+  --on-high: #19120a;
+  --shadow-card: 0 1px 2px rgba(22, 20, 24, 0.05), 0 8px 24px rgba(22, 20, 24, 0.07);
+  --shadow-raised: 0 2px 6px rgba(22, 20, 24, 0.16);
+  --glass-blur: none;
+
+  --plan-bg: transparent;
+  --plan-border: transparent;
+  --plan-pad: 2px;
+  --rail-bg: transparent;
+  --rail-bg-wide: transparent;
+  --rail-blur-wide: none;
+  --narrow-rail-bg: transparent;
+  --legend-ink: var(--ink-2);
+  --legend-shadow: none;
+  --legend-bg: transparent;
+  --legend-blur: none;
+
+  --bar-bg: #0d0d10;
+  --seg-bg: transparent;
+  --seg-edge: transparent;
+  --seg-on: rgba(255, 255, 255, 0.15);
+  --scrim: rgba(20, 18, 22, 0.4);
+  --flyout-bg: #ffffff;
+  --flyout-shadow: -30px 0 70px rgba(22, 20, 24, 0.2);
+  --dial-bg: linear-gradient(155deg, #fff, #efeded);
+  --dial-shadow: 0 8px 24px rgba(22, 20, 24, 0.14);
+
+  --floor-bg: rgba(255, 255, 255, 0.95);
+  --floor-thin: rgba(255, 255, 255, 0.93);
+  --floor-blur: blur(3px) saturate(60%) brightness(1.2);
+}
+
+/* --- LEDGER (hairline, no radius, black rail) ------------------------------
+   A printed sheet. Nothing is rounded, nothing casts, and every division is a
+   single hairline. Structure does all the work, which is the opposite bet
+   from Studio: no object is emphasized, so the grid itself has to be right.
+
+   The rail inverts to solid black and redefines its own ink inside its
+   subtree, the same way the B&W bar does, so every component that lands in it
+   follows without knowing a theme exists.
+   -------------------------------------------------------------------------- */
+.ltg[data-theme="ledger"] {
+  --r-sm: 0px; --r-md: 0px; --r-lg: 0px; --r-xl: 0px; --r-pill: 0px;
+
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f4f4f4;
+  --surface-soft: #fafafa;
+  --line: #d9d9d9;
+  --line-strong: #b2b2b2;
+
+  --ink: #111111;
+  --ink-2: #3a3a3a;
+  --ink-3: #5c5c5c;
+
+  --brand: #c8102e;
+  --critical: #c8102e;
+  --critical-ink: #a30d25;
+  --high: #c48a10;
+  --high-ink: #6f4e08;
+  --ok: #15803d;
+  --ok-ink: #0f6a32;
+
+  --critical-wash: #fdeef0;
+  --critical-edge: #e8b9c0;
+  --high-wash: #fdf6e6;
+  --high-edge: #e3d2a6;
+  --ok-wash: #eef6f0;
+  --ok-edge: #bcd9c5;
+
+  --felt: #f0f0f0;
+  --felt-edge: #d9d9d9;
+  --felt-primary: #222222;
+  --felt-primary-edge: #111111;
+  --seat: #cfcfcf;
+  --seat-on: #222222;
+
+  --on-accent: #ffffff;
+  --on-high: #140e00;
+  --shadow-card: none;
+  --shadow-raised: none;
+  --glass-blur: none;
+
+  --plan-bg: transparent;
+  --plan-border: transparent;
+  --plan-pad: 0px;
+  --rail-bg: #0a0a0a;
+  --rail-bg-wide: #0a0a0a;
+  --rail-blur-wide: none;
+  --narrow-rail-bg: #0a0a0a;
+  --legend-ink: var(--ink-2);
+  --legend-shadow: none;
+  --legend-bg: transparent;
+  --legend-blur: none;
+
+  --bar-bg: #ffffff;
+  --seg-bg: transparent;
+  --seg-edge: transparent;
+  --seg-on: transparent;
+  --scrim: rgba(0, 0, 0, 0.4);
+  --flyout-bg: #ffffff;
+  --flyout-shadow: -1px 0 0 var(--line-strong);
+  --dial-bg: #ffffff;
+  --dial-shadow: none;
+
+  --floor-bg: #ffffff;
+  --floor-thin: #ffffff;
+  --floor-blur: none;
+}
+
+/* --- ROUGE (blush ground, floating panels, one crimson object) -------------
+   The warmest of the set and the only one where the chrome itself floats: the
+   bar is a dark pill inset from the edges rather than a band across the top,
+   and the panels are cards on a blush ground rather than regions of a screen.
+
+   Red is doing two jobs here and they must not be confused. The crimson
+   summary card is decoration. Severity red is a signal. So the summary card
+   is a different red from the alert red, and nothing severity-colored is
+   allowed inside it.
+   -------------------------------------------------------------------------- */
+.ltg[data-theme="rouge"] {
+  --r-sm: 9px; --r-md: 13px; --r-lg: 17px; --r-xl: 22px; --r-pill: 999px;
+
+  --bg: #f7eceb;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f3e5e4;
+  --surface-soft: #faf4f3;
+  --line: #ecdedd;
+  --line-strong: #dcc8c6;
+
+  --ink: #1d1618;
+  --ink-2: #413638;
+  --ink-3: #554a4d;
+
+  --brand: #a3182a;
+  --critical: #d13040;
+  --critical-ink: #a3182a;
+  --high: #d99b1c;
+  --high-ink: #76520a;
+  --ok: #17995c;
+  --ok-ink: #0d6b41;
+
+  --critical-wash: #fdecee;
+  --critical-edge: #f2cdd2;
+  --high-wash: #fbf3e3;
+  --high-edge: #eddfbf;
+  --ok-wash: #e8f5ef;
+  --ok-edge: transparent;
+
+  --felt: #eadfde;
+  --felt-edge: #dccbc9;
+  --felt-primary: #3a2a2d;
+  --felt-primary-edge: #2b1f21;
+  --seat: #d6c6c4;
+  --seat-on: #3a2a2d;
+
+  --on-accent: #ffffff;
+  --on-high: #1a1200;
+  --shadow-card: 0 1px 2px rgba(60, 30, 34, 0.05), 0 10px 28px rgba(60, 30, 34, 0.08);
+  --shadow-raised: 0 2px 8px rgba(60, 30, 34, 0.16);
+  --glass-blur: none;
+
+  --plan-bg: transparent;
+  --plan-border: transparent;
+  --plan-pad: 2px;
+  --rail-bg: transparent;
+  --rail-bg-wide: transparent;
+  --rail-blur-wide: none;
+  --narrow-rail-bg: transparent;
+  --legend-ink: var(--ink-2);
+  --legend-shadow: none;
+  --legend-bg: transparent;
+  --legend-blur: none;
+
+  --bar-bg: #18141a;
+  --seg-bg: transparent;
+  --seg-edge: transparent;
+  --seg-on: #c9293a;
+  --scrim: rgba(45, 25, 28, 0.38);
+  --flyout-bg: #ffffff;
+  --flyout-shadow: -30px 0 70px rgba(60, 30, 34, 0.22);
+  --dial-bg: linear-gradient(155deg, #fff, #f6ecec);
+  --dial-shadow: 0 8px 24px rgba(60, 30, 34, 0.14);
+
+  --floor-bg: rgba(255, 255, 255, 0.95);
+  --floor-thin: rgba(255, 255, 255, 0.93);
+  --floor-blur: blur(3px) saturate(60%) brightness(1.2);
+}
+
+/* --- FELT (the table, not a page) ------------------------------------------
+   The one theme that admits what the product is looking at. Pod cards sit on
+   baize, lifted off it by a real cast shadow and a light top edge, and the
+   alert rail is cut into the surface rather than laid on top of it.
+
+   The restraint is the point. Skeuomorphism earns its keep here because the
+   metaphor is true: these cards stand for tables on a floor, and the felt is
+   the floor. It stops being worth it the moment it becomes decoration, so
+   there are no bevelled buttons, no gloss, no linen and no lit edges on
+   anything that is not actually raised. The weave is two hairline gradients,
+   near the limit of visibility, and it is there to stop a large dark area
+   reading as a void.
+
+   Everything a supervisor reads still sits on a light card, so the legibility
+   work holds: the felt is ground, never paper.
+   -------------------------------------------------------------------------- */
+.ltg[data-theme="felt"] {
+  --r-sm: 7px; --r-md: 10px; --r-lg: 13px; --r-xl: 17px; --r-pill: 999px;
+
+  --bg: #123728;
+  --surface: #fbfaf6;
+  --surface-raised: #ffffff;
+  --surface-sunken: #ece9e0;
+  --surface-soft: #f3f1ea;
+  --line: #e0dcd0;
+  --line-strong: #c7c2b2;
+
+  --ink: #eef3ef;
+  --ink-2: rgba(238, 243, 239, 0.84);
+  --ink-3: rgba(238, 243, 239, 0.62);
+
+  --brand: #e8899a;
+  --critical: #c22435;
+  --critical-ink: #ff95a1;
+  --high: #c98f16;
+  --high-ink: #f3c768;
+  --ok: #16834f;
+  --ok-ink: #63dca0;
+
+  --critical-wash: #fbe9eb;
+  --critical-edge: #eccbcf;
+  --high-wash: #f9f1dd;
+  --high-edge: #e8dcbb;
+  --ok-wash: #e7f2ec;
+  --ok-edge: transparent;
+
+  /* The drawn felt on a card keeps its own greens, a shade off the ground so
+     a table reads as an object on the baize rather than a hole in it. */
+  --felt: #1a4a35;
+  --felt-edge: #0d2d20;
+  --felt-primary: #13382a;
+  --felt-primary-edge: #092018;
+  --seat: #cfcabb;
+  --seat-on: #13382a;
+
+  --on-accent: #ffffff;
+  --on-high: #17120a;
+  /* A real cast shadow, because these cards are genuinely meant to sit above
+     the surface. Two layers: contact, then the soft part further out. */
+  --shadow-card: 0 1px 1px rgba(3, 18, 12, 0.3), 0 2px 4px rgba(3, 18, 12, 0.22), 0 12px 28px rgba(3, 16, 11, 0.3);
+  --shadow-raised: 0 3px 10px rgba(3, 18, 12, 0.4);
+  --glass-blur: none;
+
+  --plan-bg: transparent;
+  --plan-border: transparent;
+  --plan-pad: 2px;
+  --rail-bg: rgba(6, 26, 18, 0.5);
+  --rail-bg-wide: rgba(6, 26, 18, 0.5);
+  --rail-blur-wide: none;
+  --narrow-rail-bg: rgba(6, 26, 18, 0.5);
+  --legend-ink: #dfe8e1;
+  --legend-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --legend-bg: rgba(8, 32, 22, 0.72);
+  --legend-blur: none;
+
+  --bar-bg: #0c2b1e;
+  --seg-bg: rgba(0, 0, 0, 0.26);
+  --seg-edge: rgba(255, 255, 255, 0.1);
+  --seg-on: rgba(255, 255, 255, 0.16);
+  --scrim: rgba(3, 16, 11, 0.5);
+  --flyout-bg: #fbfaf6;
+  --flyout-shadow: -30px 0 70px rgba(3, 16, 11, 0.45);
+  --dial-bg: linear-gradient(155deg, #fff, #f0eee6);
+  --dial-shadow: 0 8px 24px rgba(3, 16, 11, 0.3);
+
+  --floor-bg: rgba(8, 32, 22, 0.78);
+  --floor-thin: rgba(8, 32, 22, 0.7);
+  --floor-blur: none;
+}
+
+
 /* =============================================================================
    Wallpapers
    -----------------------------------------------------------------------------
@@ -727,4 +1060,30 @@
   --surface-sunken: rgba(8, 7, 11, 0.8);
   --felt: rgba(255, 255, 255, 0.12);
   --glass-blur: blur(26px) saturate(28%) brightness(0.26);
+}
+
+/* Studio and Rouge paint their own ground, so they leave the rail with no
+   surface of its own. That is right over their ground and wrong over a
+   photograph, where the tree would sit straight on the room. Over a wallpaper
+   neither was built for, the rail becomes a surface again. */
+.ltg[data-theme="studio"][data-wallpaper="light-lobby"],
+.ltg[data-theme="studio"][data-wallpaper="dark-lobby"],
+.ltg[data-theme="studio"][data-wallpaper="red-suits"],
+.ltg[data-theme="studio"][data-wallpaper="dark-suits"] {
+  --rail-bg: rgba(255, 255, 255, 0.96);
+  --rail-bg-wide: rgba(255, 255, 255, 0.94);
+  --narrow-rail-bg: rgba(255, 255, 255, 0.94);
+  --legend-bg: rgba(255, 255, 255, 0.95);
+  --legend-blur: none;
+}
+
+.ltg[data-theme="rouge"][data-wallpaper="light-lobby"],
+.ltg[data-theme="rouge"][data-wallpaper="dark-lobby"],
+.ltg[data-theme="rouge"][data-wallpaper="red-suits"],
+.ltg[data-theme="rouge"][data-wallpaper="dark-suits"] {
+  --rail-bg: rgba(252, 246, 245, 0.96);
+  --rail-bg-wide: rgba(252, 246, 245, 0.94);
+  --narrow-rail-bg: rgba(252, 246, 245, 0.94);
+  --legend-bg: rgba(252, 246, 245, 0.95);
+  --legend-blur: none;
 }
