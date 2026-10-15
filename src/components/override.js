@@ -187,7 +187,7 @@ export function overrideTab(state, table, pod, dispatch) {
       h(
         "div",
         { style: { flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "9px" } },
-        sectionHead("This game", `Shoe ${hand.shoe} · game ${hand.game} · affects the whole pod`),
+        sectionHead("This game", `Hand ${hand.game} · affects the whole pod`),
         grid("game")
       ),
       h(

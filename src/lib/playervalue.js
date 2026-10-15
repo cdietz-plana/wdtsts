@@ -95,22 +95,37 @@ export const positionLabel = (pos) =>
   pos === "hot" ? "Well up on the house" : pos === "up" ? "Up on the house" : "Level or down";
 
 /**
+ * Review feedback: a four-step value ladder reads like a severity scale and
+ * confuses people. The dot now carries at most two facts, each one bit:
+ *
+ *   fill  high average bet, or not
+ *   ring  a large current win, or not
+ *
+ * One size for every seated player. The thresholds are placeholders for the
+ * property to set.
+ */
+export const HIGH_AVG_BET = 25000;
+export const LARGE_WIN = 300000;
+
+export const isHighBet = (player) => !!player && (player.avgBet || 0) >= HIGH_AVG_BET;
+export const isLargeWin = (player) => !!player && -(player.winLoss || 0) >= LARGE_WIN;
+
+/**
  * Everything a dot needs, in one call, so seats.js stays about layout.
  * Returns null for an empty seat.
  */
 export function dotStyle(player, scale = 1, tap = false) {
   if (!player) return null;
-  const tier = valueTier(player);
-  const pos = position(player);
-  const size = tap ? tapSize(tier) : tierSize(tier, scale);
+  const high = isHighBet(player);
+  const win = isLargeWin(player);
+  const size = tap ? 48 : Math.round(12 * scale);
   return {
-    tier,
-    pos,
+    tier: high ? "high" : "base",
+    pos: win ? "hot" : "flat",
     size,
-    color: tierColor(tier),
-    // The ring grows with the dot, or it disappears at finger size.
-    ring: ringWidth(pos) * (tap ? 2.2 : scale < 0.8 ? 0.7 : 1),
-    ringColor: ringColor(pos),
-    label: `Seat ${player.seat}, ${player.name}, ${tierLabel(tier)}, ${positionLabel(pos)}`,
+    color: high ? "var(--value-3)" : "var(--value-1)",
+    ring: win ? (tap ? 5 : Math.max(2, Math.round(3 * scale))) : 0,
+    ringColor: "var(--ring-hot)",
+    label: `Seat ${player.seat}, ${player.name}${high ? ", high average bet" : ""}${win ? ", large win" : ""}`,
   };
 }

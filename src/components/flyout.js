@@ -31,7 +31,7 @@ const OVERRIDE_REASONS = [
 const FILL_AMOUNTS = [100000, 250000, 500000, 1000000];
 
 const REASONS = [
-  "Missing loser · shoe 9, game 6",
+  "Missing loser · hand 6",
   "Miscount at pay or take",
   "Chips in transit, not yet placed",
   "Other, add a note",

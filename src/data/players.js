@@ -203,3 +203,29 @@ export function withAnonymousFill(pods, named) {
   }
   return out;
 }
+
+/**
+ * Closed players. Review feedback: the people list splits into Open, players
+ * in action now, and Closed, players who played in this section earlier in
+ * the gaming day and have left. They keep the table they last played so the
+ * list can say where, but they hold no seat, so they never draw on a table.
+ */
+const closed = (id, name, tableId, tier, card, left, buyIn, handle, winLoss, avgBet) => ({
+  id, name, tableId, seat: null, closed: true, left, rated: !!tier, tier, card,
+  buyIn, handle, theoWin: Math.round(handle * 0.012), winLoss, avgBet,
+  markerBalance: 0, rimBalance: 0, frontMoney: 0,
+  notes: [],
+  sessions: [{ day: "Today", table: "", from: "16:10", to: left, handle, theoWin: Math.round(handle * 0.012), winLoss }],
+  transactions: [{ at: "16:10", kind: "Buy-in", detail: "Cash", amount: buyIn }],
+  bankroll: [],
+});
+
+export const closedPlayers = [
+  closed("cl1", "S. Ho", "t13", "Diamond", "8843 1104", "17:46", 620000, 9800000, -486000, 72000),
+  closed("cl2", "J. Kuan", "t5", "Platinum", "8840 7731", "17:12", 300000, 5100000, 212000, 41000),
+  closed("cl3", "Anonymous", "t2", null, null, "17:58", 40000, 380000, -18000, 6000),
+  closed("cl4", "E. Lam", "t17", "Gold", "8845 2290", "16:55", 150000, 2400000, -96000, 22000),
+  closed("cl5", "T. Ieong", "t1", "Diamond", "8841 6012", "17:30", 900000, 14200000, 338000, 95000),
+  closed("cl6", "Anonymous", "t9", null, null, "17:21", 22000, 190000, 9400, 4000),
+  closed("cl7", "R. Wu", "t21", "Platinum", "8846 3307", "16:40", 210000, 3600000, -128000, 30000),
+];

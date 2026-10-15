@@ -3,15 +3,15 @@ import { floorPlan } from "./components/floorplan.js";
 import { flyout } from "./components/flyout.js";
 import { loginScreen } from "./components/login.js";
 import { podSwitcher } from "./components/podswitcher.js";
-import { panePodSwitch, performanceCards, playersPanel, podScope, sectionScope } from "./components/performance.js";
-import { podView } from "./components/podview.js";
+import { panePodSwitch, playersPanel, podScope, sectionScope } from "./components/performance.js";
+import { podScreen } from "./components/podview.js";
 import { playerSheet } from "./components/playersheet.js";
 import { accountSheet, helpSheet, thresholdSheet } from "./components/sheets.js";
-import { tableView } from "./components/tableview.js";
 import { topBar } from "./components/topbar.js";
 import { clear, h } from "./lib/dom.js";
 import { annotate, wireTips } from "./lib/helptips.js";
 import { patchLive } from "./lib/live.js";
+import { wirePeek } from "./lib/peek.js";
 import { findPod, findTable, podOfTable } from "./lib/selectors.js";
 import { WALLPAPERS, wallpaper } from "./assets.js";
 import { createStore } from "./store.js";
@@ -19,10 +19,8 @@ import { createStore } from "./store.js";
 const HINTS = {
   login: "Try: tap the card reader, or key in any ID of four digits or more.",
   section:
-    "Try: Floor / Performance / Alerts in the bar (same six pods, same places; only what is printed on them changes) · tap a pod to open it · expand a pod in the tree, then tap an alert to jump straight to it.",
-  pod: "Try: tap any table to open it · switch the right panel between Alerts and Players · the back arrow returns to the floor.",
-  table:
-    "Try: the task tabs · the Scan dial · Adjust opens the three-step flyout and ends on the second signature. Confirming it clears the alert everywhere.",
+    "Try: hover a table (or press and hold) for its KPIs · Actions and Alerts in the bar · Players in the right panel for Open and Closed · tap a pod to open it.",
+  pod: "Try: the task tabs work on the table picked at the right · hover a table for its KPIs · tap a table to open it on Live · the back arrow returns to the floor.",
 };
 
 const root = document.getElementById("app");
@@ -74,70 +72,17 @@ function closePlayer() {
   closeTimer = window.setTimeout(() => dispatch({ type: "close-player" }), 200);
 }
 
-/**
- * Floor to Performance, and back.
- *
- * Both faces are the same six pods in the same six places, so the switch is
- * staged as a turn: the cards rotate away carrying the old content, the
- * content changes while they are edge on, and they rotate back carrying the
- * new. It reads as one object being turned over rather than one screen
- * replacing another, which is the thing worth saying about these two views.
- *
- * Only the two card faces turn. Alerts is a different shape, so it gets the
- * ordinary swap, and so does anyone who has asked their system for less
- * motion.
- */
-const CARD_TURN = 130;
-let flipTimers = [];
-/**
- * Which half is running, held outside the store on purpose.
- *
- * The first half must not rebuild. An animation added to an element in the
- * same frame the element was created does not start until the engine has
- * resolved its start time, and a rebuild of six cards pushes that past the
- * 130ms the half is given, so the turn never runs. Dispatching for the first
- * half rebuilds, so the first half sets the attribute on the cards already in
- * the document and leaves the store alone. render() reads this back so a
- * render from anywhere else does not drop it.
- */
-let flipPhase = null;
-
+/** Floor, Actions or Alerts. A plain swap: the panes resize between them. */
 function switchMode(mode) {
-  const s = getState();
-  if (mode === s.mode) return;
-  flipTimers.forEach(window.clearTimeout);
-  flipTimers = [];
-
-  const turns = s.level === "section" && mode !== "alerts" && s.mode !== "alerts";
-  const still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const pane = document.querySelector(".pane--content");
-  if (!turns || still || !pane) {
-    flipPhase = null;
-    dispatch({ type: "mode", mode });
-    return;
-  }
-
-  flipPhase = "out";
-  pane.dataset.flip = "out";
-  flipTimers.push(
-    window.setTimeout(() => {
-      flipPhase = "in";
-      dispatch({ type: "mode", mode });
-      flipTimers.push(
-        window.setTimeout(() => {
-          flipPhase = null;
-          dispatch({ type: "flip-done" });
-        }, 430)
-      );
-    }, CARD_TURN)
-  );
+  if (mode === getState().mode) return;
+  dispatch({ type: "mode", mode });
 }
 
 const resolve = (alertId, message) => dispatch({ type: "resolve", alertId, message });
 
 /** One place decides what an alert action does, wherever it was pressed. */
 function handleAction(alert, action) {
-  const goTable = (tab) => dispatch({ type: "go-table", podId: alert.podId, tableId: alert.tableId, tab });
+  const goTable = (tab) => dispatch({ type: "go-table", podId: alert.podId, tableId: alert.tableId, tab: tab || "live" });
 
   switch (action.intent) {
     case "dismiss":
@@ -161,6 +106,9 @@ function handleAction(alert, action) {
       break;
     case "open-players":
       goTable("players");
+      break;
+    case "open-games":
+      goTable("games");
       break;
     case "thresholds":
       dispatch({ type: "sheet", sheet: "thresholds" });
@@ -198,8 +146,7 @@ function device(state) {
     return h("div.ltg", { data: { theme: state.theme, wallpaper: paper.id } }, ambient, loginScreen(state, dispatch));
   }
 
-  const wide = state.level === "section" && state.mode === "alerts";
-  const perf = state.level === "section" && state.mode === "performance";
+  const wide = state.level === "section" && state.mode !== "floor";
   // Render at the previous geometry; paneGeometry() moves them next frame so
   // the width change animates even though the DOM was rebuilt.
   const from = paneWidths(lastWide);
@@ -211,43 +158,20 @@ function device(state) {
     state.level === "section"
       ? wide
         ? podSwitcher(state, dispatch)
-        : perf
-          ? performanceCards(state, dispatch)
-          : floorPlan(state, dispatch)
-      : state.level === "pod"
-        ? podView(state, dispatch, handleAction)
-        : tableView(state, dispatch, { onScan: runScan, onAdjust: openAdjust, onOrderFill: orderFill, onResolve: resolve });
+        : floorPlan(state, dispatch)
+      : podScreen(state, dispatch, handleAction, { onScan: runScan, onAdjust: openAdjust, onOrderFill: orderFill, onResolve: resolve });
 
-  // Which half of a card turn is running, if any. The content is already
-  // correct for the phase: during "out" the mode has not changed yet, so the
-  // old face is still what is being rendered.
-  const turn = flipPhase;
-
-  // The right pane is the alert tree by default. It carries people instead
-  // when the floor is in Performance, or when a pod's own switch asks for it.
-  const showPlayers = perf || (state.level === "pod" && state.podPane === "players");
+  const turn = null;
   const pod = state.podId ? findPod(state.pods, state.podId) : null;
-  // My Section is a drawer over the alert rail, not a replacement for it. So
-  // while the cards turn in, both layers are in the pane: the rail underneath,
-  // the section panel sliding across it on the way to Performance or off it on
-  // the way back. Outside that moment only one layer exists.
-  const sliding = turn === "in" && state.level === "section";
-  const panel =
-    showPlayers && !sliding
-      ? playersPanel(
-          state,
-          dispatch,
-          perf ? sectionScope(state) : podScope(state, pod),
-          perf ? null : panePodSwitch(state, dispatch, pod)
-        )
-      : alertPane(state, dispatch, wide, handleAction);
-  const drawer = sliding
-    ? h(
-        "div.drawer",
-        { data: { slide: perf ? "in" : "out" }, "aria-hidden": perf ? null : "true" },
-        playersPanel(state, dispatch, sectionScope(state), null)
-      )
-    : null;
+
+  // The right pane carries Actions and Alerts by default, and the people when
+  // its own switch asks for them. Same switch at the floor and in a pod.
+  const showPlayers = !wide && state.podPane === "players";
+  const switchEl = wide ? null : panePodSwitch(state, dispatch, state.level === "pod" ? pod : null);
+  const panel = showPlayers
+    ? playersPanel(state, dispatch, state.level === "pod" ? podScope(state, pod) : sectionScope(state), switchEl)
+    : alertPane(state, dispatch, wide, handleAction, switchEl);
+  const drawer = null;
 
   return h(
     "div.ltg",
@@ -399,6 +323,8 @@ function render(action) {
   document.body.dataset.pageTheme = state.theme;
   clear(root).appendChild(page(state));
   fit();
+
+  wirePeek(root.querySelector(".ltg"), getState);
 
   if (state.helpTips) {
     const device = root.querySelector(".ltg");

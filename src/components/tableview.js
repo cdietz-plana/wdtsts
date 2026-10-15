@@ -9,60 +9,27 @@ import { overrideTab } from "./override.js";
 import { felt, seats } from "./seats.js";
 
 /**
- * Six tabs, named for the task rather than the data. View Table becomes Live
- * and moves to the front, because on a walking device it substitutes for
- * standing at the table. Inventory becomes Chips. Game and Session keep their
- * jobs: one is the hands, the other is the people over time.
+ * Task tabs, named for the task rather than the data. Review feedback moved
+ * them up into the pod screen, beside Overview, so a table's functions are a
+ * tab away from the pod rather than a level below it. This module now only
+ * draws the body of whichever tab is open.
  */
-const TABS = [
-  ["live", "Live"], ["chips", "Chips"], ["players", "Players"],
+export const TABS = [
+  ["overview", "Overview"], ["live", "Live"], ["chips", "Chips"], ["players", "Players"],
   ["sessions", "Sessions"], ["games", "Games"], ["override", "Override"],
 ];
 
-export function tableView(state, dispatch, { onScan, onAdjust, onOrderFill, onResolve }) {
+export function tableBody(state, dispatch, { onScan, onAdjust, onOrderFill, onResolve }) {
   const table = findTable(state.pods, state.tableId);
   if (!table) return h("div");
-
-  const tabs = h(
-    "div.tabs",
-    { role: "tablist" },
-    TABS.map(([id, label]) =>
-      h("button", { role: "tab", text: label, "aria-pressed": String(state.tab === id), on: { click: () => dispatch({ type: "tab", tab: id }) } })
-    )
-  );
-
   const pod = findPod(state.pods, state.podId);
 
-  let body;
-  if (state.tab === "chips") body = chipsTab(state, table, onScan, onAdjust, onOrderFill);
-  else if (state.tab === "live") body = liveTab(state, table, dispatch);
-  else if (state.tab === "players") body = playersTab(state, table, dispatch, onResolve);
-  else if (state.tab === "sessions") body = sessionsTab(state, table, dispatch);
-  else if (state.tab === "games") body = gamesTab(table);
-  else body = overrideTab(state, table, pod, dispatch);
-
-  // "Easy navigation from table to table": the other three are one tap away
-  // and never more than one tap, because a supervisor comparing two tables in
-  // a pod should not have to climb out and back in.
-  const switcher = h(
-    "div.segmented.segmented--sm",
-    { role: "group", "aria-label": "Tables in this pod" },
-    pod.tables.map((t) =>
-      h("button", {
-        text: shortTableLabel(t, pod) === "Primary" ? "PT" : shortTableLabel(t, pod),
-        "aria-pressed": String(t.id === table.id),
-        "aria-label": t.name,
-        on: { click: () => dispatch({ type: "go-table", podId: pod.id, tableId: t.id }) },
-      })
-    )
-  );
-
-  return h(
-    "div",
-    { style: { display: "flex", flexDirection: "column", gap: "14px", flex: "1", minHeight: "0" } },
-    h("div", { style: { display: "flex", alignItems: "center", gap: "12px", flexShrink: "0" } }, tabs, h("span", { style: { flex: "1" } }), switcher),
-    body
-  );
+  if (state.tab === "chips") return chipsTab(state, table, onScan, onAdjust, onOrderFill);
+  if (state.tab === "live") return liveTab(state, table, dispatch);
+  if (state.tab === "players") return playersTab(state, table, dispatch, onResolve);
+  if (state.tab === "sessions") return sessionsTab(state, table, dispatch);
+  if (state.tab === "games") return gamesTab(table);
+  return overrideTab(state, table, pod, dispatch);
 }
 
 const stat = (label, value, alarming, live) =>
@@ -97,7 +64,7 @@ function chipsTab(state, table, onScan, onAdjust, onOrderFill) {
       "div",
       { style: { textAlign: "center" } },
       h("div.micro", { text: "Last scan" }),
-      h("div.mono", { text: "18:21 · 2 failed before", style: { fontSize: "var(--t-body)", color: "var(--ink-2)", marginTop: "2px" } })
+      h("div.mono", { text: "18:21", style: { fontSize: "var(--t-body)", color: "var(--ink-2)", marginTop: "2px" } })
     )
   );
 
@@ -121,14 +88,10 @@ function chipsTab(state, table, onScan, onAdjust, onOrderFill) {
     h(
       "div",
       { style: { display: "flex", alignItems: "center", justifyContent: "space-between" } },
-      h("span.display", { text: "Chip tray · both trays", style: { fontSize: "var(--t-body)", fontWeight: "600" } }),
+      h("span.display", { text: "Chip tray", style: { fontSize: "var(--t-body)", fontWeight: "600" } }),
       h("span.tag", { text: `${totalChips} CHIPS`, style: { background: "var(--surface-soft)", color: "var(--ink-2)" } })
     ),
     denominations,
-    h("div", {
-      text: table.variance ? "Only the denomination that moved is called out. The rest stay quiet." : "Balanced. Nothing to chase.",
-      style: { fontSize: "var(--t-micro)", color: "var(--ink-3)" },
-    }),
     h(
       "div",
       { style: { display: "flex", gap: "9px", alignSelf: "flex-start", marginTop: "2px" } },
@@ -167,10 +130,10 @@ function liveTab(state, table, dispatch) {
     return h(
       "div.card.fade-in",
       { style: { flex: "1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "18px", padding: "24px", textAlign: "center" } },
-      h("div.display", { text: "Table is dark", style: { fontSize: "var(--t-hero)", fontWeight: "700", color: "var(--critical)" } }),
+      h("div.display", { text: "Offline", style: { fontSize: "var(--t-hero)", fontWeight: "700", color: "var(--critical)" } }),
       h("div", {
-        text: `No live view while ${table.name} is offline. The pod is still dealing on the other three. Last good chip count was 18:04.`,
-        style: { fontSize: "var(--t-action)", color: "var(--ink-2)", maxWidth: "420px", lineHeight: "1.5" },
+        text: "Last chip count 18:04",
+        style: { fontSize: "var(--t-action)", color: "var(--ink-2)" },
       })
     );
   }
@@ -190,15 +153,11 @@ function liveTab(state, table, dispatch) {
     h(
       "div",
       { style: { display: "flex", gap: "28px" } },
-      big("Shoe", String(hand.shoe)),
-      big("Game", String(hand.game)),
+      // Review feedback: the hand matters, the shoe count does not.
+      big("Hand", String(hand.game)),
       big("Seated", `${table.seated} / ${table.seats}`),
       big("Limits", limitsLabel(table))
-    ),
-    h("div", {
-      text: "Tap a seat to open that player. ASSUMED: this is our drawing of the game, not the dealer display itself.",
-      style: { fontSize: "var(--t-detail)", color: "var(--ink-3)" },
-    })
+    )
   );
 }
 
@@ -327,10 +286,12 @@ function gamesTab(table) {
   const head = h(
     "div",
     { style: { display: "flex", alignItems: "center", gap: "14px", padding: "0 16px", flexShrink: "0" } },
-    h("span.micro", { text: "Shoe 9 · this gaming day", style: { flex: "1" } }),
+    h("span.micro", { text: "Hand", style: { width: "52px" } }),
+    h("span.micro", { text: "Time", style: { width: "54px" } }),
+    h("span.micro", { text: "Result", style: { flex: "1" } }),
     h("span.micro", { text: "Banker / Player" }),
     h("span.micro", { text: "Handle", style: { width: "96px", textAlign: "right" } }),
-    h("span.micro", { text: "Result", style: { width: "96px", textAlign: "right" } })
+    h("span.micro", { text: "Win / loss", style: { width: "96px", textAlign: "right" } })
   );
 
   return h(
@@ -343,7 +304,7 @@ function gamesTab(table) {
           ? h(
               "div",
               { style: { display: "flex", alignItems: "center", gap: "10px", padding: "6px 16px 2px" } },
-              h("span.micro", { text: `Shoe ${g.shoe} ended · cards changed · pod stopped 1m 40s` }),
+              h("span.micro", { text: "New shoe" }),
               h("span", { style: { flex: "1", height: "1px", background: "var(--line)" } })
             )
           : null;
@@ -361,7 +322,7 @@ function gameRow(g) {
             ...(g.corrected ? { borderColor: "var(--high-edge)", background: "var(--high-wash)" } : {}),
           },
         },
-        h("span.mono", { text: `${g.shoe}-${g.game}`, style: { width: "52px", fontSize: "var(--t-body)", fontWeight: "700", color: "var(--ink-3)" } }),
+        h("span.mono", { text: String(g.game), style: { width: "52px", fontSize: "var(--t-body)", fontWeight: "700", color: "var(--ink-3)" } }),
         h("span.mono", { text: g.at, style: { width: "54px", fontSize: "var(--t-body)", color: "var(--ink-3)" } }),
         h("span", { text: g.outcome, style: { width: "74px", fontSize: "var(--t-action)", fontWeight: "600" } }),
         g.corrected

@@ -35,16 +35,20 @@ export function seats(table, players = [], { scale = 1, gap = 3, tap = false, on
   const total = table.seats;
   const rows = [];
 
-  for (let start = 0; start < total; start += PER_ROW) {
-    const count = Math.min(PER_ROW, total - start);
-    rows.push(
-      h(
-        "div",
-        { style: { display: "flex", gap: `${gap}px`, alignItems: "center" } },
-        Array.from({ length: count }, (_, i) => dot(bySeat.get(start + i + 1), scale, onPick, tap))
-      )
-    );
-  }
+  // Review feedback: the front line always shows its seven places, so the
+  // table's shape still reads. The back line shows only the people in it;
+  // an empty back-line position is not a seat anyone is managing.
+  const front = Math.min(PER_ROW, total);
+  rows.push(
+    h(
+      "div",
+      { style: { display: "flex", gap: `${gap}px`, alignItems: "center" } },
+      Array.from({ length: front }, (_, i) => dot(bySeat.get(i + 1), scale, onPick, tap))
+    )
+  );
+  const back = [];
+  for (let n = PER_ROW + 1; n <= total; n += 1) if (bySeat.has(n)) back.push(dot(bySeat.get(n), scale, onPick, tap));
+  if (back.length) rows.push(h("div", { style: { display: "flex", gap: `${gap}px`, alignItems: "center" } }, back));
 
   return h(
     "div",
@@ -57,7 +61,7 @@ function dot(player, scale, onPick, tap) {
   const d = dotStyle(player, scale, tap);
 
   if (!d) {
-    const size = tap ? 44 : Math.round(9 * scale);
+    const size = tap ? 44 : Math.round(10 * scale);
     return h("span.seat.seat--empty", { style: { width: `${size}px`, height: `${size}px` } });
   }
 
@@ -115,38 +119,22 @@ export function felt(table, { hasAlert, width, height, chip, children } = {}) {
   );
 }
 
-/**
- * The legend for the value colors. It exists because a color language nobody
- * is taught is just decoration, and this one has four steps.
- */
-export function valueLegend(compact = false) {
-  const swatch = (color, size, label) =>
-    h(
-      "span",
-      { style: { display: "flex", alignItems: "center", gap: "5px", whiteSpace: "nowrap" } },
-      h("span.seat", { style: { width: `${size}px`, height: `${size}px`, background: color } }),
-      label
-    );
-
-  const rule = h("span", {
-    style: { width: "1px", height: "14px", background: "var(--line-strong)", opacity: "0.7", flexShrink: "0" },
-  });
-
+/** The key for the seat dots. Two facts, two marks, no sentence. */
+export function valueLegend() {
   return h(
     "div",
-    { style: { display: "flex", alignItems: "center", gap: compact ? "9px" : "13px", flexWrap: "wrap" } },
-    h("span.micro", { text: "Seat color · average bet", style: { whiteSpace: "nowrap" } }),
-    swatch("var(--value-1)", 9, "Low"),
-    swatch("var(--value-2)", 11, "Mid"),
-    swatch("var(--value-3)", 13, "High"),
-    swatch("var(--value-4)", 15, "Whale"),
-    rule,
+    { style: { display: "flex", alignItems: "center", gap: "14px", whiteSpace: "nowrap" } },
     h(
       "span",
-      { style: { display: "flex", alignItems: "center", gap: "9px", whiteSpace: "nowrap" } },
-      h("span.seat", { style: { width: "13px", height: "13px", background: "var(--value-3)", boxShadow: "0 0 0 3px var(--ring-hot)" } }),
-      h("span.micro", { text: "Ring" }),
-      "Up on the house"
+      { style: { display: "flex", alignItems: "center", gap: "6px" } },
+      h("span.seat", { style: { width: "12px", height: "12px", background: "var(--value-3)" } }),
+      "High avg bet"
+    ),
+    h(
+      "span",
+      { style: { display: "flex", alignItems: "center", gap: "8px" } },
+      h("span.seat", { style: { width: "12px", height: "12px", background: "var(--value-1)", boxShadow: "0 0 0 3px var(--ring-hot)" } }),
+      "Large win"
     )
   );
 }

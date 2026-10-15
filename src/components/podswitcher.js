@@ -17,14 +17,14 @@ export function podSwitcher(state, dispatch) {
     state.pods.map((pod) => {
       const alerts = alertsForPod(state.alerts, pod.id);
       const severity = worstSeverity(alerts);
-      const open = !!state.expanded[pod.id];
+      const open = !!state.navOpen[pod.id];
 
       const podRow = h(
         "button.row.row--nav",
         {
           "aria-expanded": String(open),
           style: { background: open ? "var(--surface-soft)" : "" },
-          on: { click: () => dispatch({ type: "toggle-pod", podId: pod.id }) },
+          on: { click: () => dispatch({ type: "toggle-nav", podId: pod.id }) },
         },
         h("span", { style: { color: "var(--ink-2)", display: "flex" } }, iconChevron(13, open ? "down" : "right")),
         h("span", { text: pod.name, style: { flex: "1", fontSize: "var(--t-action)", fontWeight: open ? "600" : "500" } }),
@@ -47,7 +47,7 @@ export function podSwitcher(state, dispatch) {
                 background: ta.length ? sevWash(tsev) : "",
                 borderColor: ta.length ? sevEdge(tsev) : "transparent",
               },
-              on: { click: () => dispatch({ type: "go-table", podId: pod.id, tableId: t.id, tab: "chips" }) },
+              on: { click: () => dispatch({ type: "go-table", podId: pod.id, tableId: t.id, tab: "live" }) },
             },
             felt(t, { hasAlert: ta.length > 0, width: 16, height: 10, chip: true }),
             h(

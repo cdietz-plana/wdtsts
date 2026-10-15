@@ -8,6 +8,7 @@ import { sevColor, sevEdge, sevInk, sevWash } from "../lib/severity.js";
 import { currentHand } from "../data/games.js";
 import { handView } from "./cards.js";
 import { felt, seats } from "./seats.js";
+import { TABS, tableBody } from "./tableview.js";
 
 const STATUS_LABEL = {
   dealing: "Dealing", playing: "In play", "tray-short": "Tray short",
@@ -59,6 +60,55 @@ const quiet = (label, value) =>
   );
 
 /**
+ * The pod screen: a task bar across the top, then either the pod overview or
+ * the selected table's task.
+ *
+ * Review feedback: drilling into a pod and then into a table to reach Live,
+ * Chips or Override was a level too many. The tabs now sit at pod level.
+ * Overview is the pod; every other tab acts on the table picked in the
+ * switcher beside them, and tapping a table on the overview opens it on Live.
+ */
+export function podScreen(state, dispatch, onAlertAction, handlers) {
+  const pod = findPod(state.pods, state.podId);
+  if (!pod) return h("div");
+  const onTable = state.tab !== "overview";
+
+  const tabs = h(
+    "div.tabs.tabs--pod",
+    { role: "tablist" },
+    TABS.map(([id, label]) =>
+      h("button", { role: "tab", text: label, "aria-pressed": String(state.tab === id), on: { click: () => dispatch({ type: "tab", tab: id }) } })
+    )
+  );
+
+  const switcher = h(
+    "div.segmented.segmented--sm",
+    { role: "group", "aria-label": "Table", data: { dim: !onTable } },
+    pod.tables.map((t) => {
+      const label = t.role === "PT" ? "PT" : t.name.replace(pod.tables[0].name, "");
+      const bad = alertsForTable(state.alerts, t.id).some((a) => a.kind === "action");
+      return h(
+        "button",
+        {
+          "aria-pressed": String(onTable && t.id === state.tableId),
+          "aria-label": t.name,
+          on: { click: () => dispatch({ type: "select-table", tableId: t.id }) },
+        },
+        label,
+        bad ? h("span.dot", { style: { background: "var(--critical)" } }) : null
+      );
+    })
+  );
+
+  return h(
+    "div",
+    { style: { display: "flex", flexDirection: "column", gap: "12px", flex: "1", minHeight: "0" } },
+    h("div", { style: { display: "flex", alignItems: "center", gap: "12px", flexShrink: "0" } }, tabs, h("span", { style: { flex: "1" } }), switcher),
+    onTable ? tableBody(state, dispatch, handlers) : podView(state, dispatch, onAlertAction)
+  );
+}
+
+/**
  * One pod, four tables.
  *
  * Review feedback took two things out of the header. The shared countdown
@@ -92,12 +142,9 @@ export function podView(state, dispatch, onAlertAction) {
     h(
       "div",
       { style: { textAlign: "right", flexShrink: "0", whiteSpace: "nowrap" } },
-      h("div.micro", { text: "Shared shoe" }),
-      h("div.mono.display", { text: "Shoe 9 · game 9", style: { fontSize: "var(--t-body)", fontWeight: "600" } }),
-      // The caption explaining that the shoe is shared is the first thing to
-      // go when the header is carrying a hold: the hold says the same thing
-      // more usefully, because a held pod IS all four tables stopping.
-      held ? null : h("div", { text: "one shoe across all four tables", style: { fontSize: "var(--t-micro)", color: "var(--ink-3)" } })
+      // Review feedback: the hand matters, the shoe count does not.
+      h("div.micro", { text: "Hand" }),
+      h("div.mono.display", { text: String(currentHand(primary.id).game), style: { fontSize: "var(--t-metric)", fontWeight: "700", lineHeight: "1.1" } })
     ),
     held
       ? h(
@@ -113,6 +160,7 @@ export function podView(state, dispatch, onAlertAction) {
     "button.card",
     {
       style: { width: "368px", flexShrink: "0", padding: "15px 16px", display: "flex", flexDirection: "column", gap: "12px", cursor: "pointer", textAlign: "left", font: "inherit" },
+      data: { peek: primary.id },
       on: { click: () => dispatch({ type: "go-table", podId: pod.id, tableId: primary.id, tab: "live" }) },
     },
     h(
@@ -121,7 +169,7 @@ export function podView(state, dispatch, onAlertAction) {
       h(
         "div",
         {},
-        h("span.tag", { text: "PRIMARY · CHIP DOOR", style: { background: "var(--surface-soft)", color: "var(--ink)" } }),
+        h("span.tag", { text: "PRIMARY", style: { background: "var(--surface-soft)", color: "var(--ink)" } }),
         h("div.display", { text: primary.name, style: { fontSize: "var(--t-metric)", fontWeight: "700", marginTop: "6px" } })
       ),
       held
@@ -149,7 +197,7 @@ export function podView(state, dispatch, onAlertAction) {
     h(
       "div",
       { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" } },
-      tile("Shoe W/L", money(primary.shoeWinLoss)),
+      tile("Win / loss", money(primary.dayWin), primary.dayWin < 0 ? "var(--critical-ink)" : "var(--ok-ink)"),
       tile("Variance", money(primary.variance), primary.variance ? "var(--critical-ink)" : "var(--ok-ink)")
     ),
     // Reference figures, not numbers you react to, so they sit quietly under
@@ -158,17 +206,15 @@ export function podView(state, dispatch, onAlertAction) {
     h(
       "div",
       { style: { display: "flex", flexDirection: "column", gap: "7px" } },
-      quiet("PT limits", limitShort(primary.limits)),
+      quiet("Limits", limitShort(primary.limits)),
       quiet("Dealer", primary.dealer || "unassigned"),
-      quiet("Seated", `${primary.seated} of ${primary.seats}`),
-      quiet("Opened", primary.opener)
-    ),
-    h("span", { text: "Tap to open the table", style: { fontSize: "var(--t-detail)", color: "var(--ink-3)" } })
+      quiet("Seated", `${primary.seated} of ${primary.seats}`)
+    )
   );
 
   const rows = secondaries.map((t) => {
-    const ta = alertsForTable(state.alerts, t.id);
-    const sev = worstSeverity(ta);
+    const ta = alertsForTable(state.alerts, t.id).sort((a, b) => (a.kind === "action" ? -1 : 1) - (b.kind === "action" ? -1 : 1));
+    const sev = ta.some((a) => a.kind === "action") ? "critical" : ta.length ? "high" : "clear";
     const bad = ta.length > 0;
 
     const figs =
@@ -176,7 +222,7 @@ export function podView(state, dispatch, onAlertAction) {
         ? [
             figure("Last scan", "18:04"),
             figure("Inventory", money(t.actualInventory)),
-            figure("Dark for", age(ta[0] ? ta[0].ageSeconds : 0), { color: "var(--critical-ink)", big: true, live: ta[0] ? `age:${ta[0].id}` : null }),
+            figure("Offline for", age(ta[0] ? ta[0].ageSeconds : 0), { color: "var(--critical-ink)", big: true, live: ta[0] ? `age:${ta[0].id}` : null }),
           ]
         : [
             figure("Win / loss", money(t.dayWin), { color: t.dayWin < 0 ? "var(--critical-ink)" : "var(--ok-ink)", big: true }),
@@ -193,13 +239,14 @@ export function podView(state, dispatch, onAlertAction) {
           justifyContent: "center", minHeight: "0", cursor: "pointer",
           ...(sev === "critical" ? { borderColor: "var(--critical)", boxShadow: "0 0 0 3px var(--critical-wash)" } : {}),
         },
+        data: { peek: t.id },
         on: { click: () => dispatch({ type: "go-table", podId: pod.id, tableId: t.id, tab: t.status === "tray-short" ? "chips" : "live" }) },
       },
       h(
         "div",
         { style: { display: "flex", alignItems: "center", gap: "10px", minWidth: "0" } },
         h("span.display", { text: t.name, style: { fontSize: "var(--t-title)", fontWeight: "600" } }),
-        h("span.mono", { text: `ST ${limitShort(t.limits)}`, style: { fontSize: "var(--t-micro)", color: "var(--ink-3)", whiteSpace: "nowrap", flexShrink: "0" } }),
+        h("span.mono", { text: limitShort(t.limits), style: { fontSize: "var(--t-micro)", color: "var(--ink-3)", whiteSpace: "nowrap", flexShrink: "0" } }),
         h("span", { text: t.dealer || "unassigned", style: { fontSize: "var(--t-micro)", color: "var(--ink-3)", whiteSpace: "nowrap", flexShrink: "0" } }),
         h(
           "span.pill",

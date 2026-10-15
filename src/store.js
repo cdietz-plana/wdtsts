@@ -1,6 +1,6 @@
 import { pods as initialPods } from "./data/pods.js";
 import { initialAlerts } from "./data/alerts.js";
-import { players as namedPlayers, withAnonymousFill } from "./data/players.js";
+import { closedPlayers, players as namedPlayers, withAnonymousFill } from "./data/players.js";
 import { thresholds as initialThresholds } from "./data/thresholds.js";
 import { wallClock } from "./lib/format.js";
 import { WALLPAPER_FOR_THEME } from "./assets.js";
@@ -12,6 +12,17 @@ import { WALLPAPER_FOR_THEME } from "./assets.js";
 
 /** The full floor. An area is a slice of it. */
 const ALL_PODS = initialPods;
+
+const tableName = (id) => {
+  for (const p of initialPods) for (const t of p.tables) if (t.id === id) return t.name;
+  return "";
+};
+
+/** Seated players, then the ones who have left, each carrying the table they played. */
+const ALL_PLAYERS = [
+  ...withAnonymousFill(initialPods, namedPlayers),
+  ...closedPlayers.map((p) => ({ ...p, sessions: p.sessions.map((sx) => ({ ...sx, table: tableName(p.tableId) })) })),
+];
 
 export const initialState = {
   /** @type {import("./types.js").Theme} */ theme: "glass",
@@ -25,13 +36,26 @@ export const initialState = {
   /** The prototype starts where the shift starts. Nothing here authenticates. */
   signedIn: false,
   login: { id: "" },
-  /** @type {import("./types.js").Mode} */ mode: "floor",
+  /**
+   * What the floor is showing. Review feedback took Performance out (its
+   * figures now live on the floor, in the KPI bar and in the table peek) and
+   * split the old Alerts into Actions and Alerts.
+   * @type {"floor"|"actions"|"alerts"}
+   */
+  mode: "floor",
   /** @type {import("./types.js").Level} */ level: "section",
   podId: null,
   tableId: null,
-  /** @type {import("./types.js").TableTab} */ tab: "chips",
+  /**
+   * Review feedback: the table functions live inside the pod screen, so a
+   * table is a tab away rather than a level away. "overview" is the pod
+   * itself; every other tab acts on the selected table.
+   */
+  tab: "overview",
   /** Which pods are expanded, in both the tree and the switcher. */
-  expanded: { p1: true },
+  expanded: {},
+  /** Which pods are open in the Jump to list beside the trees. */
+  navOpen: { p1: true },
   /** @type {"all"|"critical"|"blocks-roll"|"needs-signature"} */ filter: "all",
   /** @type {null|{kind:string, alertId:string, step:number, reason?:string, verified?:boolean, pin:string}} */ flyout: null,
   /**
@@ -45,6 +69,8 @@ export const initialState = {
   toast: null,
   /** At pod level the right pane carries either the alerts or the people. */
   /** @type {"alerts"|"players"} */ podPane: "alerts",
+  /** Open players are in action now; Closed have left the section today. */
+  /** @type {"open"|"closed"} */ playerList: "open",
   /**
    * How the people lists are ranked. Starts on actuals, not on theoretical
    * win: a supervisor asked who to watch wants what is happening now.
@@ -77,7 +103,7 @@ export const initialState = {
   rollMinutes: 222,
   pods: initialPods,
   alerts: initialAlerts,
-  players: withAnonymousFill(initialPods, namedPlayers),
+  players: ALL_PLAYERS,
   thresholds: initialThresholds,
 };
 
@@ -86,6 +112,7 @@ export function reducer(s, a) {
     case "theme": return { ...s, theme: a.theme, wallpaper: WALLPAPER_FOR_THEME[a.theme] || s.wallpaper };
     case "wallpaper": return { ...s, wallpaper: a.wallpaper };
     case "player-rank": return { ...s, playerRank: a.rank };
+    case "player-list": return { ...s, playerList: a.list };
     case "area-size": {
       const pods = ALL_PODS.slice(0, a.size);
       const ids = new Set(pods.map((p) => p.id));
@@ -150,11 +177,20 @@ export function reducer(s, a) {
         cardDraft: "",
         players: s.players.map((p) => (p.id === a.playerId ? { ...p, rated: true, tier: "Gold", card: a.card, name: a.name } : p)),
       };
-    case "toggle-pod": return { ...s, expanded: { ...s.expanded, [a.podId]: !s.expanded[a.podId] } };
+    // Pods in the Actions and Alerts trees start open; a tap folds one away.
+    case "toggle-pod": return { ...s, expanded: { ...s.expanded, [a.podId]: s.expanded[a.podId] === false } };
+    case "toggle-nav": return { ...s, navOpen: { ...s.navOpen, [a.podId]: !s.navOpen[a.podId] } };
     case "filter": return { ...s, filter: a.filter };
-    case "go-section": return { ...s, level: "section", podId: null, tableId: null, flyout: null };
-    case "go-pod": return { ...s, level: "pod", podId: a.podId, flyout: null };
-    case "go-table": return { ...s, level: "table", podId: a.podId, tableId: a.tableId, tab: a.tab || s.tab, flyout: null };
+    case "go-section": return { ...s, level: "section", podId: null, tableId: null, flyout: null, tab: "overview" };
+    case "go-pod": {
+      const pod = s.pods.find((p) => p.id === a.podId);
+      return { ...s, level: "pod", podId: a.podId, tableId: pod ? pod.tables[0].id : null, tab: "overview", flyout: null };
+    }
+    // There is no table level any more. Opening a table is the pod screen with
+    // that table selected and a task tab showing.
+    case "go-table":
+      return { ...s, level: "pod", podId: a.podId, tableId: a.tableId, tab: a.tab && a.tab !== "overview" ? a.tab : s.tab === "overview" ? "live" : s.tab, flyout: null };
+    case "select-table": return { ...s, tableId: a.tableId, tab: s.tab === "overview" ? "live" : s.tab };
     case "tab": return { ...s, tab: a.tab };
     case "flyout-open":
       return { ...s, flyout: { kind: a.kind, alertId: a.alertId, step: 1, pin: "", overrideId: a.overrideId || null, position: null, reason: null } };

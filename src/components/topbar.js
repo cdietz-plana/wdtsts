@@ -1,60 +1,53 @@
 import { h } from "../lib/dom.js";
-import { compact, wallClock } from "../lib/format.js";
-import {
-  alertsForPod, alertsForTable, findPod, findTable,
-  performance, podPerformance, sectionPerformance,
-} from "../lib/selectors.js";
-import { iconBack, iconBars, iconBell, iconChevron, iconGrid, iconHelp } from "./icons.js";
+import { compact, percent, wallClock } from "../lib/format.js";
+import { actionsOf, alertsOnly, findPod, findTable, performance, podPerformance, sectionPerformance } from "../lib/selectors.js";
+import { SUPERVISOR } from "../lib/supervisor.js";
+import { iconBack, iconBell, iconChevron, iconGrid, iconHelp } from "./icons.js";
 import { ICON } from "../assets.js";
 
 /** Fixed so the whole prototype agrees on a date. A gaming day is not a calendar day. */
 const GAMING_DAY = "Fri 25 Sep";
 
-/** What the supervisor is responsible for this shift. */
-export const AREA_NAME = "My Section";
+/** Review feedback: the section carries the supervisor's name, not "My Section". */
+export const AREA_NAME = SUPERVISOR.name;
 
 const MODES = [
   ["floor", "Floor", iconGrid],
-  ["performance", "Performance", iconBars],
+  ["actions", "Actions", iconBell],
   ["alerts", "Alerts", iconBell],
 ];
 
 /**
- * Status, identity, one mode control, and the two figures a supervisor is
- * asked for most.
+ * The KPI strip, following the Casino Manager pattern so the bar reads the
+ * same as the rest of the WDTS suite. Four figures, one weight, scoped to
+ * wherever you are standing: the whole section at the floor, the pod inside
+ * a pod, the table when a table tab is open.
  *
- * Review feedback reshaped this bar. Next game went: a countdown to the next
- * deal is the dealer's problem, it changes every second, and it pushed the
- * figures that matter off the bar. Roll in went too, not because it is
- * unimportant but because it does not belong at the top: it is a once-a-shift
- * event and it now sits with the floor it governs.
- *
- * What replaced them is Handle and Win, scoped to wherever you are standing.
- * At the floor they are the whole area; inside a pod they are that pod; on a
- * table they are that table. The labels do not say which, because the
- * breadcrumb two inches to the left already does, and a bar that repeats
- * itself is a bar nobody reads.
+ * PLACEHOLDER until we have the Casino Manager reference: the figures are the
+ * four the PRD names for the first screen plus hold.
  */
+function kpis(perf) {
+  const k = (label, value, color) =>
+    h("div.kpi", {}, h("span.kpi__label", { text: label }), h("b.kpi__value.mono", { text: value, style: color ? { color } : {} }));
+  return h(
+    "div.kpi-strip",
+    { role: "group", "aria-label": "Key figures" },
+    k("Drop", compact(perf.drop)),
+    k("Win", compact(perf.win), perf.win < 0 ? "var(--critical-ink)" : "var(--ok-ink)"),
+    k("Hold", percent(perf.hold)),
+    k("Handle", compact(perf.handle))
+  );
+}
+
 export function topBar(state, dispatch, onMode) {
   const pod = findPod(state.pods, state.podId);
   const table = findTable(state.pods, state.tableId);
+  const onTable = state.level === "pod" && state.tab !== "overview" && table;
 
-  const perf =
-    state.level === "table" && table ? performance([table])
-    : state.level === "pod" && pod ? podPerformance(pod)
-    : sectionPerformance(state.pods);
-
-  const stat = (label, value, color) =>
-    h(
-      "div.clock.clock--stat",
-      {},
-      h("span.micro", { text: label }),
-      h("b.mono", { text: value, style: { color: color || "" } })
-    );
+  const perf = onTable ? performance([table]) : state.level === "pod" && pod ? podPerformance(pod) : sectionPerformance(state.pods);
 
   const right = [
-    stat("Handle", compact(perf.handle)),
-    stat("Win", compact(perf.win), perf.win < 0 ? "var(--critical-ink)" : "var(--ok-ink)"),
+    kpis(perf),
     h(
       "div.clock.clock--quiet",
       {},
@@ -64,13 +57,14 @@ export function topBar(state, dispatch, onMode) {
     h("button.icon-btn", { "aria-label": "Help", on: { click: () => dispatch({ type: "sheet", sheet: "help" }) } }, iconHelp()),
     h(
       "button.icon-btn",
-      { "aria-label": "Your account", on: { click: () => dispatch({ type: "sheet", sheet: "account" }) } },
-      h("span.avatar", { text: "04" })
+      { "aria-label": `${SUPERVISOR.name}, account`, on: { click: () => dispatch({ type: "sheet", sheet: "account" }) } },
+      h("span.avatar", { text: SUPERVISOR.initials })
     ),
   ];
 
   if (state.level === "section") {
     const tables = state.pods.reduce((n, p) => n + p.tables.length, 0);
+    const counts = { actions: actionsOf(state.alerts).length, alerts: alertsOnly(state.alerts).length };
     return h(
       "header.bar",
       {},
@@ -86,15 +80,15 @@ export function topBar(state, dispatch, onMode) {
       ),
       h("div", { style: { flex: "1" } }),
       h(
-        "div.segmented",
+        "div.segmented.segmented--bar",
         { role: "group", "aria-label": "What the floor is showing" },
         MODES.map(([id, label, icon]) =>
           h(
             "button",
             { "aria-pressed": String(state.mode === id), on: { click: () => onMode(id) } },
-            icon(),
+            id === "floor" ? icon() : null,
             label,
-            id === "alerts" && state.alerts.length ? h("span.count-badge", { text: String(state.alerts.length) }) : null
+            counts[id] ? h("span.count-badge", { text: String(counts[id]), data: { kind: id } }) : null
           )
         )
       ),
@@ -103,33 +97,22 @@ export function topBar(state, dispatch, onMode) {
     );
   }
 
-  const scoped =
-    state.level === "pod" && pod ? alertsForPod(state.alerts, pod.id).length : table ? alertsForTable(state.alerts, table.id).length : 0;
-
   const crumb = h("nav", { style: { display: "flex", alignItems: "center", gap: "8px", minWidth: "0" }, "aria-label": "Breadcrumb" });
   crumb.appendChild(h("button.crumb-link", { text: AREA_NAME, on: { click: () => dispatch({ type: "go-section" }) } }));
   crumb.appendChild(h("span", { style: { color: "var(--ink-3)", display: "flex" } }, iconChevron(12)));
-
-  if (state.level === "pod") {
-    crumb.appendChild(h("span.crumb-current", { text: pod.name }));
-  } else {
-    crumb.appendChild(h("button.crumb-link", { text: pod.name, on: { click: () => dispatch({ type: "go-pod", podId: pod.id }) } }));
+  if (onTable) {
+    crumb.appendChild(h("button.crumb-link", { text: pod.name, on: { click: () => dispatch({ type: "tab", tab: "overview" }) } }));
     crumb.appendChild(h("span", { style: { color: "var(--ink-3)", display: "flex" } }, iconChevron(12)));
     crumb.appendChild(h("span.crumb-current", { text: table.name }));
-    crumb.appendChild(
-      h("span.tag", { text: table.role === "PT" ? "PRIMARY" : "SECONDARY", style: { background: "var(--surface-soft)", color: "var(--ink-2)", marginLeft: "4px" } })
-    );
+  } else {
+    crumb.appendChild(h("span.crumb-current", { text: pod.name }));
   }
 
   return h(
     "header.bar",
     {},
-    h("button.icon-btn", {
-      "aria-label": "Back",
-      on: { click: () => (state.level === "table" ? dispatch({ type: "go-pod", podId: pod.id }) : dispatch({ type: "go-section" })) },
-    }, iconBack()),
+    h("button.icon-btn", { "aria-label": "Back", on: { click: () => dispatch({ type: "go-section" }) } }, iconBack()),
     crumb,
-    scoped ? h("span.tag", { text: `${scoped} OPEN`, style: { background: "var(--critical-wash)", color: "var(--critical-ink)" } }) : null,
     h("div", { style: { flex: "1" } }),
     right
   );

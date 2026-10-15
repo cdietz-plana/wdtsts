@@ -1,3 +1,4 @@
+import { SUPERVISOR } from "../lib/supervisor.js";
 import { h } from "../lib/dom.js";
 import { wallClock } from "../lib/format.js";
 import { iconClose } from "./icons.js";
@@ -17,16 +18,16 @@ const HELP = [
     a: "Four tables share one shoe, one countdown and one gaming day. A card change or a roll stops all four, and the chips and signed slips route through the Primary. Treating a pod as four independent tables is what makes the old dashboard hard to read.",
   },
   {
-    q: "What does color mean?",
-    a: "One thing: needs attention. Crimson is critical, amber is high, green is settled. Color is never used for identity, so nothing is red because of what it is.",
+    q: "Actions and Alerts",
+    a: "Actions need you now: a table offline, a customer dispute, a dealer calling, money waiting on your signature. Alerts are worth knowing and nothing has stopped. Actions are always red and always listed first.",
   },
   {
-    q: "Floor, Performance, Alerts",
-    a: "The same six pods in the same places. Floor shows you where trouble is, Performance prints the money on the cards, Alerts gives the list the whole screen. The panels never swap sides, only weight.",
+    q: "Seat dots",
+    a: "A filled dot is a high average bet. A ring is a large current win. Empty back-line positions are not drawn.",
   },
   {
-    q: "The two clocks",
-    a: "Next game counts the seconds to the next deal across the pod. Roll in counts the hours until the gaming day closes. Every alert marked blocking roll has to be cleared before that second clock runs out.",
+    q: "Table figures",
+    a: "Hover over a table, or press and hold on it, to see its win, drop, hold, handle, seated count and average bet without opening it.",
   },
   {
     q: "Adjusting a chip tray",
@@ -88,7 +89,7 @@ const field = (label, value) =>
 
 export function accountSheet(state, dispatch) {
   return sheet(
-    "Supervisor 0418",
+    SUPERVISOR.name,
     "Signed in on this device",
     dispatch,
     h(
@@ -97,7 +98,8 @@ export function accountSheet(state, dispatch) {
       h(
         "div.card",
         { style: { width: "460px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "4px" } },
-        field("Section", "My Section · North Baccarat"),
+        field("Supervisor ID", SUPERVISOR.id),
+        field("Section", SUPERVISOR.section),
         field("Assigned", "6 pods · 24 tables"),
         field("Shift", `Swing · signed in 17:52 · now ${wallClock(state.clockSeconds)}`),
         field("Authority", "Approve ratings, authorize fills, adjust trays"),

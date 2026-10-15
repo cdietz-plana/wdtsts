@@ -1,8 +1,8 @@
 import { h } from "../lib/dom.js";
-import { compact, rollIn } from "../lib/format.js";
+import { compact } from "../lib/format.js";
 import {
-  alertsForPod, alertsForTable, findTable, playersForTable,
-  podPerformance, seatedInPod, shortTableLabel, worstSeverity,
+  actionsOf, alertsForPod, alertsForTable, findTable, playersForTable,
+  podPerformance, seatedInPod, shortTableLabel,
 } from "../lib/selectors.js";
 import { sevColor, sevEdge, sevInk, sevWash } from "../lib/severity.js";
 import { currentHand } from "../data/games.js";
@@ -53,20 +53,11 @@ export function floorPlan(state, dispatch) {
     state.pods.map((pod) => podCard(pod, state, dispatch, d))
   );
 
-  // Roll came off the top bar: it is a once-a-shift event, not a status line.
-  // It sits with the floor it governs, next to the key for reading the floor.
+  // Review feedback: less text. The key is two marks, nothing else.
   const legend = h(
     "div.plan-legend",
-    { style: { display: "flex", alignItems: "center", gap: "14px", fontSize: "var(--t-micro)", flexWrap: "wrap" } },
-    valueLegend(true),
-    h("span", { style: { flex: "1" } }),
-    h(
-      "span",
-      { style: { display: "flex", alignItems: "center", gap: "6px" } },
-      h("span.micro", { text: "Roll in" }),
-      h("b.mono", { text: rollIn(state.rollMinutes), data: { live: "roll" }, style: { fontSize: "var(--t-detail)", fontWeight: "700" } })
-    ),
-    h("span", { text: "Tap a pod to open it" })
+    { style: { display: "flex", alignItems: "center", gap: "14px", fontSize: "var(--t-micro)" } },
+    valueLegend()
   );
 
   return h("div", { style: { display: "flex", flexDirection: "column", gap: "11px", flex: "1", minHeight: "0" } }, plan, legend);
@@ -74,7 +65,9 @@ export function floorPlan(state, dispatch) {
 
 function podCard(pod, state, dispatch, d) {
   const alerts = alertsForPod(state.alerts, pod.id);
-  const severity = worstSeverity(alerts);
+  const actions = actionsOf(alerts);
+  // A pod with an action on it is red; alerts alone are amber; nothing is green.
+  const severity = actions.length ? "critical" : alerts.length ? "high" : "clear";
   const [primary, ...secondaries] = pod.tables;
   const { seated } = seatedInPod(pod);
   const perf = podPerformance(pod);
@@ -83,13 +76,13 @@ function podCard(pod, state, dispatch, d) {
 
   let foot;
   if (alerts.length) {
-    const first = alerts[0];
+    const first = actions[0] || alerts[0];
     const table = findTable(state.pods, first.tableId);
     const label = table ? shortTableLabel(table, pod) : "";
     // The pill already carries the count, so the footer names the worst one only.
     foot = `${label} · ${first.title.toLowerCase()}`;
   } else {
-    foot = `All four running · ${seated} seated`;
+    foot = `${seated} seated`;
   }
 
   const tableFigures = (t) =>
@@ -113,22 +106,22 @@ function podCard(pod, state, dispatch, d) {
         "div",
         { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" } },
         h("span.display", { text: pod.name, style: { fontSize: d.figures === "all" ? "var(--t-title)" : "var(--t-body)", fontWeight: "600" } }),
-        d.figures !== "none"
-          ? h(
-              "span",
-              { style: { display: "flex", alignItems: "baseline", gap: "8px" } },
-              h("span.micro", { text: "Win" }),
-              h("span.mono", {
-                text: compact(perf.win),
-                style: { fontSize: "var(--t-title)", fontWeight: "700", color: perf.win < 0 ? "var(--critical-ink)" : "var(--ok-ink)" },
-              })
-            )
-          : null,
+        // Review feedback folded Performance into the floor, so every pod
+        // carries its win at every density.
+        h(
+          "span",
+          { style: { display: "flex", alignItems: "baseline", gap: "7px" } },
+          h("span.micro", { text: "Win" }),
+          h("span.mono", {
+            text: compact(perf.win),
+            style: { fontSize: d.figures === "none" ? "var(--t-body)" : "var(--t-title)", fontWeight: "700", color: perf.win < 0 ? "var(--critical-ink)" : "var(--ok-ink)" },
+          })
+        ),
         h(
           "span.pill",
           { style: { background: sevWash(severity), borderColor: sevEdge(severity), color: sevInk(severity) } },
           h("span.dot", { data: { severity }, style: { background: sevColor(severity) } }),
-          alerts.length ? `${alerts.length} alert${alerts.length > 1 ? "s" : ""}` : "Clear"
+          actions.length ? `${actions.length} action${actions.length > 1 ? "s" : ""}` : alerts.length ? `${alerts.length} alert${alerts.length > 1 ? "s" : ""}` : "Clear"
         )
       ),
       h(
@@ -136,7 +129,7 @@ function podCard(pod, state, dispatch, d) {
         {},
         h(
           "div.pod__table",
-          {},
+          { data: { peek: primary.id } },
           seats(primary, playersForTable(state.players, primary.id), { scale: d.scale, gap: d.gap, onPick: openPlayer }),
           felt(primary, {
             width: d.felt[0],
@@ -155,7 +148,7 @@ function podCard(pod, state, dispatch, d) {
             const bad = alertsForTable(state.alerts, t.id).length > 0;
             return h(
               "div.pod__table",
-              {},
+              { data: { peek: t.id } },
               seats(t, playersForTable(state.players, t.id), { scale: d.scale * 0.82, gap: Math.max(3, d.gap - 2), onPick: openPlayer }),
               felt(t, { hasAlert: bad, width: d.stFelt[0], height: d.stFelt[1] }),
               // The letter is the only way the footer line ("C · table offline")

@@ -1055,3 +1055,81 @@ textarea.field { min-height: 62px; line-height: 1.45; }
 .ltg[data-theme="rouge"] .segmented button[aria-pressed="true"] {
   color: var(--on-accent);
 }
+
+/* ===========================================================================
+   Review round: Todd's feedback (KPI strip, Actions vs Alerts, table peek,
+   pod-level task tabs, Open and Closed players).
+   =========================================================================== */
+
+/* KPI strip: one grouped control in the bar, four figures at one weight. */
+.kpi-strip {
+  display: flex; align-items: stretch; height: 46px; flex-shrink: 0;
+  border-radius: var(--r-md); border: 1px solid var(--line); background: var(--surface-soft);
+  overflow: hidden;
+}
+.kpi { display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 0 13px; min-width: 74px; }
+.kpi + .kpi { border-left: 1px solid var(--line); }
+.kpi__label { font-size: var(--t-micro); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; line-height: 1; }
+.kpi__value { font-family: var(--font-display); font-size: var(--t-title); font-weight: 700; line-height: 1; white-space: nowrap; }
+
+.segmented--bar button { padding: 0 14px; }
+.count-badge[data-kind="alerts"] { background: var(--high); color: var(--on-high); }
+.count-badge--quiet { background: var(--surface-sunken); color: var(--ink-2); }
+.segmented[data-dim="true"] { opacity: 0.55; }
+.segmented .dot { width: 7px; height: 7px; }
+
+/* Rail: Actions heading, then Alerts heading. */
+.rail-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px 2px; flex-shrink: 0; }
+.rail-head .display { font-size: var(--t-title); font-weight: 600; }
+.rail-head .count-badge { min-width: 24px; height: 24px; font-size: var(--t-body); }
+.rail-head[data-kind="alert"] .count-badge { background: var(--high); color: var(--on-high); }
+.rail-head .count-badge[data-zero="true"] { background: var(--surface-soft); color: var(--ink-3); }
+.rail-empty { padding: 4px 10px 6px; font-size: var(--t-detail); color: var(--ink-3); flex-shrink: 0; }
+.rail-more {
+  align-self: flex-start; margin: 2px 6px; border: 1px solid var(--line); background: var(--surface-soft);
+  color: var(--ink-2); border-radius: var(--r-pill); height: 34px; padding: 0 14px; font: inherit;
+  font-size: var(--t-detail); font-weight: 600; cursor: pointer; flex-shrink: 0;
+}
+.row--mini { min-height: 54px; flex-shrink: 0; }
+.row--mini[data-kind="action"] { background: var(--critical-wash); border-color: var(--critical-edge); }
+
+/* Pod-level task tabs: seven across, slightly tighter than the table set. */
+.tabs--pod button { padding: 0 15px; font-size: var(--t-body); }
+
+/* Table peek. Floats over the device, never inside the layout. */
+.peek {
+  position: absolute; z-index: 40; width: 270px; padding: 13px 14px 11px; pointer-events: none;
+  border-radius: var(--r-lg); background: var(--surface-raised); border: 1px solid var(--line-strong);
+  box-shadow: 0 18px 40px rgba(10, 14, 22, 0.28);
+  backdrop-filter: blur(24px) saturate(140%); -webkit-backdrop-filter: blur(24px) saturate(140%);
+  animation: peek-in 120ms ease-out;
+}
+@keyframes peek-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .peek { animation: none; } }
+.peek__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.peek__head .display { font-size: var(--t-title); font-weight: 700; }
+.peek__head span:last-child { font-size: var(--t-detail); color: var(--ink-3); }
+.peek__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px 10px; }
+.peek__fig { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.peek__fig b { font-size: var(--t-action); font-weight: 700; white-space: nowrap; }
+.peek__foot { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); font-size: var(--t-detail); color: var(--ink-2); }
+
+.alert-card__where {
+  width: 150px; flex-shrink: 0; text-align: left; border: 0; background: none; font: inherit; color: inherit;
+  padding: 0; cursor: pointer; min-width: 0;
+}
+.tree-scroll { scrollbar-width: thin; }
+.peek { background: #ffffff; }
+.ltg[data-theme="dark"] .peek { background: #1c1f27; }
+
+/* Felt inks by surface: the peek is paper, so it takes dark ink. */
+.ltg[data-theme="felt"] .peek {
+  --ink: #17140f;
+  --ink-2: #44403a;
+  --ink-3: #65605a;
+  --critical-ink: #981425;
+  --ok-ink: #0d5e39;
+  --line: #e0dcd0;
+  --line-strong: #c7c2b2;
+  color: #17140f;
+}

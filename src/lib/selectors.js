@@ -56,9 +56,30 @@ export const shortTableLabel = (table, pod) => table.name.replace(pod.tables[0].
  * function with a different scope, which is why they can never disagree.
  */
 
-export const playersForTable = (players, tableId) => players.filter((p) => p.tableId === tableId);
+/** Seated now. Closed players keep their last table but never sit at it. */
+export const playersForTable = (players, tableId) => players.filter((p) => p.tableId === tableId && !p.closed);
 
-export const playersForPod = (players, pod) => players.filter((p) => pod.tables.some((t) => t.id === p.tableId));
+export const playersForPod = (players, pod) => players.filter((p) => !p.closed && pod.tables.some((t) => t.id === p.tableId));
+
+/** Everyone who played in a pod today, open or closed. */
+export const everyoneInPod = (players, pod) => players.filter((p) => pod.tables.some((t) => t.id === p.tableId));
+
+/* --- actions and alerts ---------------------------------------------------
+ * Review feedback: Actions need the supervisor now, Alerts are worth knowing.
+ * Same list, split by kind, so the two counts can never disagree with the
+ * total.
+ */
+export const actionsOf = (alerts) => alerts.filter((a) => a.kind === "action");
+export const alertsOnly = (alerts) => alerts.filter((a) => a.kind !== "action");
+
+/* --- open and closed players ---------------------------------------------
+ * Open: in action now. Closed: played in this section earlier today and has
+ * left. Both lists lead with the biggest player win, because that is who a
+ * supervisor is asked about. `winLoss` is the house result, so a player who
+ * is up is negative and sorts first ascending.
+ */
+export const openPlayers = (players) => players.filter((p) => !p.closed).sort((a, b) => a.winLoss - b.winLoss);
+export const closedPlayersList = (players) => players.filter((p) => p.closed).sort((a, b) => a.winLoss - b.winLoss);
 
 export const findPlayer = (players, id) => players.find((p) => p.id === id);
 

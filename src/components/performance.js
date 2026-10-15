@@ -1,242 +1,46 @@
 import { h } from "../lib/dom.js";
-import { compact, money, percent } from "../lib/format.js";
+import { compact } from "../lib/format.js";
 import {
-  RANKINGS, alertsForPod, playerTotals, playersForPod, podPerformance, rankPlayers,
-  ranking, seatedInPod, sectionPerformance, worstSeverity,
+  alertsForPod, closedPlayersList, everyoneInPod, findTable, openPlayers, playersForPod,
 } from "../lib/selectors.js";
-import { sevColor, sevEdge, sevInk, sevWash } from "../lib/severity.js";
 import { AREA_NAME } from "./topbar.js";
 
 /**
- * The Performance state of the floor.
+ * The people panel.
  *
- * The requirements want Handle, Win, Drop and the top players on the first
- * screen. The Floor state wants none of it, because its job is to let a
- * supervisor find trouble in one glance from across a pit, and five figures on
- * each of six cards destroys that glance. Both are right, so the toggle in the
- * bar carries the difference: same cards, same grid, same positions, different
- * content.
+ * Review feedback replaced the ranking chips (winners, losers, buy-in and so
+ * on) with two tabs: Open, the players in action now, and Closed, the players
+ * who played in this section earlier today and have left. Both lead with the
+ * biggest player win. The section totals that used to head this panel now
+ * live in the KPI strip in the bar.
  *
- * Review feedback rebuilt what is printed here. The card now carries four
- * figures at one weight (win, drop, handle, theo) instead of two big ones and
- * five small lines in three different sizes, which is what made it hard to
- * read. Limits came off entirely: at six pods a limit is reference material
- * nobody is acting on, and it was taking the space the figures needed. Limits
- * live at pod and table level, where a supervisor is close enough to care.
- */
-
-/**
- * A figure on a pod card. Six characters of tabular mono at the metric size
- * is wider than half a card, so a long figure steps down one notch rather
- * than being truncated or allowed to spill. Optical fitting, not a different
- * level in the hierarchy.
- */
-const tile = (label, value, color, set) =>
-  h(
-    "div",
-    {
-      style: {
-        background: "var(--surface-soft)", borderRadius: "var(--r-md)",
-        border: "1px solid var(--line-strong)", padding: set.pad, minWidth: "0",
-        display: "flex", flexDirection: "column", justifyContent: "center",
-      },
-    },
-    h("div.micro", { text: label, style: set.label ? { fontSize: set.label } : {} }),
-    h("div.mono.display", {
-      text: value,
-      style: {
-        fontSize: value.length >= 6 ? set.step : set.value,
-        fontWeight: "700", color: color || "", whiteSpace: "nowrap", marginTop: "1px", lineHeight: "1.1",
-        letterSpacing: "-0.01em",
-      },
-    })
-  );
-
-/**
- * How the figures are set depends on how many pods are sharing the floor.
- *
- * At one or two pods the card has room it was not using. So every figure
- * becomes a tile and the numbers go up: hold and seated stop being captions
- * under the grid and join it. They are the same kind of fact as the other
- * four, and the only reason they were ever set smaller was that at six pods
- * there was nowhere to put them.
- *
- * From three pods up there is no room for six tiles, so the four a supervisor
- * acts on stay tiles and the other two stay lines. The card says the same
- * things either way; what changes is how much room it has to say them in.
- */
-const FIGURES = {
-  1: { cols: 2, value: "var(--t-figure)", step: "var(--t-figure)", label: "var(--t-support)", pad: "17px 19px", gap: "14px", sixUp: true },
-  // Two pods means a half-width card. Three columns across one of those leaves
-  // a tile too narrow for its own number, so the grid turns: two across, three
-  // down. Still six tiles, still bigger than the dense set, and nothing spills.
-  2: { cols: 2, value: "var(--t-metric)", step: "var(--t-metric-2)", label: "var(--t-detail)", pad: "12px 14px", gap: "11px", sixUp: true },
-};
-const FIGURES_DENSE = { cols: 2, value: "var(--t-stat)", step: "var(--t-stat-2)", label: null, pad: "10px 11px", gap: "10px", sixUp: false };
-
-const line = (label, value, color) =>
-  h(
-    "div",
-    { style: { display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "8px" } },
-    h("span.micro", { text: label }),
-    h("span.mono", { text: value, style: { fontSize: "var(--t-detail)", fontWeight: "600", color: color || "var(--ink-2)", whiteSpace: "nowrap" } })
-  );
-
-/** Six pod cards, same grid as the Floor state, carrying figures instead of a drawing. */
-export function performanceCards(state, dispatch) {
-  const count = Math.min(6, state.pods.length);
-  const set = FIGURES[count] || FIGURES_DENSE;
-
-  const cards = state.pods.map((pod) => {
-    const alerts = alertsForPod(state.alerts, pod.id);
-    const severity = worstSeverity(alerts);
-    const perf = podPerformance(pod);
-    const people = playersForPod(state.players, pod);
-    const totals = playerTotals(people);
-    const best = rankPlayers(people, "theo", 1)[0];
-    const { seated, capacity } = seatedInPod(pod);
-    const winColor = perf.win < 0 ? "var(--critical-ink)" : "var(--ok-ink)";
-
-    return h(
-      "button.pod",
-      {
-        "aria-label": `${pod.name}, win ${money(perf.win)}, ${alerts.length} open alerts`,
-        on: { click: () => dispatch({ type: "go-pod", podId: pod.id }) },
-      },
-      h(
-        "div",
-        { class: `card pod__card${severity === "critical" ? " card--critical" : ""}` },
-        h(
-          "div",
-          { style: { display: "flex", alignItems: "center", justifyContent: "space-between" } },
-          h("span.display", { text: pod.name, style: { fontSize: "var(--t-title)", fontWeight: "600" } }),
-          alerts.length
-            ? h(
-                "span.pill",
-                { style: { background: sevWash(severity), borderColor: sevEdge(severity), color: sevInk(severity) } },
-                h("span.dot", { style: { background: sevColor(severity) } }),
-                `${alerts.length} alert${alerts.length > 1 ? "s" : ""}`
-              )
-            : h("span.micro", { text: `${pod.tables.length} tables` })
-        ),
-        h(
-          "div",
-          { style: { flex: "1", display: "flex", flexDirection: "column", gap: "10px", justifyContent: "center", padding: "10px 0" } },
-          h(
-            "div",
-            {
-              style: {
-                display: "grid", gridTemplateColumns: `repeat(${set.cols}, 1fr)`, gap: set.gap,
-                // With six tiles the grid is the card's content, so it takes
-                // the height rather than floating in the middle of it.
-                ...(set.sixUp ? { flex: "1", minHeight: "0", gridAutoRows: "1fr" } : {}),
-              },
-            },
-            tile("Win", compact(perf.win), winColor, set),
-            tile("Drop", compact(perf.drop), null, set),
-            tile("Handle", compact(perf.handle), null, set),
-            // Theo moved up here from the footer. It is a figure of the same
-            // kind as the other three and down there it read as a caption.
-            tile("Theo", compact(totals.theo), null, set),
-            set.sixUp ? tile("Hold", percent(perf.hold), perf.hold < 0 ? "var(--critical-ink)" : null, set) : null,
-            set.sixUp ? tile("Seated", `${seated} of ${capacity}`, null, set) : null
-          ),
-          set.sixUp
-            ? null
-            : h(
-                "div",
-                { style: { display: "flex", flexDirection: "column", gap: "6px" } },
-                line("Hold", percent(perf.hold), perf.hold < 0 ? "var(--critical-ink)" : "var(--ink-2)"),
-                line("Seated", `${seated} of ${capacity}`)
-              )
-        ),
-        // Review feedback: a bare name here was read as the dealer. Every name
-        // in the product now says what the person is.
-        best
-          ? h(
-              "div.pod__foot",
-              { style: { display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "8px" } },
-              h(
-                "span",
-                { style: { minWidth: "0", display: "flex", alignItems: "baseline", gap: "6px" } },
-                h("span.micro", { text: "Top player" }),
-                h("span", { text: best.name, style: { fontSize: "var(--t-detail)", fontWeight: "700", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } })
-              ),
-              h("span.mono", { text: compact(best.theoWin), style: { fontSize: "var(--t-detail)", color: "var(--ink-3)", whiteSpace: "nowrap" } })
-            )
-          : h("div.pod__foot", { text: "No rated players seated", style: { color: "var(--ink-3)" } })
-      )
-    );
-  });
-
-  const legend = h(
-    "div.plan-legend",
-    { style: { display: "flex", alignItems: "center", gap: "16px", fontSize: "var(--t-micro)" } },
-    h("span", { text: "Gaming day to now. Hold is win over drop. Limits are on the pod and table screens." }),
-    h("span", { style: { flex: "1" } }),
-    h("span", { text: "Tap a pod to open it" })
-  );
-
-  return h(
-    "div",
-    { style: { display: "flex", flexDirection: "column", gap: "11px", flex: "1", minHeight: "0" } },
-    h("div.plan", { data: { count: String(Math.min(6, state.pods.length)) } }, cards),
-    legend
-  );
-}
-
-/**
- * The panel beside it: totals, then the people.
- *
- * Review feedback replaced a fixed sort by theoretical win with a choice.
- * Theo is what the loyalty system rates on, but a supervisor asked who to
- * watch right now wants what actually happened, and which of those questions
- * they are asking changes through a shift. So the ranking is a control, and
- * it starts on actuals.
+ * The Performance view that used to own this panel is gone. Its figures are
+ * on the floor, in the KPI strip and in the table peek.
  */
 export function playersPanel(state, dispatch, scope, switchEl) {
-  const rank = ranking(state.playerRank);
-  const list = rankPlayers(scope.players, state.playerRank, 6);
-  const perf = scope.performance;
-  const totals = playerTotals(scope.players);
+  const open = openPlayers(scope.players);
+  const closed = closedPlayersList(scope.players);
+  const list = state.playerList === "closed" ? closed : open;
 
-  // The section totals. Given a class of its own because several themes make
-  // this block the one dark or colored object in an otherwise light rail, and
-  // that is a surface decision rather than a structural one.
-  const figures = h(
-    "div.panel-figures",
-    { style: { padding: "0 14px 12px", display: "flex", flexDirection: "column", gap: "6px", flexShrink: "0" } },
-    line("Handle", money(perf.handle)),
-    line("Win", money(perf.win), perf.win < 0 ? "var(--critical-ink)" : "var(--ok-ink)"),
-    line("Drop", money(perf.drop)),
-    line("Buy-in", money(totals.buyIn)),
-    line("Hold", percent(perf.hold))
-  );
-
-  const chips = h(
-    "div",
-    { role: "group", "aria-label": "Rank players by", style: { display: "flex", flexWrap: "wrap", gap: "5px" } },
-    RANKINGS.map((r) =>
-      h("button.rank-chip", {
-        text: r.label.replace("Biggest ", "").replace("Top ", ""),
-        title: r.note,
-        "aria-pressed": String(state.playerRank === r.id),
-        on: { click: () => dispatch({ type: "player-rank", rank: r.id }) },
-      })
+  const tabs = h(
+    "div.segmented.segmented--sm.segmented--fill",
+    { role: "group", "aria-label": "Which players" },
+    [["open", "Open", open.length], ["closed", "Closed", closed.length]].map(([id, label, n]) =>
+      h(
+        "button",
+        { "aria-pressed": String(state.playerList === id), on: { click: () => dispatch({ type: "player-list", list: id }) } },
+        label,
+        h("span.count-badge.count-badge--quiet", { text: String(n) })
+      )
     )
   );
 
-  const rows = list.map((p, i) =>
-    h(
+  const rows = list.slice(0, 9).map((p) => {
+    const table = findTable(state.pods, p.tableId);
+    const up = -p.winLoss; // player's result, the opposite sign to the house
+    return h(
       "button.row",
-      {
-        style: { alignItems: "center" },
-        on: { click: () => dispatch({ type: "open-player", playerId: p.id }) },
-      },
-      h("span.mono", {
-        text: String(i + 1),
-        style: { width: "18px", flexShrink: "0", fontSize: "var(--t-detail)", color: "var(--ink-3)", fontWeight: "600" },
-      }),
+      { style: { alignItems: "center" }, on: { click: () => dispatch({ type: "open-player", playerId: p.id }) } },
       h(
         "span",
         { style: { flex: "1", minWidth: "0" } },
@@ -245,7 +49,7 @@ export function playersPanel(state, dispatch, scope, switchEl) {
           style: { display: "block", fontSize: "var(--t-body)", fontWeight: "600", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
         }),
         h("span", {
-          text: p.rated ? `${p.tier} · seat ${p.seat}` : `Anonymous · seat ${p.seat}`,
+          text: p.closed ? `${table ? table.name : ""} · left ${p.left}` : `${table ? table.name : ""} · seat ${p.seat}`,
           style: { display: "block", fontSize: "var(--t-micro)", color: "var(--ink-3)" },
         })
       ),
@@ -253,75 +57,60 @@ export function playersPanel(state, dispatch, scope, switchEl) {
         "span",
         { style: { textAlign: "right", flexShrink: "0" } },
         h("span.mono", {
-          text: compact(rank.value(p)),
-          style: {
-            display: "block", fontSize: "var(--t-body)", fontWeight: "700",
-            color: rank.signed ? (rank.value(p) < 0 ? "var(--critical-ink)" : "var(--ok-ink)") : "",
-          },
+          text: (up > 0 ? "+" : up < 0 ? "\u2212" : "") + compact(Math.abs(up)),
+          style: { display: "block", fontSize: "var(--t-body)", fontWeight: "700", color: up > 0 ? "var(--critical-ink)" : "var(--ink-2)" },
         }),
-        h("span", {
-          text: rank.id === "theo" ? `w/l ${compact(p.winLoss)}` : `theo ${compact(p.theoWin)}`,
-          style: { display: "block", fontSize: "var(--t-micro)", color: "var(--ink-3)" },
-        })
+        h("span", { text: `avg ${compact(p.avgBet)}`, style: { display: "block", fontSize: "var(--t-micro)", color: "var(--ink-3)" } })
       )
-    )
-  );
+    );
+  });
 
   return h(
     "div",
     { style: { display: "flex", flexDirection: "column", height: "100%", minHeight: "0" } },
     h(
       "div",
-      { style: { padding: "14px 14px 10px", flexShrink: "0" } },
-      switchEl || h("span.display", { text: scope.heading, style: { fontSize: "var(--t-title)", fontWeight: "600" } })
-    ),
-    figures,
-    h(
-      "div",
-      { style: { padding: "11px 14px 9px", flexShrink: "0", borderTop: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: "7px" } },
-      h("span.micro", { text: rank.note }),
-      chips
+      { style: { padding: "14px 14px 10px", flexShrink: "0", display: "flex", flexDirection: "column", gap: "10px" } },
+      switchEl || h("span.display", { text: scope.heading, style: { fontSize: "var(--t-title)", fontWeight: "600" } }),
+      tabs,
+      h(
+        "div",
+        { style: { display: "flex", justifyContent: "space-between", padding: "0 6px" } },
+        h("span.micro", { text: "Player" }),
+        h("span.micro", { text: "Player win" })
+      )
     ),
     h(
       "div",
       { class: "player-list", style: { flex: "1", padding: "0 8px 10px", display: "flex", flexDirection: "column", minHeight: "0", overflow: "hidden" } },
-      rows.length ? rows : h("div", { text: "Nobody is seated.", style: { padding: "12px 6px", fontSize: "var(--t-body)", color: "var(--ink-3)" } })
+      rows.length ? rows : h("div", { text: state.playerList === "closed" ? "Nobody has left yet." : "Nobody is seated.", style: { padding: "12px 6px", fontSize: "var(--t-body)", color: "var(--ink-3)" } })
     )
   );
 }
 
-/** Scope objects, so the area and the pod use one panel. */
-export const sectionScope = (state) => ({
-  heading: AREA_NAME,
-  players: state.players,
-  performance: sectionPerformance(state.pods),
-});
+/** Scope objects, so the section and the pod use one panel. */
+export const sectionScope = (state) => ({ heading: AREA_NAME, players: state.players });
 
-export const podScope = (state, pod) => ({
-  heading: `${pod.name} players`,
-  players: playersForPod(state.players, pod),
-  performance: podPerformance(pod),
-});
+export const podScope = (state, pod) => ({ heading: `${pod.name} players`, players: everyoneInPod(state.players, pod) });
 
 /**
- * The pod level switch. At area level the bar carries the choice; inside a
- * pod the bar is a breadcrumb, so the choice lives in the panel it changes.
- * Both panels render this, which is why it never appears to move.
+ * Alerts or Players for the right rail, at the floor and inside a pod. Both
+ * panels render this, which is why it never appears to move.
  */
 export function panePodSwitch(state, dispatch, pod) {
   const counts = {
-    alerts: alertsForPod(state.alerts, pod.id).length,
-    players: playersForPod(state.players, pod).length,
+    alerts: pod ? alertsForPod(state.alerts, pod.id).length : state.alerts.length,
+    players: pod ? playersForPod(state.players, pod).length : state.players.filter((p) => !p.closed).length,
   };
   return h(
     "div.segmented.segmented--sm",
     { role: "group", "aria-label": "What this panel shows" },
-    [["alerts", "Alerts"], ["players", "Players"]].map(([id, label]) =>
+    [["alerts", "Actions & alerts"], ["players", "Players"]].map(([id, label]) =>
       h(
         "button",
         { "aria-pressed": String(state.podPane === id), on: { click: () => dispatch({ type: "pod-pane", pane: id }) } },
         label,
-        counts[id] ? h("span.count-badge", { text: String(counts[id]) }) : null
+        counts[id] ? h("span.count-badge.count-badge--quiet", { text: String(counts[id]) }) : null
       )
     )
   );
