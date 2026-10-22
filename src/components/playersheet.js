@@ -54,7 +54,7 @@ const column = (title, body, foot) =>
 export function playerSheet(state, dispatch, onClose) {
   const p = findPlayer(state.players, state.playerId);
   if (!p) return null;
-  const table = findTable(state.pods, p.tableId);
+  const table = findTable(state.tables, p.tableId);
 
   /* --- left: who they are and what they are worth --- */
   const identity = column(
@@ -195,7 +195,7 @@ export function playerSheet(state, dispatch, onClose) {
             ? h("span.tag", { text: p.tier.toUpperCase(), style: { background: "var(--critical-wash)", color: "var(--brand)" } })
             : h("span.tag", { text: "ANONYMOUS", style: { background: "var(--surface-soft)", color: "var(--ink-3)" } })
         ),
-        h("div", { text: `${table ? table.name : ""} · seat ${p.seat}`, style: { fontSize: "var(--t-detail)", color: "var(--ink-3)", marginTop: "2px" } })
+        h("div", { text: p.closed ? `${table ? table.name : ""} · left ${p.left}` : `${table ? table.name : ""} · seat ${p.seat}`, style: { fontSize: "var(--t-detail)", color: "var(--ink-3)", marginTop: "2px" } })
       ),
       h("span", { style: { flex: "1" } }),
       rateAction

@@ -1,36 +1,30 @@
 import { h } from "../lib/dom.js";
-import { chipTray } from "../data/pods.js";
+import { chipTray } from "../data/tables.js";
 import { age, money } from "../lib/format.js";
 import { currentHand, gamesFor } from "../data/games.js";
-import { alertsForTable, findPod, findTable, limitsLabel, playersForTable, shortTableLabel } from "../lib/selectors.js";
+import { alertsForTable, findTable, limitsLabel, playersForTable } from "../lib/selectors.js";
 import { handView } from "./cards.js";
 import { iconScan } from "./icons.js";
 import { overrideTab } from "./override.js";
 import { felt, seats } from "./seats.js";
 
 /**
- * Task tabs, named for the task rather than the data. Review feedback moved
- * them up into the pod screen, beside Overview, so a table's functions are a
- * tab away from the pod rather than a level below it. This module now only
- * draws the body of whichever tab is open.
+ * The table dashboard tabs. Games and Sessions are not here: they are looked
+ * at rarely, so they open in a side panel from the History button instead of
+ * taking two places in the tab bar.
  */
-export const TABS = [
-  ["overview", "Overview"], ["live", "Live"], ["chips", "Chips"], ["players", "Players"],
-  ["sessions", "Sessions"], ["games", "Games"], ["override", "Override"],
-];
+export const TABS = [["live", "Live"], ["chips", "Chips"], ["players", "Players"], ["override", "Override"]];
 
 export function tableBody(state, dispatch, { onScan, onAdjust, onOrderFill, onResolve }) {
-  const table = findTable(state.pods, state.tableId);
+  const table = findTable(state.tables, state.tableId);
   if (!table) return h("div");
-  const pod = findPod(state.pods, state.podId);
-
   if (state.tab === "chips") return chipsTab(state, table, onScan, onAdjust, onOrderFill);
-  if (state.tab === "live") return liveTab(state, table, dispatch);
   if (state.tab === "players") return playersTab(state, table, dispatch, onResolve);
-  if (state.tab === "sessions") return sessionsTab(state, table, dispatch);
-  if (state.tab === "games") return gamesTab(table);
-  return overrideTab(state, table, pod, dispatch);
+  if (state.tab === "override") return overrideTab(state, table, { tables: [table] }, dispatch);
+  return liveTab(state, table, dispatch);
 }
+
+export { sessionsTab, gamesTab };
 
 const stat = (label, value, alarming, live) =>
   h(
@@ -56,9 +50,9 @@ function chipsTab(state, table, onScan, onAdjust, onOrderFill) {
     { style: { width: "300px", flexShrink: "0", padding: "16px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "14px" } },
     h(
       "button.scan-dial",
-      { data: { scanning: state.scanning }, "aria-label": "Scan the chip tray", on: { click: onScan } },
+      { data: { scanning: !!state.scanning[table.id] }, "aria-label": "Scan the chip tray", on: { click: () => onScan(table.id) } },
       iconScan(),
-      state.scanning ? null : h("span.display", { text: "Scan", style: { fontSize: "var(--t-title)", fontWeight: "600" } })
+      state.scanning[table.id] ? null : h("span.display", { text: "Scan", style: { fontSize: "var(--t-title)", fontWeight: "600" } })
     ),
     h(
       "div",
@@ -102,7 +96,7 @@ function chipsTab(state, table, onScan, onAdjust, onOrderFill) {
       // asked for but had no way to raise one, which is the half of the job
       // they actually start.
       h("button.btn.btn--ghost.btn--big", {
-        text: "Order a fill",
+        text: "Fill / Credit",
         on: { click: () => onOrderFill(table.id) },
       })
     )
@@ -180,7 +174,7 @@ const emptySeats = (table, seated) =>
   );
 
 function playersTab(state, table, dispatch, onResolve) {
-  const stillOpen = state.alerts.some((a) => a.id === "a3");
+  const stillOpen = state.alerts.some((a) => a.id === "a6");
   const seated = playersForTable(state.players, table.id);
 
   const rows = seated.map((p) => {
@@ -199,7 +193,7 @@ function playersTab(state, table, dispatch, onResolve) {
       figureCell("Theo win", money(p.theoWin)),
       figureCell("Win / loss", money(p.winLoss), p.winLoss < 0 ? "var(--critical)" : "var(--ok)"),
       flagged ? h("span.tag", { text: "THRESHOLD", style: { background: "var(--high-wash)", color: "var(--high)" } }) : null,
-      flagged ? h("button.btn", { text: "Log AML", on: { click: () => onResolve("a3", "AML entry logged against seat 4.") } }) : null,
+      flagged ? h("button.btn", { text: "Log AML", on: { click: () => onResolve("a6", "AML entry logged against seat 4.") } }) : null,
       h("button.btn.btn--ghost", {
         text: p.rated ? "Record" : "Attach card",
         on: { click: () => dispatch({ type: "open-player", playerId: p.id }) },

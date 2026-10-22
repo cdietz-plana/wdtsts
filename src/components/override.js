@@ -48,7 +48,7 @@ const ICONS = {
 export const OVERRIDES = [
   {
     id: "void", group: "game", label: "Void hand", primaryOnly: true,
-    what: "Voids the game in progress. Every bet on every table in the pod is returned.",
+    what: "Voids the game in progress. Every bet on the table is returned.",
   },
   {
     id: "replace-card", group: "game", label: "Replace a card", primaryOnly: true,
@@ -187,7 +187,7 @@ export function overrideTab(state, table, pod, dispatch) {
       h(
         "div",
         { style: { flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "9px" } },
-        sectionHead("This game", `Hand ${hand.game} · affects the whole pod`),
+        sectionHead("This game", `Hand ${hand.game}`),
         grid("game")
       ),
       h(

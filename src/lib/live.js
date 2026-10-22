@@ -18,6 +18,13 @@ const VALUES = {
   roll: (s) => rollIn(s.rollMinutes),
   age: (s, id) => withAlert(s, id, (a) => age(a.ageSeconds)),
   ageLong: (s, id) => withAlert(s, id, (a) => ageLong(a.ageSeconds)),
+  /** Countdown to a time of day, in seconds past midnight. */
+  until: (s, t) => {
+    const left = Math.max(0, Number(t) - s.clockSeconds);
+    if (left <= 0) return "Now";
+    const m = Math.ceil(left / 60);
+    return m >= 60 ? `in ${Math.floor(m / 60)}h ${String(m % 60).padStart(2, "0")}m` : `in ${m}m`;
+  },
 };
 
 function withAlert(state, id, fn) {

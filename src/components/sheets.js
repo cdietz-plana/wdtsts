@@ -14,12 +14,20 @@ import { iconClose } from "./icons.js";
 
 const HELP = [
   {
-    q: "Why is the pod the unit, not the table?",
-    a: "Four tables share one shoe, one countdown and one gaming day. A card change or a roll stops all four, and the chips and signed slips route through the Primary. Treating a pod as four independent tables is what makes the old dashboard hard to read.",
+    q: "Actions and Alerts",
+    a: "Actions need you now. Dealer Actions come from the Supervisor Requested button on the dealer display; System Actions are detected automatically. Alerts are worth a look. Activity lists what has already happened and is never counted.",
   },
   {
-    q: "Actions and Alerts",
-    a: "Actions need you now: a table offline, a customer dispute, a dealer calling, money waiting on your signature. Alerts are worth knowing and nothing has stopped. Actions are always red and always listed first.",
+    q: "Supervisor requested",
+    a: "Tap On my way and the dealer display shows that you are coming. When you have dealt with it, tap Close and pick the reason. The tablet shows how long the dealer has waited and what just happened at the table.",
+  },
+  {
+    q: "Fills",
+    a: "A fill is one item on the table's tile, moving from Requested to Authorized, Accepted and Processed. Each step is also logged in Activity.",
+  },
+  {
+    q: "Opening a tile",
+    a: "Scan runs the tray count on the tile. Fill / Credit and More open the tile so you can work without leaving the overview. Tap anywhere else on a tile to open the full table.",
   },
   {
     q: "Seat dots",
@@ -27,11 +35,11 @@ const HELP = [
   },
   {
     q: "Table figures",
-    a: "Hover over a table, or press and hold on it, to see its win, drop, hold, handle, seated count and average bet without opening it.",
+    a: "Tap the turn icon in a tile's corner to flip it over for win, drop, hold, handle, seated count, average bet and limits. Tap it again to turn it back.",
   },
   {
-    q: "Adjusting a chip tray",
-    a: "Reason code, verification scan, second signature. The signature is a real authorization and it goes on the audit trail with your ID. Confirming it clears the alert everywhere it appears at once.",
+    q: "Games and Sessions",
+    a: "On a tile, under More. On the full table, under History beside the tabs.",
   },
   {
     q: "Something is wrong and it is not listed",
@@ -100,7 +108,7 @@ export function accountSheet(state, dispatch) {
         { style: { width: "460px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "4px" } },
         field("Supervisor ID", SUPERVISOR.id),
         field("Section", SUPERVISOR.section),
-        field("Assigned", "6 pods · 24 tables"),
+        field("Assigned", `${state.tables.length} tables`),
         field("Shift", `Swing · signed in 17:52 · now ${wallClock(state.clockSeconds)}`),
         field("Authority", "Approve ratings, authorize fills, adjust trays"),
         h(
@@ -114,7 +122,7 @@ export function accountSheet(state, dispatch) {
           h("button.btn.btn--ghost.btn--big", {
             text: "Change section",
             style: { flex: "1" },
-            on: { click: () => dispatch({ type: "toast", message: "Section handover is designed in the Load Pods flow." }) },
+            on: { click: () => dispatch({ type: "toast", message: "Section handover happens at shift change." }) },
           }),
           h("button.btn.btn--big", {
             text: "Sign out",

@@ -59,7 +59,8 @@ export function wirePeek(device, getState) {
   const show = (el) => {
     hide();
     const state = getState();
-    const table = findTable(state.pods, el.dataset.peek);
+    if (state.expand) return;
+    const table = findTable(state.tables, el.dataset.peek);
     if (!table) return;
     const node = card(table, playersForTable(state.players, table.id));
     device.appendChild(node);

@@ -51,8 +51,10 @@ export function gamesFor(tableId) {
     minutes -= 3;
   };
 
-  for (let g = 8; g >= 1; g--) push(9, g);
-  for (let g = 62; g >= 59; g--) push(8, g);
+  // Hands in this shoe so far, so the history ends one before the live hand.
+  const last = 11 + (s % 57);
+  for (let g = last; g >= Math.max(1, last - 9); g--) push(9, g);
+  if (last < 10) for (let g = 62; g >= 59; g--) push(8, g);
   return rows;
 }
 
@@ -90,25 +92,27 @@ function card(n) {
  *   thirdCard:"banker"|"player"|null }}
  */
 export function currentHand(tableId) {
+  // Mix the seed per card so neighboring tables do not deal look-alike hands.
   const s = seed(tableId);
-  const player = [card(s + 3), card(s + 29)];
-  const banker = [card(s + 47), card(s + 61)];
+  const pick = (k) => card((Math.imul(s + 17, 2654435761 >>> 0) ^ Math.imul(k + 3, 40503)) >>> 7);
+  const player = [pick(1), pick(2)];
+  const banker = [pick(3), pick(4)];
 
   // A natural eight or nine stands, otherwise the draw rules bring a third.
   let thirdCard = null;
   if (total(player) < 8 && total(banker) < 8) {
     if (total(player) <= 5) {
-      player.push(card(s + 83));
+      player.push(pick(5));
       thirdCard = "player";
     } else if (total(banker) <= 5) {
-      banker.push(card(s + 97));
+      banker.push(pick(6));
       thirdCard = "banker";
     }
   }
 
   return {
     shoe: 9,
-    game: 9,
+    game: 12 + (seed(tableId) % 57),
     banker,
     player,
     bankerTotal: total(banker),

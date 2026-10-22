@@ -1,68 +1,142 @@
-import { alertPane } from "./components/alertpane.js";
-import { floorPlan } from "./components/floorplan.js";
-import { flyout } from "./components/flyout.js";
+import { expandContent } from "./components/expand.js";
+import { overview } from "./components/grid.js";
 import { loginScreen } from "./components/login.js";
-import { podSwitcher } from "./components/podswitcher.js";
-import { panePodSwitch, playersPanel, podScope, sectionScope } from "./components/performance.js";
-import { podScreen } from "./components/podview.js";
 import { playerSheet } from "./components/playersheet.js";
+import { rail } from "./components/rail.js";
 import { accountSheet, helpSheet, thresholdSheet } from "./components/sheets.js";
+import { historyPanel, tableDetail } from "./components/tabledetail.js";
 import { topBar } from "./components/topbar.js";
 import { clear, h } from "./lib/dom.js";
 import { annotate, wireTips } from "./lib/helptips.js";
 import { patchLive } from "./lib/live.js";
-import { wirePeek } from "./lib/peek.js";
-import { findPod, findTable, podOfTable } from "./lib/selectors.js";
+import { FILL_STAGES, findTable, pageOf } from "./lib/selectors.js";
+import { money } from "./lib/format.js";
 import { WALLPAPERS, wallpaper } from "./assets.js";
 import { createStore } from "./store.js";
 
 const HINTS = {
   login: "Try: tap the card reader, or key in any ID of four digits or more.",
   section:
-    "Try: hover a table (or press and hold) for its KPIs · Actions and Alerts in the bar · Players in the right panel for Open and Closed · tap a pod to open it.",
-  pod: "Try: the task tabs work on the table picked at the right · hover a table for its KPIs · tap a table to open it on Live · the back arrow returns to the floor.",
+    "Try: an Action's button right on its tile · Supervisor requested: On my way, then Close with a reason · Fill / Credit or More to open a tile · the turn icon on a tile for its figures · pages and 4 / 9 / 12 per page above the grid · tap a tile to open the full table.",
+  table: "Try: the arrows beside the table name step through the section · History holds Games and Sessions · Scan and Fill / Credit work here too.",
 };
 
 const root = document.getElementById("app");
-
-/** Pane geometry. Pods stay left, alerts stay right; only the weight changes. */
-const paneWidths = (wide) => ({
-  contentWidth: wide ? "26%" : "74%",
-  alertsLeft: wide ? "26%" : "74%",
-  alertsWidth: wide ? "74%" : "26%",
-});
-let lastWide = false;
-let pendingGeometry = null;
 const store = createStore((state, action) => render(action));
 const { dispatch, getState } = store;
 
 /* ---------------------------------------------------------------- behavior */
 
-function runScan() {
-  const state = getState();
-  if (state.scanning) return;
-  dispatch({ type: "scan-start" });
+function runScan(tableId) {
+  const s = getState();
+  if (s.scanning[tableId]) return;
+  dispatch({ type: "scan-start", tableId });
   window.setTimeout(() => {
-    dispatch({ type: "scan-done" });
-    const s = getState();
-    const table = findTable(s.pods, s.tableId || "t3");
-    dispatch({ type: "toast", message: `Scan complete. ${table && table.variance ? "Still 1,000 short." : "Tray balanced."}` });
-  }, 1500);
+    dispatch({ type: "scan-done", tableId });
+    const t = findTable(getState().tables, tableId);
+    dispatch({ type: "toast", message: `${t.name} scanned. ${t.variance ? "Still 1,000 short." : "Tray balanced."}` });
+  }, 1400);
 }
 
-function openAdjust(tableId) {
-  const pod = podOfTable(getState().pods, tableId);
-  if (pod) dispatch({ type: "go-table", podId: pod.id, tableId, tab: "chips" });
-  dispatch({ type: "flyout-open", kind: "adjust", alertId: "a2" });
+/** Clear an item. `receipt` adds a line to Activity so the history is kept. */
+const resolve = (alertId, message, receipt) => dispatch({ type: "resolve", alertId, message, receipt });
+
+/** Open a tile, turning to its page first if it is on another page. */
+function openTile(tableId, view, extra = {}) {
+  const s = getState();
+  dispatch({ type: "expand", tableId, view, page: s.level === "section" ? pageOf(s.tables, tableId, s.perPage) : s.page, ...extra });
 }
 
-function orderFill(tableId) {
-  const pod = podOfTable(getState().pods, tableId);
-  if (pod) dispatch({ type: "go-table", podId: pod.id, tableId, tab: "chips" });
-  dispatch({ type: "flyout-open", kind: "order", alertId: null });
+/**
+ * A fill is one item that moves through its stages. In the product these
+ * steps come from the cage and the table; here they are played out on timers
+ * so the whole life of a fill can be seen in a minute.
+ */
+const fillTimers = {};
+function runFill(tableId) {
+  const f = getState().fills[tableId];
+  if (!f) return;
+  const t = findTable(getState().tables, tableId);
+  const labels = FILL_STAGES[f.by];
+  (fillTimers[tableId] || []).forEach(window.clearTimeout);
+  fillTimers[tableId] = [];
+  let delay = 0;
+  for (let stage = f.stage + 1; stage < labels.length; stage += 1) {
+    delay += 4000;
+    fillTimers[tableId].push(
+      window.setTimeout(() => {
+        dispatch({ type: "fill-stage", tableId, stage });
+        dispatch({ type: "receipt", tableId, title: `${f.mode === "fill" ? "Fill" : "Credit"} ${labels[stage].toLowerCase()}`, detail: `${money(f.amount)} · ${t.name}` });
+      }, delay)
+    );
+  }
+  // Once processed, the tracker leaves the tile; the receipts stay in Activity.
+  fillTimers[tableId].push(window.setTimeout(() => dispatch({ type: "fill-done", tableId }), delay + 3500));
 }
 
-/** Let the record play its exit, then take it out of the state. */
+function authorizeFill(alertId, tableId) {
+  const f = getState().fills[tableId];
+  dispatch({ type: "fill-stage", tableId, stage: 1 });
+  resolve(alertId, `Fill authorized. ${money(f ? f.amount : 0)} on its way.`, { title: "Fill authorized", detail: money(f ? f.amount : 0) });
+  runFill(tableId);
+}
+
+function sendFill(tableId, mode, amount) {
+  dispatch({ type: "fill-start", tableId, mode, amount, by: "you" });
+  dispatch({ type: "collapse" });
+  dispatch({ type: "toast", message: `${mode === "fill" ? "Fill" : "Credit"} of ${money(amount)} sent to the cage.` });
+  runFill(tableId);
+}
+
+/** One place decides what an item's button does, wherever it was pressed. */
+function onAlert(alert) {
+  // Supervisor Requested has two taps: On my way, then Close with a reason.
+  if (alert.enroute) {
+    openTile(alert.tableId, "request", { alertId: alert.id });
+    return;
+  }
+  const action = alert.actions[0];
+  switch (action.intent) {
+    case "on-my-way":
+      dispatch({ type: "alert-patch", alertId: alert.id, patch: { enroute: true, enrouteAt: alert.ageSeconds } });
+      dispatch({ type: "toast", message: "The dealer display now shows Supervisor coming." });
+      break;
+    case "acknowledge":
+      resolve(alert.id, `${alert.title}: done.`, action.receipt ? { title: action.receipt } : null);
+      break;
+    case "authorize-fill":
+      openTile(alert.tableId, "authorize", { alertId: alert.id });
+      break;
+    case "adjust":
+      openTile(alert.tableId, "adjust", { alertId: alert.id });
+      break;
+    case "verify-jackpot":
+      openTile(alert.tableId, "jackpot", { alertId: alert.id });
+      break;
+    case "review-hand":
+      openTile(alert.tableId, "games", { alertId: alert.id });
+      break;
+    case "open-player": {
+      const person = getState().players.find((p) => p.tableId === alert.tableId && !p.closed && alert.subject && p.seat === alert.subject.seat);
+      if (person) dispatch({ type: "open-player", playerId: person.id });
+      else dispatch({ type: "go-table", tableId: alert.tableId, tab: "players" });
+      break;
+    }
+    default:
+      dispatch({ type: "go-table", tableId: alert.tableId, tab: "live" });
+  }
+}
+
+const handlers = {
+  onScan: runScan,
+  onAlert,
+  onResolve: resolve,
+  onAuthorizeFill: authorizeFill,
+  onSendFill: sendFill,
+  onAdjust: (id) => openTile(id, "adjust", { alertId: "b1" }),
+  onOrderFill: (id) => openTile(id, "fill"),
+};
+
 let closeTimer;
 function closePlayer() {
   const s = getState();
@@ -72,67 +146,10 @@ function closePlayer() {
   closeTimer = window.setTimeout(() => dispatch({ type: "close-player" }), 200);
 }
 
-/** Floor, Actions or Alerts. A plain swap: the panes resize between them. */
-function switchMode(mode) {
-  if (mode === getState().mode) return;
-  dispatch({ type: "mode", mode });
-}
-
-const resolve = (alertId, message) => dispatch({ type: "resolve", alertId, message });
-
-/** One place decides what an alert action does, wherever it was pressed. */
-function handleAction(alert, action) {
-  const goTable = (tab) => dispatch({ type: "go-table", podId: alert.podId, tableId: alert.tableId, tab: tab || "live" });
-
-  switch (action.intent) {
-    case "dismiss":
-      dispatch({ type: "toast", message: "Rejected. A note goes on the audit trail." });
-      break;
-    case "rescan":
-      goTable("chips");
-      runScan();
-      break;
-    case "adjust":
-      goTable("chips");
-      dispatch({ type: "flyout-open", kind: "adjust", alertId: alert.id });
-      break;
-    case "authorize-fill":
-      goTable("chips");
-      dispatch({ type: "flyout-open", kind: "fill", alertId: alert.id });
-      break;
-    case "approve-rating":
-      goTable("players");
-      dispatch({ type: "flyout-open", kind: "rating", alertId: alert.id });
-      break;
-    case "open-players":
-      goTable("players");
-      break;
-    case "open-games":
-      goTable("games");
-      break;
-    case "thresholds":
-      dispatch({ type: "sheet", sheet: "thresholds" });
-      break;
-    case "open-player": {
-      const person = getState().players.find((p) => p.tableId === alert.tableId && alert.subject && p.seat === alert.subject.seat);
-      goTable("players");
-      if (person) dispatch({ type: "open-player", playerId: person.id });
-      break;
-    }
-    default:
-      goTable();
-  }
-}
-
 /* -------------------------------------------------------------------- view */
 
 function device(state) {
   const paper = wallpaper(state.wallpaper);
-
-  // Three layers, bottom to top: the room, a crimson-to-black veil that kills
-  // its detail and most of its light, then two soft glows that keep the corners
-  // from going dead. Everything above this is glass, and glass needs something
-  // behind it or it reads as gray plastic.
   const ambient = h(
     "div.ambient",
     { "aria-hidden": "true" },
@@ -146,51 +163,33 @@ function device(state) {
     return h("div.ltg", { data: { theme: state.theme, wallpaper: paper.id } }, ambient, loginScreen(state, dispatch));
   }
 
-  const wide = state.level === "section" && state.mode !== "floor";
-  // Render at the previous geometry; paneGeometry() moves them next frame so
-  // the width change animates even though the DOM was rebuilt.
-  const from = paneWidths(lastWide);
-  const to = paneWidths(wide);
-  pendingGeometry = to;
-  lastWide = wide;
+  const content = state.level === "table" ? tableDetail(state, dispatch, handlers) : overview(state, dispatch, handlers);
 
-  const content =
-    state.level === "section"
-      ? wide
-        ? podSwitcher(state, dispatch)
-        : floorPlan(state, dispatch)
-      : podScreen(state, dispatch, handleAction, { onScan: runScan, onAdjust: openAdjust, onOrderFill: orderFill, onResolve: resolve });
-
-  const turn = null;
-  const pod = state.podId ? findPod(state.pods, state.podId) : null;
-
-  // The right pane carries Actions and Alerts by default, and the people when
-  // its own switch asks for them. Same switch at the floor and in a pod.
-  const showPlayers = !wide && state.podPane === "players";
-  const switchEl = wide ? null : panePodSwitch(state, dispatch, state.level === "pod" ? pod : null);
-  const panel = showPlayers
-    ? playersPanel(state, dispatch, state.level === "pod" ? podScope(state, pod) : sectionScope(state), switchEl)
-    : alertPane(state, dispatch, wide, handleAction, switchEl);
-  const drawer = null;
+  // A tile opened as a side panel, or anything opened from the full table,
+  // shows in the right-edge panel over the rail.
+  const panelOpen = !!state.expand && (state.expandStyle === "panel" || state.level === "table");
+  const panel = h("aside.flyout.flyout--xp", { data: { open: panelOpen }, "aria-hidden": String(!panelOpen) }, panelOpen ? expandContent(state, dispatch, handlers) : null);
 
   return h(
     "div.ltg",
-    { data: { theme: state.theme, wallpaper: paper.id } },
+    { data: { theme: state.theme, wallpaper: paper.id, level: state.level } },
     ambient,
-    topBar(state, dispatch, switchMode),
+    topBar(state, dispatch),
     h(
       "div.panes",
       {},
-      h("section.pane.pane--content", { data: { narrow: wide, flip: turn }, style: { width: from.contentWidth } }, content),
-      h(
-        "section.pane.pane--alerts",
-        { "aria-label": showPlayers ? "Players" : "Alerts", data: { wide }, style: { left: from.alertsLeft, width: from.alertsWidth } },
-        panel,
-        drawer
-      )
+      h("section.pane.pane--content.pane--tables", {}, content),
+      h("section.pane.pane--alerts.pane--rail", { "aria-label": "Actions, alerts and players" }, rail(state, dispatch, handlers))
     ),
-    h("button.scrim", { data: { open: !!state.flyout }, "aria-label": "Close panel", on: { click: () => dispatch({ type: "flyout-close" }) } }),
-    flyout(state, dispatch, { onScan: runScan, onResolve: resolve }),
+    h("button.scrim", {
+      // Light for an opened tile, so the grid stays readable beside it.
+      class: state.level === "section" ? "scrim scrim--light" : "scrim",
+      data: { open: panelOpen || !!state.history },
+      "aria-label": "Close panel",
+      on: { click: () => { dispatch({ type: "collapse" }); dispatch({ type: "history", history: null }); } },
+    }),
+    panel,
+    historyPanel(state, dispatch),
     state.playerId ? playerSheet(state, dispatch, closePlayer) : null,
     state.sheet === "help" ? helpSheet(state, dispatch) : null,
     state.sheet === "account" ? accountSheet(state, dispatch) : null,
@@ -203,69 +202,44 @@ function page(state) {
   const hint = HINTS[state.signedIn ? state.level : "login"];
   const [lead, ...rest] = hint.split(":");
 
+  const group = (label, items, value, action) =>
+    h(
+      "div.area-switch",
+      { role: "group", "aria-label": label },
+      h("span.area-switch__label", { text: label }),
+      items.map(([v, text]) => h("button", { text, "aria-pressed": String(value === v), on: { click: () => dispatch({ ...action, [Object.keys(action)[1]]: v }) } }))
+    );
+
   return h(
     "div.page",
     {},
     h(
       "div.page-bar",
       {},
-      h("span.page-title", { text: "LTG Supervisor Tablet" }),
+      h("span.page-title", { text: "Mobile Manager · Tables" }),
       h("span.page-sub", { html: "Interaction prototype. Designed for a 10&Prime; tablet in landscape; scaled to fit this window." }),
-      // Review control, not product. An area is assigned at the start of a
-      // shift, not picked from a toolbar, and Load Pods is undesigned. This is
-      // here so the floor layouts for one, two and four pods can be seen
-      // without shipping four screenshots.
-      state.signedIn
-        ? h(
-            "div.area-switch",
-            { role: "group", "aria-label": "Pods in the area" },
-            h("span.area-switch__label", { text: "Pods" }),
-            [1, 2, 3, 4, 5, 6].map((n) =>
-              h("button", {
-                text: String(n),
-                "aria-pressed": String(state.areaSize === n),
-                on: { click: () => dispatch({ type: "area-size", size: n }) },
-              })
-            )
-          )
-        : null,
+      // Review controls, not product.
+      state.signedIn ? group("Tables", [[12, "12"], [24, "24"], [200, "200"]], state.sectionSize, { type: "section-size", size: 0 }) : null,
+      state.signedIn ? group("Open a tile", [["inplace", "In place"], ["panel", "Side panel"]], state.expandStyle, { type: "expand-style", style: "" }) : null,
       state.signedIn ? h("button.chip", { text: "Sign out", on: { click: () => dispatch({ type: "sign-out" }) } }) : null,
-      // Outside the device on purpose: this teaches the design team the
-      // vocabulary, and nothing in the product should be shaped by it.
       h(
         "button.chip.chip--tips",
         { "aria-pressed": String(state.helpTips), on: { click: () => dispatch({ type: "help-tips" }) } },
         h("span.gloss__i", { text: "i", "aria-hidden": "true" }),
         "Jargon tips"
       ),
-      // Four themes now. Light reads as a wireframe to the client, so Square
-      // and Glass are two different answers to the same complaint: one adds
-      // structure, the other adds depth. Both are complete, not skins.
       h(
         "div.theme-switch",
         { role: "group", "aria-label": "Theme" },
         [["glass", "Glass"], ["square", "Square"], ["simple", "Simple"], ["studio", "Studio"], ["ledger", "Ledger"], ["rouge", "Rouge"], ["felt", "Felt"], ["bw", "B&W"], ["dark", "Dark"]].map(([t, label]) =>
-          h("button", {
-            text: label,
-            "aria-pressed": String(state.theme === t),
-            on: { click: () => dispatch({ type: "theme", theme: t }) },
-          })
+          h("button", { text: label, "aria-pressed": String(state.theme === t), on: { click: () => dispatch({ type: "theme", theme: t }) } })
         )
       ),
-      // What sits behind the glass, separately from the theme. Changing theme
-      // moves this to the pairing that theme was built on; changing it here is
-      // how you go somewhere else.
       h(
         "div.theme-switch.theme-switch--paper",
         { role: "group", "aria-label": "Wallpaper" },
         h("span.theme-switch__label", { text: "Wallpaper" }),
-        WALLPAPERS.map((w) =>
-          h("button", {
-            text: w.label,
-            "aria-pressed": String(state.wallpaper === w.id),
-            on: { click: () => dispatch({ type: "wallpaper", wallpaper: w.id }) },
-          })
-        )
+        WALLPAPERS.map((w) => h("button", { text: w.label, "aria-pressed": String(state.wallpaper === w.id), on: { click: () => dispatch({ type: "wallpaper", wallpaper: w.id }) } }))
       )
     ),
     h("div.stage", { id: "stage" }, device(state)),
@@ -275,10 +249,6 @@ function page(state) {
 
 /* --------------------------------------------------------------- lifecycle */
 
-/**
- * The device is authored at 1280x800 and scaled to the window, so what you see
- * here is exactly what lands on a 10-inch tablet.
- */
 function fit() {
   const stage = document.getElementById("stage");
   if (!stage) return;
@@ -289,9 +259,6 @@ function fit() {
 }
 
 let toastTimer;
-
-/** The toast clears itself. Dispatched as a plain toast action, so it takes the
-    same patch path on the way out as it did on the way in. */
 function scheduleToastClear(state) {
   if (!state.toast) return;
   window.clearTimeout(toastTimer);
@@ -300,16 +267,7 @@ function scheduleToastClear(state) {
 
 function render(action) {
   const state = getState();
-
-  // A tick changes four numbers. Rebuilding the screen for that tore down and
-  // replayed every entry animation under the user once a second, which is what
-  // the flicker was. Patch the numbers and leave the DOM alone.
   if (action && action.type === "tick" && patchLive(root, state)) return;
-
-  // A toast changes one string, and raising one from inside the player record
-  // rebuilt the whole screen and replayed the record's entry animation. From
-  // the outside that looked like the screen flashing and nothing happening,
-  // which is exactly what it was. Same treatment as the clock.
   if (action && action.type === "toast") {
     const el = root.querySelector(".toast");
     if (el) {
@@ -324,43 +282,20 @@ function render(action) {
   clear(root).appendChild(page(state));
   fit();
 
-  wirePeek(root.querySelector(".ltg"), getState);
-
   if (state.helpTips) {
-    const device = root.querySelector(".ltg");
-    if (device) {
-      annotate(device);
-      wireTips(device);
+    const dev = root.querySelector(".ltg");
+    if (dev) {
+      annotate(dev);
+      wireTips(dev);
     }
   }
-
-  if (pendingGeometry) {
-    const { contentWidth, alertsLeft, alertsWidth } = pendingGeometry;
-    pendingGeometry = null;
-    requestAnimationFrame(() => {
-      const content = root.querySelector(".pane--content");
-      const alerts = root.querySelector(".pane--alerts");
-      if (content) content.style.width = contentWidth;
-      if (alerts) {
-        alerts.style.left = alertsLeft;
-        alerts.style.width = alertsWidth;
-      }
-    });
-  }
-
   scheduleToastClear(state);
 }
 
 window.addEventListener("resize", fit);
-
-/* One second of wall clock. The countdown ticks and every open alert ages, so
-   the pressure the design is about is visible while you look at it. */
 window.setInterval(() => {
   const s = getState();
-  // Hold the clock while a panel, sheet or record is open, or a scan is
-  // running. A re-render must never interrupt something the user is in the
-  // middle of, and a full re-render restarts every entry animation under it.
-  if (s.signedIn && !s.flyout && !s.scanning && !s.sheet && !s.playerId && !s.playerClosing) dispatch({ type: "tick" });
+  if (s.signedIn && !s.expand && !s.history && !s.sheet && !s.playerId && !s.playerClosing && !Object.keys(s.scanning).length) dispatch({ type: "tick" });
 }, 1000);
 
 render();

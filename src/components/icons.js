@@ -14,7 +14,7 @@ export const iconBack = (s = 18) =>
   svg(s, '<path d="M15 18l-6-6 6-6"/>', 'stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"');
 
 export const iconChevron = (s = 14, dir = "right") =>
-  svg(s, `<path d="${dir === "down" ? "M6 9l6 6 6-6" : "M9 6l6 6-6 6"}"/>`, 'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"');
+  svg(s, `<path d="${dir === "down" ? "M6 9l6 6 6-6" : dir === "left" ? "M15 6l-6 6 6 6" : "M9 6l6 6-6 6"}"/>`, 'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"');
 
 export const iconPerson = (s = 12) =>
   svg(s, '<circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6"/>', 'stroke-width="2"');
@@ -97,3 +97,35 @@ export const iconBook = (s = 24) =>
 /** lucide: scroll-text. */
 export const iconScroll = (s = 24) =>
   svg(s, '<path d="M19 17V5a2 2 0 0 0-2-2H4.5"/><path d="M8 21h11a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H10a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2h4"/><path d="M14.8 8H9.6"/><path d="M14.8 12H9.6"/>', stroke);
+
+/* --- Quick functions on a table tile --------------------------------------- */
+export const iconMore = (s = 18) =>
+  svg(s, '<circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/>', 'stroke-width="0"');
+
+/** Chips in and out of the tray: lucide arrow-up-down. */
+export const iconFill = (s = 18) =>
+  svg(s, '<path d="M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4"/>', 'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"');
+
+/** Games and Sessions: lucide history. */
+export const iconHistory = (s = 18) =>
+  svg(s, '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>', 'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"');
+
+/** Open or close a table: lucide power. */
+export const iconPower = (s = 18) =>
+  svg(s, '<path d="M12 3v9"/><path d="M6.4 6.4a8 8 0 1 0 11.2 0"/>', 'stroke-width="1.9" stroke-linecap="round"');
+
+/** Limits: lucide sliders-horizontal. */
+export const iconLimits = (s = 18) =>
+  svg(s, '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>', 'stroke-width="1.9" stroke-linecap="round"');
+
+/** Players: lucide users. */
+export const iconUsers = (s = 18) =>
+  svg(s, '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.4 2.7-5.6 6-5.6s6 2.2 6 5.6"/><path d="M16 4.6a3.2 3.2 0 0 1 0 6.3M18 14.6c1.8.7 3 2.6 3 5.4"/>', 'stroke-width="1.9" stroke-linecap="round"');
+
+/** Open the full table: lucide maximize-2. */
+export const iconOpen = (s = 18) =>
+  svg(s, '<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>', 'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"');
+
+/** Turn a tile over: lucide refresh-ccw. */
+export const iconFlip = (s = 16) =>
+  svg(s, '<path d="M21 12a9 9 0 0 0-15-6.7L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 15 6.7L21 16"/><path d="M16 16h5v5"/>', 'stroke-width="2" stroke-linecap="round" stroke-linejoin="round"');

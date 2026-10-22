@@ -38,6 +38,7 @@ export function compact(n) {
   const sign = n < 0 ? "(" : "";
   const close = n < 0 ? ")" : "";
   const trim = (x) => x.replace(/\.0$/, "");
+  if (abs >= 1e9) return `${sign}${trim((abs / 1e9).toFixed(2))}B${close}`;
   if (abs >= 1e6) return `${sign}${trim((abs / 1e6).toFixed(1))}M${close}`;
   if (abs >= 1e3) return `${sign}${trim((abs / 1e3).toFixed(1))}K${close}`;
   return `${sign}${abs}${close}`;
