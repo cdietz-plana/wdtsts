@@ -30,7 +30,10 @@ export function h(tag, props, ...children) {
     if (key === "class") {
       el.setAttribute("class", [...classes, value].filter(Boolean).join(" "));
     } else if (key === "style" && typeof value === "object") {
-      Object.assign(el.style, value);
+      for (const [k, v] of Object.entries(value)) {
+        if (k.startsWith("--")) el.style.setProperty(k, v);
+        else el.style[k] = v;
+      }
     } else if (key === "text") {
       el.textContent = String(value);
     } else if (key === "html") {

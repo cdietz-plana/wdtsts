@@ -1,5 +1,6 @@
 import { expandContent } from "./components/expand.js";
 import { overview } from "./components/grid.js";
+import { sectionsView } from "./components/sections.js";
 import { loginScreen } from "./components/login.js";
 import { playerSheet } from "./components/playersheet.js";
 import { rail } from "./components/rail.js";
@@ -18,6 +19,7 @@ const HINTS = {
   login: "Try: tap the card reader, or key in any ID of four digits or more.",
   section:
     "Try: an Action's button right on its tile · Supervisor requested: On my way, then Close with a reason · Fill / Credit or More to open a tile · the turn icon on a tile for its figures · pages and 4 / 9 / 12 per page above the grid · tap a tile to open the full table.",
+  sections: "Try: tap a section card to light it up on the map, then Open or Edit tables · the turn icon flips a card for its figures · tap a table on the map for a quick look · Create new section.",
   table: "Try: the arrows beside the table name step through the section · History holds Games and Sessions · Scan and Fill / Credit work here too.",
 };
 
@@ -164,6 +166,8 @@ function device(state) {
   }
 
   const content = state.level === "table" ? tableDetail(state, dispatch, handlers) : overview(state, dispatch, handlers);
+  // All sections takes the whole width: it is a planning screen, not a shift view.
+  const sectionsScreen = state.level === "sections";
 
   // A tile opened as a side panel, or anything opened from the full table,
   // shows in the right-edge panel over the rail.
@@ -178,8 +182,12 @@ function device(state) {
     h(
       "div.panes",
       {},
-      h("section.pane.pane--content.pane--tables", {}, content),
-      h("section.pane.pane--alerts.pane--rail", { "aria-label": "Actions, alerts and players" }, rail(state, dispatch, handlers))
+      sectionsScreen
+        ? h("section.pane.pane--content.pane--full", {}, sectionsView(state, dispatch))
+        : [
+            h("section.pane.pane--content.pane--tables", {}, content),
+            h("section.pane.pane--alerts.pane--rail", { "aria-label": "Actions, alerts and players" }, rail(state, dispatch, handlers)),
+          ]
     ),
     h("button.scrim", {
       // Light for an opened tile, so the grid stays readable beside it.
@@ -219,7 +227,6 @@ function page(state) {
       h("span.page-title", { text: "Mobile Manager · Tables" }),
       h("span.page-sub", { html: "Interaction prototype. Designed for a 10&Prime; tablet in landscape; scaled to fit this window." }),
       // Review controls, not product.
-      state.signedIn ? group("Tables", [[12, "12"], [24, "24"], [200, "200"]], state.sectionSize, { type: "section-size", size: 0 }) : null,
       state.signedIn ? group("Open a tile", [["inplace", "In place"], ["panel", "Side panel"]], state.expandStyle, { type: "expand-style", style: "" }) : null,
       state.signedIn ? h("button.chip", { text: "Sign out", on: { click: () => dispatch({ type: "sign-out" }) } }) : null,
       h(
@@ -231,7 +238,7 @@ function page(state) {
       h(
         "div.theme-switch",
         { role: "group", "aria-label": "Theme" },
-        [["glass", "Glass"], ["square", "Square"], ["simple", "Simple"], ["studio", "Studio"], ["ledger", "Ledger"], ["rouge", "Rouge"], ["felt", "Felt"], ["bw", "B&W"], ["dark", "Dark"]].map(([t, label]) =>
+        [["felt", "Felt"], ["rouge", "Rouge"], ["bw", "B&W"], ["studio", "Studio"], ["glass", "Glass"], ["simple", "Simple"], ["dark", "Dark"], ["square", "Square"], ["ledger", "Ledger"]].map(([t, label]) =>
           h("button", { text: label, "aria-pressed": String(state.theme === t), on: { click: () => dispatch({ type: "theme", theme: t }) } })
         )
       ),
@@ -259,8 +266,13 @@ function fit() {
 }
 
 let toastTimer;
+/** The timer starts when a new message appears, not on every render, so
+    tapping around never keeps an old message on screen. */
+let toastShown = null;
 function scheduleToastClear(state) {
-  if (!state.toast) return;
+  if (!state.toast) { toastShown = null; return; }
+  if (state.toast === toastShown) return;
+  toastShown = state.toast;
   window.clearTimeout(toastTimer);
   toastTimer = window.setTimeout(() => dispatch({ type: "toast", message: null }), 2600);
 }

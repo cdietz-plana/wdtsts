@@ -1,3 +1,4 @@
+import { viewTable } from "./viewtable.js";
 import { h } from "../lib/dom.js";
 import { chipTray } from "../data/tables.js";
 import { age, money } from "../lib/format.js";
@@ -13,7 +14,7 @@ import { felt, seats } from "./seats.js";
  * at rarely, so they open in a side panel from the History button instead of
  * taking two places in the tab bar.
  */
-export const TABS = [["live", "Live"], ["chips", "Chips"], ["players", "Players"], ["override", "Override"]];
+export const TABS = [["live", "View Table"], ["chips", "Chips"], ["players", "Players"], ["override", "Override"]];
 
 export function tableBody(state, dispatch, { onScan, onAdjust, onOrderFill, onResolve }) {
   const table = findTable(state.tables, state.tableId);
@@ -21,7 +22,7 @@ export function tableBody(state, dispatch, { onScan, onAdjust, onOrderFill, onRe
   if (state.tab === "chips") return chipsTab(state, table, onScan, onAdjust, onOrderFill);
   if (state.tab === "players") return playersTab(state, table, dispatch, onResolve);
   if (state.tab === "override") return overrideTab(state, table, { tables: [table] }, dispatch);
-  return liveTab(state, table, dispatch);
+  return viewTable(state, table, dispatch);
 }
 
 export { sessionsTab, gamesTab };
@@ -191,7 +192,7 @@ function playersTab(state, table, dispatch, onResolve) {
       ),
       figureCell("Buy-in today", money(p.buyIn), flagged ? "var(--high)" : ""),
       figureCell("Theo win", money(p.theoWin)),
-      figureCell("Win / loss", money(p.winLoss), p.winLoss < 0 ? "var(--critical)" : "var(--ok)"),
+      figureCell("Win / loss", money(p.winLoss), p.winLoss < 0 ? "var(--critical)" : "var(--ok-ink)"),
       flagged ? h("span.tag", { text: "THRESHOLD", style: { background: "var(--high-wash)", color: "var(--high)" } }) : null,
       flagged ? h("button.btn", { text: "Log AML", on: { click: () => onResolve("a6", "AML entry logged against seat 4.") } }) : null,
       h("button.btn.btn--ghost", {
@@ -236,7 +237,7 @@ function sessionsTab(state, table, dispatch) {
     h("span", { style: { flex: "1" } }),
     figureCell("Table handle", money(totals.handle)),
     figureCell("Theoretical win", money(totals.theo)),
-    figureCell("Player win / loss", money(totals.wl), totals.wl < 0 ? "var(--critical)" : "var(--ok)")
+    figureCell("Player win / loss", money(totals.wl), totals.wl < 0 ? "var(--critical)" : "var(--ok-ink)")
   );
 
   const rows = seated.flatMap((p) =>
@@ -256,7 +257,7 @@ function sessionsTab(state, table, dispatch) {
         ),
         figureCell("Handle", money(sx.handle)),
         figureCell("Theo", money(sx.theoWin)),
-        figureCell("Win / loss", money(sx.winLoss), sx.winLoss < 0 ? "var(--critical)" : "var(--ok)")
+        figureCell("Win / loss", money(sx.winLoss), sx.winLoss < 0 ? "var(--critical)" : "var(--ok-ink)")
       )
     )
   );
@@ -327,7 +328,7 @@ function gameRow(g) {
         h("span.mono", { text: money(g.handle), style: { width: "96px", textAlign: "right", fontSize: "var(--t-body)" } }),
         h("span.mono", {
           text: money(g.result),
-          style: { width: "96px", textAlign: "right", fontSize: "var(--t-body)", fontWeight: "600", color: g.result < 0 ? "var(--critical)" : "var(--ok)" },
+          style: { width: "96px", textAlign: "right", fontSize: "var(--t-body)", fontWeight: "600", color: g.result < 0 ? "var(--critical)" : "var(--ok-ink)" },
         })
       );
 }

@@ -112,14 +112,6 @@ export const initialAlerts = [
     actions: [{ label: "Adjust", primary: true, intent: "adjust" }],
   },
   {
-    id: "b2", kind: "alert", tableId: "t13", severity: "high",
-    subject: { kind: "player", name: "H. Pang", seat: 2 },
-    title: "Player win/loss",
-    detail: "Player up 862,000. Threshold 750,000.",
-    ageSeconds: 465,
-    actions: [{ label: "Player", primary: true, intent: "open-player" }],
-  },
-  {
     id: "b3", kind: "alert", tableId: "t16", severity: "high",
     title: "Table loss",
     detail: "Table down 855,100. Threshold 750,000.",

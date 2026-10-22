@@ -66,7 +66,7 @@ export function playerSheet(state, dispatch, onClose) {
         "div",
         { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "9px" } },
         stat("Theoretical win", money(p.theoWin)),
-        stat("Win / loss", money(p.winLoss), p.winLoss < 0 ? "var(--critical)" : "var(--ok)"),
+        stat("Win / loss", money(p.winLoss), p.winLoss < 0 ? "var(--critical)" : "var(--ok-ink)"),
         stat("Handle", money(p.handle)),
         stat("Average bet", money(p.avgBet))
       ),
@@ -100,7 +100,7 @@ export function playerSheet(state, dispatch, onClose) {
 
   /* --- middle: what actually happened --- */
   const sessions = p.sessions.map((sx) =>
-    row(`${sx.table} · ${sx.from} to ${sx.to}`, money(sx.winLoss), `${sx.day} · handle ${money(sx.handle)} · theo ${money(sx.theoWin)}`, sx.winLoss < 0 ? "var(--critical)" : "var(--ok)")
+    row(`${sx.table} · ${sx.from} to ${sx.to}`, money(sx.winLoss), `${sx.day} · handle ${money(sx.handle)} · theo ${money(sx.theoWin)}`, sx.winLoss < 0 ? "var(--critical)" : "var(--ok-ink)")
   );
   const transactions = p.transactions.map((t) => row(t.kind, money(t.amount), `${t.at} · ${t.detail}`));
 

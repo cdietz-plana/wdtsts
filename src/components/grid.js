@@ -5,7 +5,8 @@ import { currentHand } from "../data/games.js";
 import { expandContent } from "./expand.js";
 import { handView } from "./cards.js";
 import { compact as c2, limitShort, percent } from "../lib/format.js";
-import { iconChevron, iconFill, iconFlip, iconMore, iconScan } from "./icons.js";
+import { iconChevron, iconFill, iconFlip, iconMap, iconMore, iconScan } from "./icons.js";
+import { floorMap } from "./floormap.js";
 import { felt, seats, valueLegend } from "./seats.js";
 
 /**
@@ -50,15 +51,48 @@ export function overview(state, dispatch, handlers) {
 
   const from = page * per + 1;
   const to = Math.min(state.tables.length, from + per - 1);
+  const asMap = state.overviewMode === "map";
   const head = h(
     "div.ov-head",
     {},
-    h("span.ov-range", {}, h("b", { text: `${from}\u2013${to}` }), ` of ${state.tables.length} tables`),
-    pages > 1 ? pagination(page, pages, actionPages, dispatch) : null,
+    asMap
+      ? h("span.ov-range", {}, h("b", { text: String(state.tables.length) }), " tables on the floor")
+      : h("span.ov-range", {}, h("b", { text: `${from}\u2013${to}` }), ` of ${state.tables.length} tables`),
+    pages > 1 && !asMap ? pagination(page, pages, actionPages, dispatch) : null,
     h("span", { style: { flex: "1" } }),
-    densityControl(per, dispatch),
-    valueLegend()
+    densityControl(asMap ? null : per, dispatch, asMap),
+    asMap ? null : valueLegend()
   );
+
+  // The section as it stands on the floor. Same preview rule as the grid:
+  // a tap is a quick look, the button on it goes into the table.
+  if (asMap) {
+    return h(
+      "div",
+      { style: { display: "flex", flexDirection: "column", gap: "10px", flex: "1", minHeight: "0" } },
+      head,
+      h(
+        "div.card.ov-map",
+        { on: { click: () => { if (state.mapPreview) dispatch({ type: "map-preview", tableId: null }); } } },
+        floorMap(state, {
+          only: state.tables.map((t) => t.id),
+          big: true,
+          preview: state.mapPreview,
+          onTable: (id) => dispatch({ type: "map-preview", tableId: state.mapPreview === id ? null : id }),
+          onClose: () => dispatch({ type: "map-preview", tableId: null }),
+          previewActions: (t) => {
+            const a = actionsOf(alertsForTable(state.alerts, t.id))[0];
+            return h(
+              "div.fm__pop-btns",
+              { style: { gap: "6px" } },
+              a ? h("button.btn.tile__action-btn", { text: a.enroute ? "Close" : a.actions[0].label, style: { flex: "1", height: "42px" }, on: { click: () => { dispatch({ type: "map-preview", tableId: null }); handlers.onAlert(a); } } }) : null,
+              h("button.btn", { text: "Open table", on: { click: () => dispatch({ type: "go-table", tableId: t.id }) } })
+            );
+          },
+        })
+      )
+    );
+  }
 
   const ex = state.expand;
   const inplace = ex && state.expandStyle === "inplace" && onPage.some((t) => t.id === ex.tableId);
@@ -300,8 +334,8 @@ function pagination(page, pages, actionPages, dispatch) {
   );
 }
 
-/** Tiles per page. Each option is drawn as the grid it gives you. */
-function densityControl(per, dispatch) {
+/** Tiles per page, or the floor map. Each option is drawn as what it gives you. */
+function densityControl(per, dispatch, asMap) {
   const glyph = (n) => {
     const { cols, rows } = DENSITIES[n];
     return h(
@@ -315,7 +349,8 @@ function densityControl(per, dispatch) {
     { role: "group", "aria-label": "Tables per page" },
     [4, 9, 12].map((n) =>
       h("button", { "aria-pressed": String(per === n), "aria-label": `${n} per page`, title: `${n} per page`, on: { click: () => dispatch({ type: "per-page", perPage: n }) } }, glyph(n), String(n))
-    )
+    ),
+    h("button", { "aria-pressed": String(!!asMap), "aria-label": "Floor map", title: "Floor map", on: { click: () => dispatch({ type: "overview-mode", mode: "map" }) } }, iconMap(15), "Map")
   );
 }
 

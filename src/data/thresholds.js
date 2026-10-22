@@ -20,8 +20,8 @@ export const thresholds = [
   { id: "th2", scope: "Table", metric: "Loss over", value: 1000000, step: 250000, notify: "both", owner: "own" },
   { id: "th3", scope: "Table", metric: "Chip tray variance over", value: 0, step: 500, notify: "both", owner: "property", note: "Any variance at all. Locked by the property." },
   { id: "th4", scope: "Table", metric: "Idle for shoes", value: 3, step: 1, notify: "screen", owner: "own", unit: "shoes" },
-  { id: "th5", scope: "Player", metric: "Win over", value: 750000, step: 50000, notify: "screen", owner: "own" },
-  { id: "th6", scope: "Player", metric: "Loss over", value: 1000000, step: 50000, notify: "screen", owner: "own" },
+  { id: "th5", scope: "Player", metric: "Win over", value: 750000, step: 50000, notify: "screen", owner: "own", presets: [50000, 100000, 250000, 500000, 750000, 1000000] },
+  { id: "th6", scope: "Player", metric: "Loss over", value: 1000000, step: 50000, notify: "screen", owner: "own", presets: [100000, 250000, 500000, 1000000, 2000000] },
   { id: "th7", scope: "Player", metric: "Cumulative buy-in", value: 500000, step: 0, notify: "both", owner: "compliance", note: "AML. Set by the regulator, not by the property." },
-  { id: "th8", scope: "Player", metric: "Average bet over", value: 100000, step: 10000, notify: "screen", owner: "own" },
+  { id: "th8", scope: "Player", metric: "Average bet over", value: 100000, step: 10000, notify: "screen", owner: "own", presets: [10000, 25000, 50000, 100000, 200000] },
 ];

@@ -42,6 +42,18 @@ const HELP = [
     a: "On a tile, under More. On the full table, under History beside the tabs.",
   },
   {
+    q: "Sections",
+    a: "The button beside your name switches section. View all sections shows the floor map and every section; tap a card to light it up on the map, then Open or Edit tables. Moving a table into a section takes it out of the one it was in.",
+  },
+  {
+    q: "View Table",
+    a: "The dealer view: what is bet on each position and the shared bets at the top. Tap a position to see the chips that make up each bet, then Open player for the full record.",
+  },
+  {
+    q: "Player alerts",
+    a: "At the top of the Players tab. Tap a rule to change it; the Alerts tab updates straight away. The buy-in rule is set by compliance and cannot be changed here.",
+  },
+  {
     q: "Something is wrong and it is not listed",
     a: "Call the pit manager. This tablet records and authorizes; it does not replace the phone.",
   },
@@ -163,7 +175,7 @@ export function thresholdSheet(state, dispatch) {
         h("span.tag", { text: t.scope.toUpperCase(), style: { background: "var(--surface-soft)", color: "var(--ink-2)" } }),
         h("span", { text: t.metric, style: { fontSize: "var(--t-body)", fontWeight: "600" } }),
         h("span", { style: { flex: "1" } }),
-        locked ? h("span.tag", { text: t.owner === "compliance" ? "COMPLIANCE" : "PROPERTY", style: { background: "var(--high-wash)", color: "var(--high)" } }) : null
+        locked ? h("span.tag", { text: t.owner === "compliance" ? "COMPLIANCE" : "PROPERTY", style: { background: "var(--high-wash)", color: "var(--high-ink)" } }) : null
       ),
       h(
         "div",
@@ -192,7 +204,7 @@ export function thresholdSheet(state, dispatch) {
           })
         )
       ),
-      t.note ? h("div", { text: t.note, style: { fontSize: "var(--t-micro)", color: "var(--ink-3)", lineHeight: "1.45" } }) : null
+      t.note ? h("div", { text: t.note, style: { fontSize: "var(--t-micro)", color: "var(--ink-2)", lineHeight: "1.45" } }) : null
     );
   };
 

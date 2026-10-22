@@ -129,3 +129,7 @@ export const iconOpen = (s = 18) =>
 /** Turn a tile over: lucide refresh-ccw. */
 export const iconFlip = (s = 16) =>
   svg(s, '<path d="M21 12a9 9 0 0 0-15-6.7L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 15 6.7L21 16"/><path d="M16 16h5v5"/>', 'stroke-width="2" stroke-linecap="round" stroke-linejoin="round"');
+
+/** Floor map: lucide map. */
+export const iconMap = (s = 16) =>
+  svg(s, '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/>', 'stroke-width="1.9" stroke-linejoin="round"');

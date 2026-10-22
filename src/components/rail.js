@@ -1,5 +1,6 @@
 import { h } from "../lib/dom.js";
 import { age, compact } from "../lib/format.js";
+import { iconTick } from "./icons.js";
 import { actionsOf, alertsOnly, closedPlayersList, findTable, openPlayers, receiptsOf } from "../lib/selectors.js";
 import { schedule } from "../data/alerts.js";
 import { requestContext } from "./expand.js";
@@ -168,8 +169,84 @@ function playersList(state, dispatch, people) {
   });
 
   return [
+    playerAlertStrip(state, dispatch),
     h("div", { style: { padding: "0 4px 6px", flexShrink: "0" } }, tabs),
     h("div", { style: { display: "flex", justifyContent: "space-between", padding: "2px 12px 4px", flexShrink: "0" } }, h("span.micro", { text: "Player" }), h("span.micro", { text: "Player win" })),
     rows.length ? rows : h("div.rail-empty", { text: state.playerList === "closed" ? "Nobody has left yet." : "Nobody is seated." }),
   ];
+}
+
+/**
+ * Player alerts, editable where they matter.
+ *
+ * "Tell me any time a player is up 50,000" is decided on the floor, in the
+ * moment, so the rules sit at the top of the Players tab rather than in a
+ * settings screen. A tap on a rule is the quick edit: preset amounts and a
+ * stepper. The Alerts tab updates as soon as a value changes. Compliance
+ * rules show but cannot be changed here.
+ */
+const RULES = [
+  { id: "th5", label: "Win", long: "player win" },
+  { id: "th6", label: "Loss", long: "player loss" },
+  { id: "th8", label: "Avg bet", long: "average bet" },
+  { id: "th7", label: "Buy-in", long: "cumulative buy-in" },
+];
+
+function playerAlertStrip(state, dispatch) {
+  const rule = (r) => state.thresholds.find((t) => t.id === r.id);
+  const editing = state.thresholdEdit;
+  const chips = RULES.map((r) => {
+    const t = rule(r);
+    if (!t) return null;
+    const locked = t.owner !== "own";
+    return h(
+      "button.pa__chip",
+      {
+        "aria-pressed": String(editing === r.id),
+        data: { locked },
+        on: { click: () => dispatch({ type: "threshold-edit", open: editing === r.id ? false : r.id }) },
+      },
+      h("span.micro", { text: r.label }),
+      h("b.mono", { text: `${compact(t.value)}+` })
+    );
+  });
+
+  const t = editing ? state.thresholds.find((x) => x.id === editing) : null;
+  const r = t ? RULES.find((x) => x.id === t.id) : null;
+  const editor = t
+    ? h(
+        "div.pa__edit",
+        {},
+        h(
+          "div.pa__edit-head",
+          {},
+          h("span", { style: { flex: "1" } }, h("span.pa__edit-title", { text: `Alert me when ${r.long} is over` }), t.owner !== "own" ? h("span.pa__edit-note", { text: "Set by compliance. Shown, not editable." }) : null),
+          h("button.icon-btn", { "aria-label": "Done", on: { click: () => dispatch({ type: "threshold-edit", open: false }) } }, iconTick(15))
+        ),
+        h(
+          "div.pa__stepper",
+          {},
+          h("button.btn.btn--ghost", { text: "\u2212", "aria-label": "Lower", disabled: t.owner !== "own" ? "" : null, on: { click: () => dispatch({ type: "threshold", id: t.id, delta: -1 }) } }),
+          h("b.mono", { text: t.value.toLocaleString("en-US") }),
+          h("button.btn.btn--ghost", { text: "+", "aria-label": "Raise", disabled: t.owner !== "own" ? "" : null, on: { click: () => dispatch({ type: "threshold", id: t.id, delta: 1 }) } })
+        ),
+        t.presets && t.owner === "own"
+          ? h(
+              "div.pa__presets",
+              {},
+              t.presets.map((v) => h("button.chip", { text: compact(v), "aria-pressed": String(t.value === v), on: { click: () => dispatch({ type: "threshold-set", id: t.id, value: v }) } }))
+            )
+          : null,
+        h("div.pa__hits", { text: hits(state, t.id) })
+      )
+    : null;
+
+  return h("div.pa", {}, h("div.pa__head", {}, h("span.micro", { text: "Player alerts" })), h("div.pa__chips", {}, chips), editor);
+}
+
+/** How many seated players this rule catches right now, so the edit has a visible effect. */
+function hits(state, id) {
+  const n = state.alerts.filter((a) => a.gen === "player" && a.id.startsWith(id === "th5" ? "pw-" : id === "th6" ? "pl-" : "pa-")).length;
+  if (id === "th7") return "Applies to every player. Raises an AML Action.";
+  return n === 1 ? "1 player over this now. See Alerts." : `${n} players over this now.${n ? " See Alerts." : ""}`;
 }
