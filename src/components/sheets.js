@@ -1,7 +1,7 @@
 import { SUPERVISOR } from "../lib/supervisor.js";
 import { h } from "../lib/dom.js";
 import { wallClock } from "../lib/format.js";
-import { iconClose } from "./icons.js";
+import { iconClose, iconTrend } from "./icons.js";
 
 /**
  * Full-device overlays: help, and the account sheet that finally gives sign out
@@ -12,51 +12,30 @@ import { iconClose } from "./icons.js";
  * from what you were doing.
  */
 
+/**
+ * Information. Review feedback: legends come off the working screens, which
+ * the team will learn quickly, and live here for reference.
+ */
+const LEGEND = [
+  { mark: () => h("span.seat", { style: { width: "14px", height: "14px", background: "var(--value-3)" } }), label: "High average bet", note: "A seat dot filled in the value color." },
+  { mark: () => h("span.seat", { style: { width: "14px", height: "14px", background: "var(--value-1)", boxShadow: "0 0 0 3px var(--ring-hot)" } }), label: "Large win", note: "A ring around the seat dot." },
+  { mark: () => h("span.seat.seat--empty", { style: { width: "14px", height: "14px" } }), label: "Open seat", note: "Front line only. Empty back-line seats are not drawn." },
+  { mark: () => h("span.info-trend", { data: { up: true } }, iconTrend(16, true)), label: "Table up", note: "Beside the table ID. Flip the tile for the figure." },
+  { mark: () => h("span.info-trend", { data: { up: false } }, iconTrend(16, false)), label: "Table down", note: "Beside the table ID. Flip the tile for the figure." },
+  { mark: () => h("span.info-sw", { style: { background: "#c21f3a" } }), label: "Action", note: "Needs you now. Shown on the table's felt and first in the rail." },
+  { mark: () => h("span.info-sw", { style: { background: "var(--high)" } }), label: "Alert", note: "Worth a look. Shown under Alerts with a count." },
+  { mark: () => h("span.info-tag", { text: "Dealer" }), label: "Dealer or System", note: "Who raised an Action: the dealer display, or the table system." },
+  { mark: () => h("span.info-steps", {}, h("i", { data: { s: "done" } }), h("i", { data: { s: "now" } }), h("i")), label: "Fill in progress", note: "Requested, Authorized, Accepted, Processed." },
+  { mark: () => h("span.info-dot"), label: "Alerts on a table", note: "A red dot on the tile's Alerts button." },
+];
+
 const HELP = [
-  {
-    q: "Actions and Alerts",
-    a: "Actions need you now. Dealer Actions come from the Supervisor Requested button on the dealer display; System Actions are detected automatically. Alerts are worth a look. Activity lists what has already happened and is never counted.",
-  },
-  {
-    q: "Supervisor requested",
-    a: "Tap On my way and the dealer display shows that you are coming. When you have dealt with it, tap Close and pick the reason. The tablet shows how long the dealer has waited and what just happened at the table.",
-  },
-  {
-    q: "Fills",
-    a: "A fill is one item on the table's tile, moving from Requested to Authorized, Accepted and Processed. Each step is also logged in Activity.",
-  },
-  {
-    q: "Opening a tile",
-    a: "Scan runs the tray count on the tile. Fill / Credit and More open the tile so you can work without leaving the overview. Tap anywhere else on a tile to open the full table.",
-  },
-  {
-    q: "Seat dots",
-    a: "A filled dot is a high average bet. A ring is a large current win. Empty back-line positions are not drawn.",
-  },
-  {
-    q: "Table figures",
-    a: "Tap the turn icon in a tile's corner to flip it over for win, drop, hold, handle, seated count, average bet and limits. Tap it again to turn it back.",
-  },
-  {
-    q: "Games and Sessions",
-    a: "On a tile, under More. On the full table, under History beside the tabs.",
-  },
-  {
-    q: "Sections",
-    a: "The button beside your name switches section. View all sections shows the floor map and every section; tap a card to light it up on the map, then Open or Edit tables. Moving a table into a section takes it out of the one it was in.",
-  },
-  {
-    q: "View Table",
-    a: "The dealer view: what is bet on each position and the shared bets at the top. Tap a position to see the chips that make up each bet, then Open player for the full record.",
-  },
-  {
-    q: "Player alerts",
-    a: "At the top of the Players tab. Tap a rule to change it; the Alerts tab updates straight away. The buy-in rule is set by compliance and cannot be changed here.",
-  },
-  {
-    q: "Something is wrong and it is not listed",
-    a: "Call the pit manager. This tablet records and authorizes; it does not replace the phone.",
-  },
+  { q: "Actions and Alerts", a: "Actions need you now: dealer requests and what the table system detects. Alerts are worth a look. X closes either one; it is logged in Activity." },
+  { q: "Supervisor requested", a: "On my way tells the dealer display you are coming. Close records the reason." },
+  { q: "The tile", a: "Inventory, Fill / Credit, More, History, Limits and Alerts. At 9 per page the buttons are icons; at 12, History, Limits and Alerts are under More." },
+  { q: "Other pages", a: "When Actions are waiting on a page you are not looking at, a red line above the tables says how many and takes you there." },
+  { q: "Seat cards", a: "On Players, tap the turn icon on a card for that player's session figures and functions. Rate player enters a rating." },
+  { q: "Figures bar", a: "Nine figures scroll sideways. The arrow at the right edge shows the rest." },
 ];
 
 function sheet(title, subtitle, dispatch, body) {
@@ -81,18 +60,28 @@ function sheet(title, subtitle, dispatch, body) {
 
 export function helpSheet(state, dispatch) {
   return sheet(
-    "How this works",
-    "Six answers, no manual. If something here is wrong, it is the design that is wrong.",
+    "Information",
+    "What the marks mean, and where things are.",
     dispatch,
     h(
-      "div.sheet__body",
-      { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "11px", alignContent: "center" } },
-      HELP.map((item) =>
-        h(
-          "div.card",
-          { style: { padding: "13px 15px", display: "flex", flexDirection: "column", gap: "5px" } },
-          h("div.display", { text: item.q, style: { fontSize: "var(--t-action)", fontWeight: "600" } }),
-          h("div", { text: item.a, style: { fontSize: "var(--t-detail)", color: "var(--ink-2)", lineHeight: "1.5" } })
+      "div.sheet__body.info",
+      {},
+      h(
+        "div.card.info__legend",
+        {},
+        h("div.micro", { text: "Legend" }),
+        LEGEND.map((l) => h("div.info-row", {}, h("span.info-mark", {}, l.mark()), h("span", { style: { minWidth: "0" } }, h("b", { text: l.label }), h("span.info-note", { text: l.note }))))
+      ),
+      h(
+        "div.info__help",
+        {},
+        HELP.map((item) =>
+          h(
+            "div.card",
+            { style: { padding: "11px 14px", display: "flex", flexDirection: "column", gap: "4px" } },
+            h("div.display", { text: item.q, style: { fontSize: "var(--t-body)", fontWeight: "600" } }),
+            h("div", { text: item.a, style: { fontSize: "var(--t-detail)", color: "var(--ink-2)", lineHeight: "1.45" } })
+          )
         )
       )
     )

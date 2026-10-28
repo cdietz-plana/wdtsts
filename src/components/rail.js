@@ -1,6 +1,6 @@
 import { h } from "../lib/dom.js";
 import { age, compact } from "../lib/format.js";
-import { iconTick } from "./icons.js";
+import { iconClose, iconTick } from "./icons.js";
 import { actionsOf, alertsOnly, closedPlayersList, findTable, openPlayers, receiptsOf } from "../lib/selectors.js";
 import { schedule } from "../data/alerts.js";
 import { requestContext } from "./expand.js";
@@ -13,7 +13,7 @@ import { requestContext } from "./expand.js";
  * Every Action row carries its own button, so the common answer (authorize,
  * on my way, review the hand) is one touch from anywhere.
  */
-export function rail(state, dispatch, { onAlert }, scopeTableId = null) {
+export function rail(state, dispatch, { onAlert, onResolve }, scopeTableId = null) {
   const scope = scopeTableId ? state.alerts.filter((a) => a.tableId === scopeTableId) : state.alerts;
   const actions = actionsOf(scope);
   const alerts = alertsOnly(scope).sort((a, b) => a.ageSeconds - b.ageSeconds);
@@ -42,7 +42,7 @@ export function rail(state, dispatch, { onAlert }, scopeTableId = null) {
     const receipts = receiptsOf(scope).sort((a, b) => a.ageSeconds - b.ageSeconds).slice(0, 8);
     body = [
       scheduleStrip(state),
-      alerts.length ? alerts.map((a) => row(state, a, onAlert)) : h("div.rail-clear", {}, h("span.display", { text: "No alerts" })),
+      alerts.length ? alerts.map((a) => row(state, a, onAlert, onResolve)) : h("div.rail-clear", {}, h("span.display", { text: "No alerts" })),
       // Receipts: things that already happened. Never counted, never need a
       // tap, and they age out on their own.
       receipts.length ? h("div.rail-sub", { text: "Activity" }) : null,
@@ -51,7 +51,7 @@ export function rail(state, dispatch, { onAlert }, scopeTableId = null) {
   } else {
     // Dealer requests first: a person is standing at a table waiting.
     const ordered = [...actions.filter((a) => a.source === "dealer"), ...actions.filter((a) => a.source !== "dealer")];
-    body = ordered.length ? ordered.map((a) => row(state, a, onAlert)) : h("div.rail-clear", {}, h("span.display", { text: "Nothing needs you" }));
+    body = ordered.length ? ordered.map((a) => row(state, a, onAlert, onResolve)) : h("div.rail-clear", {}, h("span.display", { text: "Nothing needs you" }));
   }
 
   return h(
@@ -62,7 +62,7 @@ export function rail(state, dispatch, { onAlert }, scopeTableId = null) {
   );
 }
 
-function row(state, a, onAlert) {
+function row(state, a, onAlert, onResolve) {
   const table = findTable(state.tables, a.tableId);
   const who = a.subject ? (a.subject.seat ? `seat ${a.subject.seat}` : a.subject.name) : null;
   const isAction = a.kind === "action";
@@ -78,7 +78,10 @@ function row(state, a, onAlert) {
       { style: { display: "flex", alignItems: "baseline", gap: "8px" } },
       h("span.rail-row__title", { text: a.title }),
       h("span", { style: { flex: "1" } }),
-      h("span.mono.rail-row__age", { text: age(a.ageSeconds), data: { live: `age:${a.id}` } })
+      h("span.mono.rail-row__age", { text: age(a.ageSeconds), data: { live: `age:${a.id}` } }),
+      // Review feedback: any Action or Alert can be closed. It leaves a line in
+      // Activity, so closing is never losing.
+      h("button.rail-row__x", { "aria-label": `Close ${a.title}`, title: "Close", on: { click: () => onResolve(a.id, `${a.title} closed. It is in Activity.`, { title: `${a.title} closed`, detail: "by Ana Lopes" }) } }, iconClose(14))
     ),
     context ? h("div.rail-row__ctx", { text: a.enroute ? "On my way · dealer told" : context }) : null,
     h(

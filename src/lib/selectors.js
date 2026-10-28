@@ -43,6 +43,29 @@ export function performance(tables) {
   return { handle, win, drop, hold: drop ? win / drop : 0 };
 }
 
+/**
+ * The top bar figures, in the Casino Manager set WDTS asked for. Utilization
+ * and rated play are shares; the rest are amounts. Theo win is modeled at a
+ * flat house edge until the real calculation is supplied.
+ */
+const EDGE = 0.0118;
+export function barKpis(tables, players) {
+  const live = tables.filter((t) => t.status !== "closed" && t.status !== "offline");
+  const seats = live.reduce((n, t) => n + t.seats, 0);
+  const seated = live.reduce((n, t) => n + t.seated, 0);
+  const p = performance(tables);
+  const open = players.filter((x) => !x.closed);
+  const avgBet = open.length ? Math.round(open.reduce((n, x) => n + (x.avgBet || 0), 0) / open.length) : 0;
+  const ph = open.reduce((n, x) => n + (x.handle || 0), 0);
+  const rated = open.filter((x) => x.rated).reduce((n, x) => n + (x.handle || 0), 0);
+  return {
+    openTables: live.length, totalTables: tables.length,
+    utilization: seats ? seated / seats : 0,
+    winLoss: p.win, theo: Math.round(p.handle * EDGE), hold: p.hold, handle: p.handle,
+    buyIn: p.drop, avgBet, ratedPlay: ph ? rated / ph : 0,
+  };
+}
+
 export const limitsLabel = (t) =>
   `${t.limits.min.toLocaleString("en-US")} to ${t.limits.max.toLocaleString("en-US")}`;
 

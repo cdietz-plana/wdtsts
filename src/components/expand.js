@@ -4,8 +4,10 @@ import { alertsForTable, findPlayer, findTable, performance, playersForTable } f
 import { gamesFor } from "../data/games.js";
 import { findOverride } from "./override.js";
 import {
-  iconCard, iconClose, iconFill, iconHistory, iconLimits, iconOpen, iconPower, iconScan, iconTick, iconUsers,
+  iconBell, iconBox, iconCard, iconClose, iconFill, iconHistory, iconLimits, iconOpen, iconPower, iconScan, iconTick, iconUsers,
 } from "./icons.js";
+import { CHIP_SETS, FILL_DENOMS, inventoryFor, limitProfiles } from "../data/casino.js";
+import { age } from "../lib/format.js";
 
 /**
  * What an opened table tile shows.
@@ -23,17 +25,14 @@ import {
  * menu view rather than on every tile or in a tab bar.
  */
 
-const FILL_AMOUNTS = [100000, 250000, 500000, 1000000];
 const ADJUST_REASONS = ["Missing loser on the last hand", "Miscount at pay or take", "Chips in transit", "Other, add a note"];
-const LIMIT_TEMPLATES = [
-  { id: "std", label: "Standard", min: 1000, max: 100000 },
-  { id: "prem", label: "Premium", min: 5000, max: 500000 },
-  { id: "vip", label: "High limit", min: 10000, max: 1000000 },
-];
 
 const TITLES = {
   menu: null,
-  fill: "Fill or credit",
+  fill: "New request",
+  inventory: "Inventory",
+  alerts: "Alerts at this table",
+  rate: "Rating",
   authorize: "Authorize fill",
   adjust: "Adjust chip tray",
   rating: "Approve rating",
@@ -89,6 +88,9 @@ export function expandContent(state, dispatch, handlers) {
     case "sessions": body = sessionsView(state, dispatch, table); break;
     case "players": body = playersView(state, dispatch, table); break;
     case "limits": body = limitsView(state, dispatch, table); break;
+    case "inventory": body = inventoryView(state, dispatch, table, handlers); break;
+    case "alerts": body = alertsView(state, dispatch, table, handlers); break;
+    case "rate": body = rateView(state, dispatch, table); break;
     case "override": body = overrideView(state, dispatch, table); break;
     default: body = menuView(state, dispatch, table, perf, handlers);
   }
@@ -136,8 +138,8 @@ function menuView(state, dispatch, table, perf, { onScan, onAlert }) {
     h(
       "div.xp__figs",
       {},
-      fig("Win", compact(perf.win), perf.win < 0 ? "var(--critical-ink)" : "var(--ok-ink)"),
-      fig("Drop", compact(perf.drop)),
+      fig("Win / loss", compact(perf.win), perf.win < 0 ? "var(--critical-ink)" : "var(--ok-ink)"),
+      fig("Buy in", compact(perf.drop)),
       fig("Hold", percent(perf.hold)),
       fig("Seated", `${table.seated}/${table.seats}`)
     ),
@@ -153,12 +155,12 @@ function menuView(state, dispatch, table, perf, { onScan, onAlert }) {
     h(
       "div.xp__grid",
       {},
-      quick(iconScan(20), state.scanning[table.id] ? "Scanning" : "Scan", () => onScan(table.id), { disabled: !open || table.status === "offline" }),
+      quick(iconBox(20), "Inventory", () => dispatch({ type: "expand-view", view: "inventory" })),
       quick(iconFill(20), "Fill / Credit", () => dispatch({ type: "expand-view", view: "fill" }), { disabled: !open }),
       quick(iconUsers(20), "Players", () => dispatch({ type: "expand-view", view: "players" })),
+      quick(iconHistory(20), "History", () => dispatch({ type: "go-table", tableId: table.id, tab: "games" })),
       quick(iconLimits(20), "Limits", () => dispatch({ type: "expand-view", view: "limits" })),
-      quick(iconHistory(20), "Games", () => dispatch({ type: "expand-view", view: "games" })),
-      quick(iconHistory(20), "Sessions", () => dispatch({ type: "expand-view", view: "sessions" })),
+      quick(iconBell(20), "Alerts", () => dispatch({ type: "expand-view", view: "alerts" })),
       quick(iconPower(20), open ? "Close table" : "Open table", () => dispatch({ type: "toast", message: `${table.name} ${open ? "close" : "open"} requested. Count runs first.` })),
       quick(iconOpen(20), "Full dashboard", () => dispatch({ type: "go-table", tableId: table.id }), { tone: "strong" })
     )
@@ -167,18 +169,64 @@ function menuView(state, dispatch, table, perf, { onScan, onAlert }) {
 
 /* -------------------------------------------------------------- fill/credit */
 
+/**
+ * New request, with the Table Dashboard's fields: Fill, Credit or Credit All;
+ * Float; a chip set; then a count for each denomination with its value and
+ * the grand total. Three short steps rather than one long form, and the
+ * second signature last.
+ */
+const MODE_LABEL = { fill: "Fill", credit: "Credit", creditAll: "Credit All" };
+
 function fillView(state, dispatch, table, { onSendFill }) {
   const ex = state.expand;
   const mode = ex.mode || "fill";
+  const chipSet = ex.chipSet || "Cash";
+  const counts = ex.counts || {};
+  const inv = inventoryFor(table);
+  const amount = mode === "creditAll" ? inv.actual : FILL_DENOMS.reduce((n, d) => n + d * (counts[d] || 0), 0);
+  const pieces = mode === "creditAll" ? inv.count : FILL_DENOMS.reduce((n, d) => n + (counts[d] || 0), 0);
+  const set = (patch) => dispatch({ type: "expand-set", patch });
+  const back = (step) => navRow(h("button.btn.btn--ghost.btn--big", { text: "Back", style: { flex: "1" }, on: { click: () => set({ step }) } }));
 
-  if (ex.step === 2) {
+  if (ex.step === 3) {
     return h(
       "div.xp__body",
       {},
-      stepDone(mode === "fill" ? "Fill" : "Credit", `${money(ex.amount)} · ${table.name}`, () => dispatch({ type: "expand-set", patch: { step: 1 } })),
+      stepDone("Request", `${MODE_LABEL[mode]} · Float · ${chipSet}`, () => set({ step: 1 })),
+      stepDone("Grand total", `${money(amount)} · ${pieces} chips`, () => set({ step: mode === "creditAll" ? 1 : 2 })),
       h("span", { style: { flex: "1" } }),
-      signStep(`${mode === "fill" ? "Fill" : "Credit"} request goes to the cage`, () => onSendFill(table.id, mode, ex.amount)),
-      navRow(h("button.btn.btn--ghost.btn--big", { text: "Back", style: { flex: "1" }, on: { click: () => dispatch({ type: "expand-set", patch: { step: 1 } }) } }))
+      signStep(`${MODE_LABEL[mode]} request goes to the cage`, () => onSendFill(table.id, mode === "fill" ? "fill" : "credit", amount)),
+      back(mode === "creditAll" ? 1 : 2)
+    );
+  }
+
+  if (ex.step === 2) {
+    const step = (d, delta) => set({ counts: { ...counts, [d]: Math.max(0, (counts[d] || 0) + delta) } });
+    return h(
+      "div.xp__body",
+      {},
+      stepDone("Request", `${MODE_LABEL[mode]} · Float · ${chipSet}`, () => set({ step: 1 })),
+      h("div.fx-head", {}, h("span.micro", { text: "Denoms" }), h("span.micro", { text: "Count" })),
+      h(
+        "div.fx-denoms",
+        {},
+        FILL_DENOMS.map((d) => {
+          const n = counts[d] || 0;
+          return h(
+            "div.fx-denom",
+            { data: { on: n > 0 } },
+            h("span.fx-denom__v", {}, h("b.mono", { text: compact(d) }), h("span.fx-denom__val.mono", { text: n ? money(d * n) : "" })),
+            h("button.fx-step", { text: "\u2212", "aria-label": `One less ${money(d)}`, disabled: n ? null : "", on: { click: () => step(d, -1) } }),
+            h("b.mono.fx-n", { text: String(n) }),
+            h("button.fx-step", { text: "+", "aria-label": `One more ${money(d)}`, on: { click: () => step(d, 1) } })
+          );
+        })
+      ),
+      h("div.fx-total", {}, h("span", { text: "Grand total" }), h("span.mono", { text: `${pieces} chips` }), h("b.mono", { text: money(amount) })),
+      navRow(
+        h("button.btn.btn--ghost.btn--big", { text: "Back", style: { flex: "1" }, on: { click: () => set({ step: 1 }) } }),
+        h("button.btn.btn--big", { text: amount ? `Review · ${compact(amount)}` : "Add a count", style: { flex: "2" }, disabled: amount ? null : "", on: { click: () => set({ step: 3 }) } })
+      )
     );
   }
 
@@ -187,29 +235,23 @@ function fillView(state, dispatch, table, { onSendFill }) {
     {},
     h(
       "div.segmented.segmented--fill",
-      { role: "group", "aria-label": "Fill or credit" },
-      [["fill", "Fill"], ["credit", "Credit"]].map(([id, label]) =>
-        h("button", { text: label, "aria-pressed": String(mode === id), on: { click: () => dispatch({ type: "expand-set", patch: { mode: id } }) } })
+      { role: "group", "aria-label": "Request type" },
+      [["fill", "Fill"], ["credit", "Credit"], ["creditAll", "Credit All"]].map(([id, label]) =>
+        h("button", { text: label, "aria-pressed": String(mode === id), on: { click: () => set({ mode: id }) } })
       )
     ),
-    h("div.micro", { text: mode === "fill" ? "Chips to the table" : "Chips back to the cage" }),
+    h("button.option.option--tight.fx-float", { "aria-pressed": "true" }, h("span.fx-radio", { "aria-hidden": "true" }), "Float"),
+    h("div.micro", { text: "Chip set" }),
     h(
-      "div.xp__amounts",
+      "div.fx-sets",
       {},
-      FILL_AMOUNTS.map((n) =>
-        h("button.option.xp__amount", { "aria-pressed": String(ex.amount === n), on: { click: () => dispatch({ type: "expand-set", patch: { amount: n } }) } },
-          h("span.mono", { text: money(n) }))
-      )
+      CHIP_SETS.map((c) => h("button.option.option--tight", { text: c, "aria-pressed": String(chipSet === c), on: { click: () => set({ chipSet: c }) } }))
     ),
+    mode === "creditAll" ? h("div.xp__note", { text: `Credits the whole tray back to the cage: ${money(inv.actual)} in ${inv.count} chips.` }) : null,
     h("span", { style: { flex: "1" } }),
     navRow(
       h("button.btn.btn--ghost.btn--big", { text: "Cancel", style: { flex: "1" }, on: { click: () => dispatch({ type: "collapse" }) } }),
-      h("button.btn.btn--big", {
-        text: ex.amount ? `${mode === "fill" ? "Request fill" : "Request credit"} · ${compact(ex.amount)}` : "Choose an amount",
-        style: { flex: "2" },
-        disabled: ex.amount ? null : "",
-        on: { click: () => dispatch({ type: "expand-set", patch: { step: 2 } }) },
-      })
+      h("button.btn.btn--big", { text: mode === "creditAll" ? "Review" : "Count chips", style: { flex: "2" }, on: { click: () => set({ step: mode === "creditAll" ? 3 : 2 }) } })
     )
   );
 }
@@ -238,7 +280,7 @@ function authorizeView(state, dispatch, table, { onResolve, onAuthorizeFill }) {
     {},
     h("div.xp__big.mono", { text: money(amount) }),
     line("Requested by", table.dealer || "Dealer"),
-    line("Tray now", money(table.actualInventory)),
+    line("Tray now", money(inventoryFor(table).actual)),
     line("Requested", "18:19"),
     h("span", { style: { flex: "1" } }),
     navRow(
@@ -333,7 +375,7 @@ function gamesView(state, dispatch, table, { onResolve }) {
           h("button.btn.btn--ghost.btn--big", { text: "Override", style: { flex: "1" }, on: { click: () => dispatch({ type: "go-table", tableId: table.id, tab: "override" }) } }),
           h("button.btn.btn--big", { text: "Mark reviewed", style: { flex: "2" }, on: { click: () => onResolve(review.id, `${review.title} reviewed.`, { title: `${review.title} reviewed`, detail: `Hand ${rows[0].game}` }) } })
         )
-      : navRow(h("button.btn.btn--ghost.btn--big", { text: "All games", style: { flex: "1" }, on: { click: () => dispatch({ type: "go-table", tableId: table.id, history: "games" }) } }))
+      : navRow(h("button.btn.btn--ghost.btn--big", { text: "All games", style: { flex: "1" }, on: { click: () => dispatch({ type: "go-table", tableId: table.id, tab: "games" }) } }))
   );
 }
 
@@ -449,7 +491,7 @@ function sessionsView(state, dispatch, table) {
         : h("div.rail-empty", { text: "No sessions open." })
     ),
     h("span", { style: { flex: "1" } }),
-    navRow(h("button.btn.btn--ghost.btn--big", { text: "All sessions", style: { flex: "1" }, on: { click: () => dispatch({ type: "go-table", tableId: table.id, history: "sessions" }) } }))
+    navRow(h("button.btn.btn--ghost.btn--big", { text: "All sessions", style: { flex: "1" }, on: { click: () => dispatch({ type: "go-table", tableId: table.id, tab: "sessions" }) } }))
   );
 }
 
@@ -480,29 +522,125 @@ function playersView(state, dispatch, table) {
   );
 }
 
+/**
+ * Set Limit, with the Table Dashboard's fields. Pick a profile; its main bet
+ * limits show first and every side bet's minimum and maximum below, scrolling
+ * inside the panel so the buttons stay in reach.
+ */
 function limitsView(state, dispatch, table) {
   const ex = state.expand;
-  const current = LIMIT_TEMPLATES.find((t) => t.min === table.limits.min) || null;
-  const picked = ex.reason || (current && current.id);
+  const profiles = limitProfiles(table);
+  const picked = profiles.find((p) => p.id === ex.reason) || profiles[0];
+  const changed = !!ex.reason && ex.reason !== profiles[0].id;
+  const row = (label, a, b) =>
+    h("div.lx-row", {}, h("span.lx-label", { text: label }), a, b || h("span"));
+  const val = (tag, v) => h("span.lx-val", {}, tag ? h("span.lx-tag", { text: tag }) : null, h("b.mono", { text: v }));
   return h(
     "div.xp__body",
     {},
-    h("div", { style: { display: "flex", flexDirection: "column", gap: "7px" } },
-      LIMIT_TEMPLATES.map((t) =>
-        h("button.option.option--tight", { "aria-pressed": String(picked === t.id), on: { click: () => dispatch({ type: "expand-set", patch: { reason: t.id } }) } },
-          h("span", { text: t.label, style: { fontWeight: "600" } }),
-          h("span.mono", { text: `  ${compact(t.min)} to ${compact(t.max)}`, style: { color: "var(--ink-3)" } })
-        )
-      )
+    h(
+      "div.lx-profiles",
+      {},
+      profiles.map((p) => h("button.option.option--tight.lx-profile", { text: p.name, "aria-pressed": String(picked.id === p.id), on: { click: () => dispatch({ type: "expand-set", patch: { reason: p.id } }) } }))
     ),
-    h("div.micro", { text: "Applies from the next hand" }),
-    h("span", { style: { flex: "1" } }),
+    h(
+      "div.lx-scroll",
+      {},
+      row("Commission", val("", picked.commission)),
+      row("Banker / Player", val("Min", money(picked.bpMin)), val("Differential", money(picked.differential))),
+      row("Banker bet increment", val("", money(picked.bankerIncrement))),
+      h("div.lx-sub", {}, h("span.micro", { text: "Side bets" }), h("span.micro", { text: "Min" }), h("span.micro", { text: "Max (table)" })),
+      picked.side.map((x) => h("div.lx-side", {}, h("span", { text: x.label }), h("b.mono", { text: money(x.min) }), h("b.mono", { text: money(x.max) })))
+    ),
     navRow(
       h("button.btn.btn--ghost.btn--big", { text: "Cancel", style: { flex: "1" }, on: { click: () => dispatch({ type: "collapse" }) } }),
       h("button.btn.btn--big", {
-        text: "Apply", style: { flex: "2" }, disabled: picked && (!current || picked !== current.id) ? null : "",
+        text: "Apply", style: { flex: "2" }, disabled: changed ? null : "",
         on: { click: () => { dispatch({ type: "collapse" }); dispatch({ type: "toast", message: `${table.name} limits change from the next hand.` }); } },
       })
+    )
+  );
+}
+
+/** Inventory from a tile: the three figures, the tray, and Scan. */
+function inventoryView(state, dispatch, table, { onScan }) {
+  const inv = inventoryFor(table);
+  const scanning = !!state.scanning[table.id];
+  const fig = (label, value, color) => h("div.xp__fig", {}, h("span.micro", { text: label }), h("b.mono", { text: value, style: color ? { color } : {} }));
+  return h(
+    "div.xp__body",
+    {},
+    h("div.xp__figs", {}, fig("Actual", compact(inv.actual)), fig("Expected", compact(inv.expected)), fig("Variance", money(inv.variance), inv.variance ? "var(--critical-ink)" : null)),
+    h("div.ix-tray", {}, inv.rows.map((r) => h("div.ix-den", {}, h("span.mono", { text: compact(r.value) }), h("b.mono", { text: String(r.count) })))),
+    h("span", { style: { flex: "1" } }),
+    navRow(
+      h("button.btn.btn--ghost.btn--big", { style: { flex: "1" }, on: { click: () => dispatch({ type: "go-table", tableId: table.id, tab: "inventory" }) } }, "Full inventory"),
+      h("button.btn.btn--big", { style: { flex: "1" }, disabled: scanning || table.status === "offline" ? "" : null, on: { click: () => onScan(table.id) } }, iconScan(18), scanning ? " Scanning" : " Scan")
+    )
+  );
+}
+
+/** Everything open at this one table, Actions first, each closable here. */
+function alertsView(state, dispatch, table, { onAlert, onResolve }) {
+  const items = alertsForTable(state.alerts, table.id).filter((a) => a.kind !== "receipt");
+  const ordered = [...items.filter((a) => a.kind === "action"), ...items.filter((a) => a.kind !== "action")];
+  return h(
+    "div.xp__body",
+    {},
+    ordered.length
+      ? h(
+          "div.ax-list",
+          {},
+          ordered.map((a) =>
+            h(
+              "div.ax-row",
+              { data: { kind: a.kind } },
+              h("span", { style: { flex: "1", minWidth: "0" } }, h("span.ax-title", { text: a.title }), h("span.ax-sub", { text: [a.kind === "action" ? "Action" : "Alert", a.subject && a.subject.seat ? `seat ${a.subject.seat}` : null, age(a.ageSeconds)].filter(Boolean).join(" · ") })),
+              a.actions[0] ? h("button.btn", { text: a.enroute ? "Close" : a.actions[0].label, on: { click: () => onAlert(a) } }) : null,
+              h("button.icon-btn.ax-x", { "aria-label": `Close ${a.title}`, title: "Close", on: { click: () => onResolve(a.id, `${a.title} closed. It is in Activity.`, { title: `${a.title} closed`, detail: "by Ana Lopes" }) } }, iconClose(15))
+            )
+          )
+        )
+      : h("div.rail-clear", {}, h("span.display", { text: "Nothing open at this table" })),
+    h("span", { style: { flex: "1" } }),
+    navRow(h("button.btn.btn--ghost.btn--big", { text: "Done", style: { flex: "1" }, on: { click: () => dispatch({ type: "collapse" }) } }))
+  );
+}
+
+/**
+ * Enter a rating from a seat card, or a manual rating from Sessions. Pick
+ * the seat if it is not already known, set the average bet, save.
+ */
+const RATE_PRESETS = [1000, 5000, 10000, 25000, 50000, 100000];
+function rateView(state, dispatch, table) {
+  const ex = state.expand;
+  const seated = playersForTable(state.players, table.id);
+  const p = seated.find((x) => x.id === ex.reason) || null;
+  const avg = ex.amount || (p ? p.avgBet : 0);
+  const set = (patch) => dispatch({ type: "expand-set", patch });
+  return h(
+    "div.xp__body",
+    {},
+    h("div.micro", { text: "Player" }),
+    h(
+      "div.rx-seats",
+      {},
+      seated.map((x) => h("button.option.option--tight", { "aria-pressed": String(p && p.id === x.id), on: { click: () => set({ reason: x.id, amount: x.avgBet }) } }, h("b", { text: `${x.seat}` }), ` ${x.name}`))
+    ),
+    h("div.micro", { text: "Average bet" }),
+    h(
+      "div.pa__stepper",
+      {},
+      h("button.btn.btn--ghost", { text: "\u2212", "aria-label": "Lower", on: { click: () => set({ amount: Math.max(table.limits.min, avg - table.limits.min) }) } }),
+      h("b.mono", { text: money(avg) }),
+      h("button.btn.btn--ghost", { text: "+", "aria-label": "Raise", on: { click: () => set({ amount: avg + table.limits.min }) } })
+    ),
+    h("div.pa__presets", {}, RATE_PRESETS.filter((v) => v >= table.limits.min && v <= table.limits.max).map((v) => h("button.chip", { text: compact(v), "aria-pressed": String(avg === v), on: { click: () => set({ amount: v }) } }))),
+    p ? h("div.xp__line", {}, h("span.micro", { text: "Session" }), h("span", { text: `Seat ${p.seat} · since ${(p.sessions[0] || {}).from || "today"}` })) : null,
+    h("span", { style: { flex: "1" } }),
+    navRow(
+      h("button.btn.btn--ghost.btn--big", { text: "Cancel", style: { flex: "1" }, on: { click: () => dispatch({ type: "collapse" }) } }),
+      h("button.btn.btn--big", { text: "Save rating", style: { flex: "2" }, disabled: p && avg ? null : "", on: { click: () => { dispatch({ type: "collapse" }); dispatch({ type: "toast", message: `Rating saved for ${p.name}: average bet ${money(avg)}.` }); } } })
     )
   );
 }

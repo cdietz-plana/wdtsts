@@ -40,7 +40,7 @@ export const wallpaper = (id) => WALLPAPERS.find((w) => w.id === id) || WALLPAPE
 
 /** What each theme opens on, so the defaults stay coherent. */
 export const WALLPAPER_FOR_THEME = {
-  glass: "light-lobby",
+  glass: "dark-lobby",
   dark: "dark-lobby",
   square: "gray",
   simple: "gray",

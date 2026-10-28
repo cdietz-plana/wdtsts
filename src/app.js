@@ -5,7 +5,7 @@ import { loginScreen } from "./components/login.js";
 import { playerSheet } from "./components/playersheet.js";
 import { rail } from "./components/rail.js";
 import { accountSheet, helpSheet, thresholdSheet } from "./components/sheets.js";
-import { historyPanel, tableDetail } from "./components/tabledetail.js";
+import { tableDetail } from "./components/tabledetail.js";
 import { topBar } from "./components/topbar.js";
 import { clear, h } from "./lib/dom.js";
 import { annotate, wireTips } from "./lib/helptips.js";
@@ -18,9 +18,9 @@ import { createStore } from "./store.js";
 const HINTS = {
   login: "Try: tap the card reader, or key in any ID of four digits or more.",
   section:
-    "Try: an Action's button right on its tile · Supervisor requested: On my way, then Close with a reason · Fill / Credit or More to open a tile · the turn icon on a tile for its figures · pages and 4 / 9 / 12 per page above the grid · tap a tile to open the full table.",
+    "Try: an Action's button on the felt · Supervisor requested: On my way, then Close with a reason · the six buttons on a tile · the turn icon for table figures · 9 and 12 per page, and the red line when Actions are on other pages · the arrow on the figures bar · X on any Action or Alert to close it.",
   sections: "Try: tap a section card to light it up on the map, then Open or Edit tables · the turn icon flips a card for its figures · tap a table on the map for a quick look · Create new section.",
-  table: "Try: the arrows beside the table name step through the section · History holds Games and Sessions · Scan and Fill / Credit work here too.",
+  table: "Try: the turn icon on a seat card for the player's figures · Rate player on a card · tap a game to see its limits and positions · Sessions scrolls sideways · Scan is on Inventory · the arrows beside the table name step through the section.",
 };
 
 const root = document.getElementById("app");
@@ -125,7 +125,7 @@ function onAlert(alert) {
       break;
     }
     default:
-      dispatch({ type: "go-table", tableId: alert.tableId, tab: "live" });
+      dispatch({ type: "go-table", tableId: alert.tableId, tab: "players" });
   }
 }
 
@@ -192,12 +192,11 @@ function device(state) {
     h("button.scrim", {
       // Light for an opened tile, so the grid stays readable beside it.
       class: state.level === "section" ? "scrim scrim--light" : "scrim",
-      data: { open: panelOpen || !!state.history },
+      data: { open: panelOpen },
       "aria-label": "Close panel",
-      on: { click: () => { dispatch({ type: "collapse" }); dispatch({ type: "history", history: null }); } },
+      on: { click: () => dispatch({ type: "collapse" }) },
     }),
     panel,
-    historyPanel(state, dispatch),
     state.playerId ? playerSheet(state, dispatch, closePlayer) : null,
     state.sheet === "help" ? helpSheet(state, dispatch) : null,
     state.sheet === "account" ? accountSheet(state, dispatch) : null,
@@ -307,7 +306,7 @@ function render(action) {
 window.addEventListener("resize", fit);
 window.setInterval(() => {
   const s = getState();
-  if (s.signedIn && !s.expand && !s.history && !s.sheet && !s.playerId && !s.playerClosing && !Object.keys(s.scanning).length) dispatch({ type: "tick" });
+  if (s.signedIn && !s.expand && !s.sheet && !s.playerId && !s.playerClosing && !Object.keys(s.scanning).length) dispatch({ type: "tick" });
 }, 1000);
 
 render();

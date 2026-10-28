@@ -68,8 +68,8 @@ export const initialState = {
   /** Which twelve of the section are on screen. */
   page: 0,
   tableId: null,
-  /** Table dashboard tab. Games and Sessions are not tabs; see `panel`. */
-  tab: "live",
+  /** Table dashboard tab: players, inventory, games, sessions, override or live. */
+  tab: "players",
 
   /**
    * The tile a manager has opened up from the overview, and what it is showing.
@@ -89,8 +89,6 @@ export const initialState = {
   rail: "actions",
   /** @type {"open"|"closed"} */ playerList: "open",
 
-  /** Games and Sessions on the table dashboard live in a side panel. */
-  /** @type {null|"games"|"sessions"} */ history: null,
 
   /** Tables whose tray scan is running, by id. */
   scanning: {},
@@ -226,21 +224,20 @@ export function reducer(s, a) {
       return {
         ...s,
         page: a.page ?? s.page,
-        expand: { tableId: a.tableId, view: a.view || "menu", step: 1, alertId: a.alertId || null, mode: a.mode || "fill", amount: a.amount || null, reason: null },
+        expand: { tableId: a.tableId, view: a.view || "menu", step: 1, alertId: a.alertId || null, mode: a.mode || "fill", amount: a.amount || null, reason: a.reason || null, counts: null, chipSet: null },
       };
-    case "expand-view": return s.expand ? { ...s, expand: { ...s.expand, view: a.view, step: 1, amount: a.amount ?? null, mode: a.mode || s.expand.mode } } : s;
+    case "expand-view": return s.expand ? { ...s, expand: { ...s.expand, view: a.view, step: 1, amount: a.amount ?? null, mode: a.mode || s.expand.mode, counts: null, chipSet: null, reason: null } } : s;
     case "expand-set": return s.expand ? { ...s, expand: { ...s.expand, ...a.patch } } : s;
     case "collapse": return { ...s, expand: null };
     // The Override tab raises its corrections in the same side panel.
     case "flyout-open":
       return { ...s, expand: { tableId: s.tableId, view: "override", step: 1, overrideId: a.overrideId, reason: null } };
 
-    case "go-section": return { ...s, level: "section", tableId: null, history: null, expand: null };
-    case "go-table": return { ...s, level: "table", tableId: a.tableId, tab: a.tab || "live", history: a.history || null, expand: null, page: a.page ?? s.page };
+    case "go-section": return { ...s, level: "section", tableId: null, expand: null };
+    case "go-table": return { ...s, level: "table", tableId: a.tableId, tab: a.tab || "players", expand: null, page: a.page ?? s.page };
     case "tab": return { ...s, tab: a.tab };
     // Re-render for a glance (an open bet spot) that lives outside the store.
     case "view-refresh": return { ...s };
-    case "history": return { ...s, history: a.history };
 
     case "scan-start": return { ...s, scanning: { ...s.scanning, [a.tableId]: true } };
     case "scan-done": {

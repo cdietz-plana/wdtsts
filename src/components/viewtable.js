@@ -1,201 +1,106 @@
 import { h } from "../lib/dom.js";
-import { compact, limitShort, money } from "../lib/format.js";
-import { alertsForTable, playersForTable } from "../lib/selectors.js";
-import { currentHand } from "../data/games.js";
-import { chipTray } from "../data/tables.js";
-import { handView } from "./cards.js";
-import { iconClose } from "./icons.js";
+import { compact, money } from "../lib/format.js";
+import { playersForTable } from "../lib/selectors.js";
+import { memberNo, wagers } from "../data/casino.js";
 
 /**
- * View Table: the dealer view.
+ * View Table: the Dealer Display, as the dealer sees it.
  *
- * The functional inventory defines View Table as the live Dealer Display plus
- * the antenna view: the chip value sitting on every table location, with a
- * tap on a location opening its denominations, and for baccarat the shared
- * main bets at the top. The earlier Live tab kept the seats and the cards but
- * dropped the chips on the spots, which is the part a supervisor uses to see
- * the table without standing at it. This restores it.
+ * Review feedback: View Table should be the Dealer Display, not a breakdown
+ * of every wager in real time, and no cards anywhere. So this is the display
+ * itself: the positions around the layout, player search in the middle, the
+ * Banker and Player line and the total on the table, with each position's
+ * Player and Banker wager along the bottom.
  *
- * It follows the pattern the stakeholder liked on the overview: a tap on a
- * spot opens a quick overlay; a second tap on the player goes deeper.
- *
- * ASSUMED: the bet amounts are generated. In the product they come from the
- * table's RFID antennas through the Dealer Display integration.
+ * ASSUMED: amounts are generated. In the product this mirrors the dealer
+ * display through the table system.
  */
 
-const BET_TYPES = [
-  { key: "B", label: "Banker" },
-  { key: "P", label: "Player" },
-  { key: "T", label: "Tie" },
-  { key: "BP", label: "Banker pair" },
-  { key: "PP", label: "Player pair" },
-];
+/** Where each position sits on the display. Top center, the sides, the corners. */
+const SPOTS = { 3: "t1", 4: "t2", 5: "t3", 2: "ml", 6: "mr", 1: "bl", 7: "br" };
 
-const DENOMS = chipTray.map((d) => d.value).sort((a, b) => b - a);
-
-/** Chips on a spot, largest first, as the antennas would read them. */
-export function denominations(amount) {
-  const out = [];
-  let left = amount;
-  for (const v of DENOMS) {
-    const n = Math.floor(left / v);
-    if (n > 0) {
-      out.push({ value: v, count: n });
-      left -= n * v;
-    }
-  }
-  return out;
-}
-
-/** Deterministic bets for one position, inside the table's limits. */
-export function betsAt(table, player) {
-  if (!player) return [];
-  const r = (k) => ((player.seat * 7919 + table.id.length * 131 + k * 977 + (player.avgBet || 0)) % 1000) / 1000;
-  const unit = Math.max(table.limits.min, Math.min(table.limits.max, Math.round(((player.avgBet || table.limits.min) * (0.6 + r(1) * 0.8)) / 1000) * 1000));
-  const main = r(2) > 0.45 ? "B" : "P";
-  const bets = [{ key: main, amount: unit }];
-  if (r(3) > 0.72) bets.push({ key: "T", amount: Math.max(table.limits.min / 5, Math.round(unit * 0.05 / 100) * 100) });
-  if (r(4) > 0.8) bets.push({ key: main === "B" ? "BP" : "PP", amount: Math.max(table.limits.min / 5, Math.round(unit * 0.04 / 100) * 100) });
-  return bets;
-}
-
-/** Module state for the open spot. A preview is a glance, not app state. */
-let openSeat = null;
-
-export function viewTable(state, table, dispatch) {
+export function dealerDisplay(state, table, dispatch) {
   if (table.status === "offline") {
     return h(
-      "div.card.fade-in.vt",
+      "div.card.fade-in.dd",
       { style: { alignItems: "center", justifyContent: "center", gap: "12px" } },
       h("div.display", { text: "Offline", style: { fontSize: "var(--t-hero)", fontWeight: "700", color: "var(--critical)" } }),
-      h("div", { text: "No dealer display while the table is disconnected. Last chip count 18:04.", style: { fontSize: "var(--t-action)", color: "var(--ink-2)" } })
+      h("div", { text: "No dealer display while the table is disconnected.", style: { fontSize: "var(--t-action)", color: "var(--ink-2)" } })
     );
   }
-
   const players = playersForTable(state.players, table.id);
   const bySeat = new Map(players.map((p) => [p.seat, p]));
-  const hand = currentHand(table.id);
-  const positions = Array.from({ length: Math.min(7, table.seats) }, (_, i) => i + 1);
-  const back = [];
-  for (let n = 8; n <= table.seats; n += 1) if (bySeat.has(n)) back.push(n);
+  const seatNums = [1, 2, 3, 4, 5, 6, 7].slice(0, Math.min(7, table.seats));
+  const pb = (p) => {
+    const w = wagers(table, p);
+    return { P: (w.find((x) => x.key === "P") || {}).amount || 0, B: (w.find((x) => x.key === "B") || {}).amount || 0, all: w.reduce((n, x) => n + x.amount, 0) };
+  };
+  const totals = players.reduce((acc, p) => { const x = pb(p); return { P: acc.P + x.P, B: acc.B + x.B, all: acc.all + x.all, n: acc.n + (x.all ? 1 : 0) }; }, { P: 0, B: 0, all: 0, n: 0 });
 
-  // Shared main bets: every position's wagers added up by bet type, which is
-  // how the dealer display shows a baccarat table at the top.
-  const totals = Object.fromEntries(BET_TYPES.map((b) => [b.key, 0]));
-  for (const p of players) for (const b of betsAt(table, p)) totals[b.key] += b.amount;
-
-  const shared = h(
-    "div.vt__shared",
-    {},
-    BET_TYPES.map((b) =>
-      h("div.vt__sbet", { data: { key: b.key, empty: totals[b.key] === 0 } }, h("span.micro", { text: b.label }), h("b.mono", { text: totals[b.key] ? money(totals[b.key]) : "0" }))
-    )
-  );
-
-  // The dealer display's own messages, shown as it shows them.
-  const tableItems = alertsForTable(state.alerts, table.id).filter((a) => a.kind !== "receipt");
-  const dd = h(
-    "div.vt__dd",
-    {},
-    h("span.vt__dd-label", { text: "Dealer display" }),
-    h("span.vt__dd-msg", { text: tableItems.length ? tableItems[0].title : "Bets open" }),
-    h("span", { style: { flex: "1" } }),
-    h("span.mono.vt__dd-meta", { text: `Hand ${hand.game} · Limits ${limitShort(table.limits)}` })
-  );
-
-  const spot = (seat, small) => {
-    const p = bySeat.get(seat);
-    const bets = betsAt(table, p);
-    const total = bets.reduce((n, b) => n + b.amount, 0);
+  const box = (n) => {
+    const p = bySeat.get(n);
+    const x = p ? pb(p) : null;
+    const no = p ? memberNo(p) : null;
     return h(
-      "button.vt__spot",
-      {
-        data: { empty: !p, small: !!small, open: openSeat === `${table.id}:${seat}` },
-        disabled: p ? null : "",
-        "aria-label": p ? `Seat ${seat}, ${p.name}, ${money(total)} on the table` : `Seat ${seat}, open`,
-        on: {
-          click: (e) => {
-            e.stopPropagation();
-            openSeat = openSeat === `${table.id}:${seat}` ? null : `${table.id}:${seat}`;
-            dispatch({ type: "view-refresh" });
-          },
-        },
-      },
-      h("span.vt__seat", { text: String(seat) }),
+      "button.dd__box",
+      { data: { spot: SPOTS[n], empty: !p }, disabled: p ? null : "", "aria-label": p ? `Position ${n}, ${p.name}` : `Position ${n}, open`, on: { click: () => p && dispatch({ type: "open-player", playerId: p.id }) } },
+      h("span.dd__num", { text: String(n) }),
       p
-        ? [
-            h("span.vt__name", { text: p.name }),
-            small ? null : h("span.vt__bets", {}, bets.map((b) => h("span.vt__bet", { data: { key: b.key } }, h("i", { text: b.key }), h("b.mono", { text: compact(b.amount) })))),
-            h("span.vt__total.mono", { text: compact(total) }),
-          ]
-        : h("span.vt__open", { text: "Open" })
+        ? h(
+            "span.dd__who",
+            {},
+            h("span.dd__name", { text: p.name }),
+            no ? h("span.dd__no.mono", { text: `(${no})` }) : null,
+            h("span.dd__amt.mono", { text: x.all ? compact(x.all) : "No bet" })
+          )
+        : null
     );
   };
 
-  const arc = h(
-    "div.vt__arc",
+  const screen = h(
+    "div.dd__screen",
     {},
-    positions.map((s, i) => {
-      const off = Math.abs(i - (positions.length - 1) / 2);
-      return h("div.vt__pos", { style: { transform: `translateY(${-Math.round(off * off * 5)}px)` } }, spot(s));
-    })
-  );
-
-  const felt = h(
-    "div.vt__felt",
-    {},
-    h("div.vt__cards", {}, handView(hand, { size: "lg" })),
-    arc,
-    back.length ? h("div.vt__back", {}, h("span.micro", { text: "Back line" }), back.map((s) => spot(s, true))) : null
-  );
-
-  return h(
-    "div.card.fade-in.vt",
-    { on: { click: () => { if (openSeat) { openSeat = null; dispatch({ type: "view-refresh" }); } } } },
-    shared,
-    felt,
-    dd,
-    openSeat && openSeat.startsWith(`${table.id}:`) ? spotDetail(table, bySeat.get(Number(openSeat.split(":")[1])), dispatch) : null
-  );
-}
-
-/** The overlay for one spot: each bet and the chips that make it up. */
-function spotDetail(table, p, dispatch) {
-  if (!p) return null;
-  const bets = betsAt(table, p);
-  const total = bets.reduce((n, b) => n + b.amount, 0);
-  const label = (k) => (BET_TYPES.find((b) => b.key === k) || {}).label;
-  const close = () => {
-    openSeat = null;
-    dispatch({ type: "view-refresh" });
-  };
-  return h(
-    "div.vt__pop",
-    { role: "dialog", "aria-label": `Seat ${p.seat} bets`, on: { click: (e) => e.stopPropagation() } },
+    seatNums.map(box),
     h(
-      "div.vt__pop-head",
+      "div.dd__center",
       {},
-      h("span.vt__seat", { text: String(p.seat) }),
-      h("span", { style: { flex: "1", minWidth: "0" } }, h("span.vt__pop-name", { text: p.name }), h("span.vt__pop-sub", { text: p.rated ? `${p.tier} · card ${p.card}` : "Anonymous" })),
-      h("button.icon-btn", { "aria-label": "Close", on: { click: close } }, iconClose(15))
-    ),
-    bets.map((b) =>
+      h("div.dd__search", { text: "Player search" }),
+      h("span", { style: { flex: "1" } }),
       h(
-        "div.vt__pop-bet",
+        "div.dd__bp",
         {},
-        h("div.vt__pop-line", {}, h("span", { text: label(b.key) }), h("b.mono", { text: money(b.amount) })),
-        h("div.vt__chips", {}, denominations(b.amount).map((d) => h("span.vt__chip", {}, h("b.mono", { text: compact(d.value) }), h("span", { text: `×${d.count}` }))))
-      )
+        h("span.dd__bpv.mono", { text: money(totals.B) }),
+        h("span.dd__b", { text: "BANKER" }),
+        h("span.dd__p", { text: "PLAYER" }),
+        h("span.dd__bpv.mono", { text: money(totals.P) })
+      ),
+      h("div.dd__total.mono", { text: `${money(totals.all)} (${totals.n})` })
     ),
-    h("div.vt__pop-line.vt__pop-total", {}, h("span", { text: "On the table" }), h("b.mono", { text: money(total) })),
-    h("button.btn.btn--big", {
-      text: "Open player",
-      on: {
-        click: () => {
-          openSeat = null;
-          dispatch({ type: "open-player", playerId: p.id });
-        },
-      },
+    h("span.dd__corner.dd__corner--l.mono", { text: table.name }),
+    h("span.dd__corner.dd__corner--r.mono", { text: "Version 2.6.4.5" })
+  );
+
+  const strips = h(
+    "div.dd__strips",
+    {},
+    seatNums.map((n) => {
+      const p = bySeat.get(n);
+      const x = p ? pb(p) : { P: 0, B: 0 };
+      return h(
+        "div.dd__strip",
+        { data: { empty: !p } },
+        h("span.dd__snum", { text: String(n) }),
+        h("span.dd__sline", {}, h("i", { text: "P" }), h("b.mono", { text: x.P ? compact(x.P) : "" })),
+        h("span.dd__sline", {}, h("i", { text: "B" }), h("b.mono", { text: x.B ? compact(x.B) : "" }))
+      );
     })
+  );
+
+  return h(
+    "div.card.fade-in.dd",
+    {},
+    h("div.dd__top", {}, h("div.dd__dealer", {}, h("span.micro", { text: "Dealer" }), h("b", { text: table.dealer || "None" })), h("span", { style: { flex: "1" } }), h("span.dd__note", { text: table.seats > 7 ? "Front line shown. Seats 8 to 14 are on Players." : "" })),
+    screen,
+    strips
   );
 }

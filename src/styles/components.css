@@ -1805,3 +1805,16 @@ button.xp__row { cursor: pointer; }
 .ltg[data-theme="rouge"] .tabs button[aria-pressed="true"],
 .ltg[data-theme="rouge"] .pg__num[aria-current="page"] { color: #ffffff; }
 .ltg:not([data-theme="dark"]) .sheet .tag { --high-ink: #5a3e06; }
+
+/* 4-up tile: players where the cards used to be */
+.tile__people { display: flex; flex-direction: column; gap: 3px; flex-shrink: 0; }
+.tile__people--empty { font-size: var(--t-detail); color: var(--ink-3); padding: 6px 2px; }
+.tile__person {
+  display: grid; grid-template-columns: 24px minmax(0, 1fr) auto 66px; align-items: center; gap: 8px; min-height: 34px; padding: 0 8px;
+  border-radius: 9px; border: 1px solid var(--line); background: var(--surface-soft); color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+}
+.tile__pseat { width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; background: var(--ink); color: var(--on-ink); }
+.tile__pname { font-size: var(--t-body); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile__pavg { font-size: var(--t-micro); color: var(--ink-3); }
+.tile__pwin { font-size: var(--t-body); font-weight: 700; text-align: right; color: var(--ink-2); }
+.tile__pwin[data-up="true"] { color: var(--critical-ink); }

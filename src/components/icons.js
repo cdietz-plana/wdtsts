@@ -133,3 +133,15 @@ export const iconFlip = (s = 16) =>
 /** Floor map: lucide map. */
 export const iconMap = (s = 16) =>
   svg(s, '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/>', 'stroke-width="1.9" stroke-linejoin="round"');
+
+/** Inventory: lucide package. */
+export const iconBox = (s = 18) =>
+  svg(s, '<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>', 'stroke-width="1.9" stroke-linejoin="round"');
+
+/** Information. */
+export const iconInfo = (s = 18) =>
+  svg(s, '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/>', 'stroke-width="2" stroke-linecap="round"');
+
+/** Up or down trend, for win or loss at a glance. */
+export const iconTrend = (s = 18, up = true) =>
+  svg(s, up ? '<path d="M12 19V5M5 12l7-7 7 7"/>' : '<path d="M12 5v14M5 12l7 7 7-7"/>', 'stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"');
