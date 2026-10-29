@@ -35,7 +35,7 @@ const HELP = [
   { q: "The tile", a: "Inventory, Fill / Credit, More, History, Limits and Alerts. At 9 per page the buttons are icons; at 12, History, Limits and Alerts are under More." },
   { q: "Other pages", a: "When Actions are waiting on a page you are not looking at, a red line above the tables says how many and takes you there." },
   { q: "Seat cards", a: "On Players, tap the turn icon on a card for that player's session figures and functions. Rate player enters a rating." },
-  { q: "Figures bar", a: "Nine figures scroll sideways. The arrow at the right edge shows the rest." },
+  { q: "Figures bar", a: "The section's figures on the overview, and the table's figures on a table." },
 ];
 
 function sheet(title, subtitle, dispatch, body) {

@@ -405,3 +405,116 @@
 .tile__stage .tile__pwin[data-up="true"] { color: #ffd0d6; }
 .ltg:not([data-theme="dark"]) .pc__seat[data-rated="true"] { background: #0f6b3f; border-color: #0f6b3f; color: #ffffff; }
 .ltg:not([data-theme="dark"]) .pc[data-rated="true"] .pc__face { border-color: #0f6b3f; }
+
+/* People on the felt: plain lines on the table, not boxes inside a box. */
+.tile__stage .tile__people { gap: 0; padding: 0 4px; }
+.tile__stage .tile__person { background: transparent; border: 0; border-radius: 0; min-height: 30px; padding: 0 4px; }
+.tile__stage .tile__person + .tile__person { border-top: 1px solid rgba(255, 255, 255, 0.16); }
+.tile__stage .tile__person:active { background: rgba(255, 255, 255, 0.08); }
+
+/* Nine up: all six buttons keep their labels, icon beside the word. */
+.tile__bar[data-compact="true"] { gap: 4px; }
+.tile__bar[data-compact="true"] .tile__quick { height: 32px; flex-direction: row; gap: 5px; font-size: 11.5px; padding: 0 4px; }
+.tile__bar[data-compact="true"] .tile__quick svg { width: 15px; height: 15px; flex-shrink: 0; }
+.tile__bar[data-compact="true"] .tile__quick[data-dot="true"]::after { top: 4px; right: 4px; }
+.tile-grid[data-density="9"] .tile__stage .tile__action { min-height: 36px; padding-top: 3px; padding-bottom: 3px; }
+.tile-grid[data-density="9"] .tile__stage .tile__action-btn { height: 30px; }
+.tile-grid[data-density="9"] .tile__stage .tile__action-sub { display: none; }
+.tile__bar[data-n="6"][data-compact="true"] .tile__quick { height: 30px; }
+.tile-grid[data-density="9"] .tile__stage { min-height: 44px; }
+.tile-grid[data-density="9"] .tile__seats .seat { width: 11px !important; height: 11px !important; }
+.tile-grid[data-density="9"] .tile { gap: 4px; padding-top: 8px; padding-bottom: 8px; }
+/* Fourteen seats at nine and twelve up: back line sits beside the front line, so every tile is the same height. */
+.tile-grid[data-density="9"] .tile__seats > div,
+.tile-grid[data-density="12"] .tile__seats > div { flex-direction: row !important; gap: 8px !important; }
+/* With the clock gone, the figures take the room. */
+.kpi-strip--scroll { max-width: 860px; }
+/* Twelve up: an Action stacks, title over a full-width button, so the title is not cut. */
+.tile-grid[data-density="12"] .tile__stage .tile__action { flex-direction: column; align-items: stretch; gap: 4px; padding: 5px; }
+.tile-grid[data-density="12"] .tile__stage .tile__action-title { text-align: center; font-size: var(--t-micro); }
+.tile-grid[data-density="12"] .tile__stage .tile__action-btn { height: 28px; width: 100%; }
+/* The table: same corner as the buttons under it, so rows are never clipped by the curve. */
+.tile__stage, .tile-grid[data-density="12"] .tile__stage { border-radius: 10px; }
+.tile__stage { box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.22); padding: 6px 8px; }
+.tile__stage .tile__action, .tile__stage .tile__fill { border-radius: 8px; }
+.tile__stage .tile__person { min-height: 0; flex: 1; }
+.tile__stage .tile__people { flex: 1; min-height: 0; justify-content: center; }
+/* Inventory: the tray table runs to the bottom of the view, rows share the height. */
+.dt.dt--inv { flex: 1 1 auto; }
+.dt--inv .dt-table { height: 100%; }
+.dt--inv .dt-table tbody td { height: auto; }
+/* Glass over the dark lobby: switches and tabs need a near-solid frost to read. */
+.ltg[data-theme="glass"] { --seg-bg: rgba(255, 255, 255, 0.84); --seg-edge: rgba(255, 255, 255, 0.95); --seg-on: #ffffff; }
+.ltg[data-theme="glass"] .tabs button[aria-pressed="true"], .ltg[data-theme="glass"] .segmented button[aria-pressed="true"] { background: #0e141c; color: #ffffff; }
+
+/* Side panel: slides in, slides out. */
+@keyframes fly-in { from { transform: translateX(102%); } to { transform: translateX(0); } }
+@keyframes fly-out { from { transform: translateX(0); } to { transform: translateX(102%); } }
+@keyframes scrim-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scrim-out { from { opacity: 1; } to { opacity: 0; } }
+.flyout[data-enter="true"] { animation: fly-in 300ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.flyout[data-leave="true"] { animation: fly-out 240ms cubic-bezier(0.4, 0, 0.9, 0.6) both; pointer-events: none; }
+.scrim[data-enter="true"] { animation: scrim-in 300ms ease both; }
+.scrim[data-leave="true"] { animation: scrim-out 240ms ease both; }
+@media (prefers-reduced-motion: reduce) { .flyout[data-enter="true"], .flyout[data-leave="true"], .scrim[data-enter="true"], .scrim[data-leave="true"] { animation-duration: 1ms; } }
+
+/* Glass, All sections: headings and the Unassigned card sit on the wallpaper, so they get frost. */
+.ltg[data-theme="glass"] .secv__listhead, .ltg[data-theme="glass"] .secv__maphead { background: var(--surface); padding: 6px 12px; border-radius: 12px; backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
+.ltg[data-theme="glass"] .seccard--unassigned .seccard__face { background: var(--surface); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
+
+/* Filters on Games and Sessions. */
+.hist__filters { display: inline-flex; align-items: center; gap: 6px; }
+.hist__filters[aria-pressed="true"] { background: #17140f; border-color: #17140f; color: #ffffff; }
+.hist__filterbar { display: flex; align-items: center; gap: 14px; flex-shrink: 0; padding: 8px 12px; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line); }
+.hist__fgroup { display: flex; align-items: center; gap: 8px; }
+.hist__ftoggle[aria-pressed="true"] { background: #17140f; color: #ffffff; border-color: #17140f; }
+.hist__figs { flex-shrink: 0; align-self: stretch; }
+.hist__figs .hist-fig { flex: 1; }
+.hist__empty { text-align: center; padding: 18px; font-size: var(--t-body); color: var(--ink-2); }
+.ltg[data-theme="felt"] .hist__filterbar { --ink: #17140f; --ink-2: #44403a; --ink-3: #57524b; --line: #e0dcd0; --line-strong: #c7c2b2; --on-ink: #fbfaf6; --seg-bg: #f3f1ea; --seg-on: #ffffff; --seg-edge: #e0dcd0; color: #17140f; }
+.dt-table td.dt-none { text-align: center; color: var(--ink-2); height: 64px; }
+.ltg[data-theme="glass"] .sed__namebox, .ltg[data-theme="glass"] .sed__count { background: var(--surface); padding: 6px 12px; border-radius: 12px; backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
+
+/* The bar without the name: the figures take the width and share it evenly. */
+.kpi-strip--scroll { max-width: none; }
+.kpi-track .kpi { flex: 1 0 auto; padding: 0 12px; min-width: 0; }
+.kpi-track .kpi { padding: 0 9px; }
+.kpi-track .kpi__label { letter-spacing: 0.05em; }
+.bar .secpick__btn { max-width: 230px; }
+
+/* Review round 6 ------------------------------------------------------------- */
+/* The table image holds one Action, no more: the same height at every density. */
+.tile__stage { flex: 0 0 auto; height: 58px; min-height: 0; justify-content: center; }
+.tile-grid[data-density="12"] .tile__stage { height: 54px; }
+.tile-grid[data-density="9"] .tile__stage { min-height: 0; }
+/* Head at the top, buttons at the bottom, seats and table centered between. */
+.tile__front > .tile__seats { margin-top: auto; }
+.tile__front > .tile__bar { margin-top: auto; }
+.tile-grid[data-density="4"] .tile__front { gap: 10px; }
+.tile-grid[data-density="4"] .tile__stage .tile__felt-note { font-size: var(--t-body); }
+
+/* Three quick buttons and an arrow that leads to the rest. */
+.tile__bar--arrow { grid-template-columns: repeat(3, minmax(0, 1fr)) 40px; }
+.tile__bar--arrow .tile__quick { height: 44px; flex-direction: column; gap: 2px; }
+.tile-grid[data-density="4"] .tile__bar--arrow .tile__quick { height: 50px; font-size: 12px; }
+.tile__morearrow {
+  height: 100%; min-height: 44px; border-radius: 9px; border: 1px solid #17140f; background: #17140f; color: #ffffff;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
+}
+.tile__morearrow:active { transform: scale(0.96); }
+.tile-grid[data-density="12"] .tile__bar--arrow { grid-template-columns: repeat(3, minmax(0, 1fr)) 32px; gap: 4px; }
+
+/* A narrower Actions rail gives the tiles more room. */
+.pane--tables { width: calc(100% - 264px); }
+.pane--rail { left: calc(100% - 264px); width: 264px; }
+.pane--rail .rail-row { padding: 9px 8px 8px 10px; }
+.pane--rail .rail-row__title { font-size: var(--t-body); }
+.pane--rail .rail-tabs button { padding: 6px 6px; gap: 4px; }
+/* Rail at 264: tabs and rows fit without clipping. */
+.pane--rail .rail-tabs button { font-size: var(--t-detail); padding: 6px 4px; }
+.pane--rail .rail-tabs .count-badge { min-width: 18px; height: 18px; font-size: 10.5px; padding: 0 5px; }
+.pane--rail .rail-row__title { font-size: 15px; line-height: 1.2; }
+.pane--rail .rail-row > div:last-child { gap: 6px !important; min-width: 0; }
+.pane--rail .rail-row__where { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--t-micro); }
+.pane--rail .rail-row__src { flex-shrink: 0; }
+.pane--rail .rail-row__btn { flex-shrink: 0; height: 34px; padding: 0 11px; font-size: var(--t-detail); }

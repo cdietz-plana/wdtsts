@@ -121,7 +121,6 @@ export function overview(state, dispatch, handlers) {
     "div",
     { style: { display: "flex", flexDirection: "column", gap: "10px", flex: "1", minHeight: "0" } },
     head,
-    offPageBanner(state, page, per, dispatch),
     h(
       "div.tile-grid",
       { data: { open: !!inplace, density: String(per) }, style: { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` } },
@@ -166,14 +165,13 @@ function tile(state, dispatch, t, i, { onAlert }, isOpen, cols, per) {
     "div.tile__sub",
     {},
     h("span", { text: t.status === "closed" ? "Closed" : `Hand ${hand.game}` }),
-    per !== 12 ? h("span.tile__subq", { text: `${t.seated}/${t.seats} seated` }) : null
   );
 
-  const dots = h("div.tile__seats", {}, seats(t, players, { scale: per === 4 ? 1.6 : per === 9 ? 1.25 : 1, gap: per === 4 ? 7 : 4, onPick: (p) => dispatch({ type: "open-player", playerId: p.id }) }));
+  const dots = h("div.tile__seats", {}, seats(t, players, { frontOnly: true, scale: per === 4 ? 1.7 : per === 9 ? 1.3 : 1, gap: per === 4 ? 8 : 5, onPick: (p) => dispatch({ type: "open-player", playerId: p.id }) }));
 
   // The table image is the stage: an Action plays out on it, then a fill in
-  // progress, then an exception. When nothing needs the manager, the felt
-  // shows who is playing.
+  // progress, then an exception. When nothing needs the manager it shows the
+  // average bet. It is sized to hold one Action, no more.
   const a = actions[0];
   let onFelt;
   if (a) {
@@ -197,8 +195,6 @@ function tile(state, dispatch, t, i, { onAlert }, isOpen, cols, per) {
     onFelt = fillTracker(fill);
   } else if (exception) {
     onFelt = h("span.tile__hand", { text: statusLabel, data: { tone } });
-  } else if (per === 4) {
-    onFelt = topPlayersBlock(players, dispatch);
   } else {
     const avg = players.length ? Math.round(players.reduce((n, p) => n + (p.avgBet || 0), 0) / players.length) : 0;
     onFelt = h("span.tile__felt-note", { text: players.length ? `avg bet ${compact(avg)}` : "No players" });
@@ -221,10 +217,15 @@ function tile(state, dispatch, t, i, { onAlert }, isOpen, cols, per) {
     limits: () => quick(iconLimits(17), "Limits", xp("limits")),
     alerts: () => quick(iconBell(17), "Alerts", xp("alerts"), { dot: alerts.length > 0 }),
   };
-  // Six buttons at four up. At nine they lose their labels; at twelve the
-  // three used most stay and the rest sit under More.
-  const set = per === 12 ? ["inventory", "fill", "more"] : ["inventory", "fill", "more", "history", "limits", "alerts"];
-  const bar = h("div.tile__bar", { data: { n: String(set.length), icons: per === 9 } }, set.map((k) => B[k]()));
+  // Review feedback: three quick buttons at every density, and an arrow at
+  // the end of the row that leads to everything else.
+  const set = ["inventory", "fill", "history"];
+  const moreArrow = h(
+    "button.tile__morearrow",
+    { "aria-label": "More functions", title: "More", on: { click: (e) => { e.stopPropagation(); dispatch({ type: "expand", tableId: t.id, view: "menu" }); } } },
+    iconChevron(18)
+  );
+  const bar = h("div.tile__bar.tile__bar--arrow", { data: { n: "3" } }, set.map((k) => B[k]()), moreArrow);
 
   return h(
     "div.tile",

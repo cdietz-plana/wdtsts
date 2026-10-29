@@ -18,7 +18,7 @@ import { createStore } from "./store.js";
 const HINTS = {
   login: "Try: tap the card reader, or key in any ID of four digits or more.",
   section:
-    "Try: an Action's button on the felt · Supervisor requested: On my way, then Close with a reason · the six buttons on a tile · the turn icon for table figures · 9 and 12 per page, and the red line when Actions are on other pages · the arrow on the figures bar · X on any Action or Alert to close it.",
+    "Try: an Action's button on the table image · Supervisor requested: On my way, then Close with a reason · Inventory, Fill / Credit, History, and the arrow for everything else · the turn icon for table figures · 4 / 9 / 12 per page · the red dot on a page number means an Action is waiting there · X on any Action or Alert to close it.",
   sections: "Try: tap a section card to light it up on the map, then Open or Edit tables · the turn icon flips a card for its figures · tap a table on the map for a quick look · Create new section.",
   table: "Try: the turn icon on a seat card for the player's figures · Rate player on a card · tap a game to see its limits and positions · Sessions scrolls sideways · Scan is on Inventory · the arrows beside the table name step through the section.",
 };
@@ -150,6 +150,9 @@ function closePlayer() {
 
 /* -------------------------------------------------------------------- view */
 
+/** Whether the side panel was open on the last render, and what it showed. */
+const lastPanel = { open: false, node: null };
+
 function device(state) {
   const paper = wallpaper(state.wallpaper);
   const ambient = h(
@@ -172,7 +175,19 @@ function device(state) {
   // A tile opened as a side panel, or anything opened from the full table,
   // shows in the right-edge panel over the rail.
   const panelOpen = !!state.expand && (state.expandStyle === "panel" || state.level === "table");
-  const panel = h("aside.flyout.flyout--xp", { data: { open: panelOpen }, "aria-hidden": String(!panelOpen) }, panelOpen ? expandContent(state, dispatch, handlers) : null);
+  // The side panel slides in when it opens and out when it closes. Every
+  // render rebuilds the tree, so the motion is keyed to the change in state,
+  // not to the element: entering plays once, and a closing panel keeps a
+  // still copy of what it showed while it slides away.
+  const entering = panelOpen && !lastPanel.open;
+  const leaving = !panelOpen && lastPanel.open && lastPanel.node;
+  const panel = h(
+    "aside.flyout.flyout--xp",
+    { data: { open: panelOpen, enter: entering, leave: !!leaving }, "aria-hidden": String(!panelOpen) },
+    panelOpen ? expandContent(state, dispatch, handlers) : leaving ? [...lastPanel.node.cloneNode(true).childNodes] : null
+  );
+  lastPanel.open = panelOpen;
+  lastPanel.node = panelOpen ? panel : null;
 
   return h(
     "div.ltg",
@@ -192,7 +207,7 @@ function device(state) {
     h("button.scrim", {
       // Light for an opened tile, so the grid stays readable beside it.
       class: state.level === "section" ? "scrim scrim--light" : "scrim",
-      data: { open: panelOpen },
+      data: { open: panelOpen, enter: entering, leave: !!leaving },
       "aria-label": "Close panel",
       on: { click: () => dispatch({ type: "collapse" }) },
     }),

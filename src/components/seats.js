@@ -30,7 +30,7 @@ const TAPPABLE_AT = 11;
  *   tap: draw at finger size. For the Live view, where the table fills the
  *   screen and a seat is something you press rather than something you read.
  */
-export function seats(table, players = [], { scale = 1, gap = 3, tap = false, onPick = null } = {}) {
+export function seats(table, players = [], { scale = 1, gap = 3, tap = false, onPick = null, frontOnly = false } = {}) {
   const bySeat = new Map(players.map((p) => [p.seat, p]));
   const total = table.seats;
   const rows = [];
@@ -48,7 +48,8 @@ export function seats(table, players = [], { scale = 1, gap = 3, tap = false, on
   );
   const back = [];
   for (let n = PER_ROW + 1; n <= total; n += 1) if (bySeat.has(n)) back.push(dot(bySeat.get(n), scale, onPick, tap));
-  if (back.length) rows.push(h("div", { style: { display: "flex", gap: `${gap}px`, alignItems: "center" } }, back));
+  // frontOnly: back-line bettors are under discussion, so the tile shows the seated line only.
+  if (back.length && !frontOnly) rows.push(h("div", { style: { display: "flex", gap: `${gap}px`, alignItems: "center" } }, back));
 
   return h(
     "div",

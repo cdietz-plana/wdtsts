@@ -298,11 +298,20 @@ const openGames = new Set();
 export function gamesTab(state, table, dispatch) {
   const players = playersForTable(state.players, table.id);
   const profile = limitProfiles(table)[0].name;
-  const rows = gameRows(table, players, profile);
+  const all = gameRows(table, players, profile);
+  const f = FILTERS.games;
+  const rows = all.filter((g) => (f.result === "all" || g.result.split("/")[0] === f.result) && (!f.side || g.result.includes("/")) && (!f.loss || g.casinoWL < 0));
   return h(
     "div.fade-in.hist",
     {},
-    h("div.hist__head", {}, h("span.hist__count", { text: `${rows.length} Games` }), h("span", { style: { flex: "1" } }), filtersBtn(dispatch)),
+    h("div.hist__head", {}, h("span.hist__count", { text: countLabel(rows.length, all.length, "Games") }), h("span", { style: { flex: "1" } }), filtersBtn("games", dispatch)),
+    f.open
+      ? filterBar("games", dispatch, [
+          group("Result", "result", [["all", "All"], ["B", "Banker"], ["P", "Player"], ["TIE", "Tie"]]),
+          toggle("Side bet hit", "side"),
+          toggle("House lost", "loss"),
+        ])
+      : null,
     dataTable({
       className: "dt--games",
       columns: [
@@ -319,6 +328,7 @@ export function gamesTab(state, table, dispatch) {
         { key: "x", label: "", width: "40px", render: (g) => h("span.dt-caret", { data: { open: openGames.has(`${table.id}:${g.id}`) } }, iconChevron(14, "down")) },
       ],
       rows,
+      empty: "No games match these filters.",
       rowKey: (g) => `${table.id}:${g.id}`,
       isOpen: (g) => openGames.has(`${table.id}:${g.id}`),
       onRow: (g) => {
@@ -370,7 +380,9 @@ export function gamesTab(state, table, dispatch) {
  */
 export function sessionsTab(state, table, dispatch) {
   const everyone = state.players.filter((p) => p.tableId === table.id);
-  const rows = sessionsFor(table, everyone);
+  const all = sessionsFor(table, everyone);
+  const f = FILTERS.sessions;
+  const rows = all.filter((r) => (f.status === "all" || r.status === f.status) && (f.rated === "all" || (f.rated === "rated" ? !!r.rating : !r.rating)));
   const sum = (k) => rows.reduce((n, r) => n + (r[k] || 0), 0);
   const avg = rows.length ? Math.round(sum("avgBet") / rows.length) : 0;
   const fig = (label, value, neg) => h("div.hist-fig", {}, h("span.micro", { text: label }), h("b.mono", { text: value, data: { neg: !!neg } }));
@@ -381,13 +393,20 @@ export function sessionsTab(state, table, dispatch) {
     h(
       "div.hist__head",
       {},
-      h("span.hist__count", { text: `${rows.length} Sessions` }),
-      h("div.hist__figs", {}, fig("Casino W/L", money(sum("casinoWL")), sum("casinoWL") < 0), fig("Average bet", money(avg)), fig("Cash handle", money(sum("cashHandle"))), fig("Promo handle", money(sum("promoHandle"))), fig("Buy in", money(sum("buyIn")))),
+      h("span.hist__count", { text: countLabel(rows.length, all.length, "Sessions") }),
       h("span", { style: { flex: "1" } }),
       h("button.btn.btn--ghost", { text: "Create manual rating", on: { click: () => dispatch({ type: "expand", tableId: table.id, view: "rate" }) } }),
       h("button.btn.btn--ghost", { text: "Update closed sessions", on: { click: () => dispatch({ type: "toast", message: "Closed sessions sent for update." }) } }),
-      filtersBtn(dispatch)
+      filtersBtn("sessions", dispatch)
     ),
+    f.open
+      ? filterBar("sessions", dispatch, [
+          group("Status", "status", [["all", "All"], ["open", "Open"], ["closed", "Closed"]]),
+          group("Player", "rated", [["all", "All"], ["rated", "Rated"], ["anon", "Anonymous"]]),
+        ])
+      : null,
+    // The totals follow the filter, so they always describe the rows shown.
+    h("div.hist__figs", {}, fig("Casino W/L", money(sum("casinoWL")), sum("casinoWL") < 0), fig("Average bet", money(avg)), fig("Cash handle", money(sum("cashHandle"))), fig("Promo handle", money(sum("promoHandle"))), fig("Buy in", money(sum("buyIn")))),
     dataTable({
       className: "dt--sessions",
       columns: [
@@ -409,10 +428,55 @@ export function sessionsTab(state, table, dispatch) {
       ],
       rows,
       onRow: (r) => dispatch({ type: "open-player", playerId: r.playerId }),
+      empty: "No sessions match these filters.",
     })
   );
 }
 
-const filtersBtn = (dispatch) => h("button.btn.btn--ghost", { text: "Filters", on: { click: () => dispatch({ type: "toast", message: "Filter by shoe, player, time or result." }) } });
+/* ---------------------------------------------------------------- filters */
+
+/**
+ * Filters for Games and Sessions. They narrow the list on screen, so they
+ * are a glance, held here rather than in the store, and they stay set while
+ * the manager moves between tables.
+ */
+const FILTERS = {
+  games: { open: false, result: "all", side: false, loss: false },
+  sessions: { open: false, status: "all", rated: "all" },
+};
+const DEFAULTS = { games: { result: "all", side: false, loss: false }, sessions: { status: "all", rated: "all" } };
+const activeCount = (key) => Object.entries(DEFAULTS[key]).filter(([k, v]) => FILTERS[key][k] !== v).length;
+const countLabel = (n, of, noun) => (n === of ? `${n} ${noun}` : `${n} of ${of} ${noun}`);
+
+function filtersBtn(key, dispatch) {
+  const n = activeCount(key);
+  return h(
+    "button.btn.btn--ghost.hist__filters",
+    { "aria-pressed": String(FILTERS[key].open), on: { click: () => { FILTERS[key].open = !FILTERS[key].open; dispatch({ type: "view-refresh" }); } } },
+    "Filters",
+    n ? h("span.count-badge", { text: String(n) }) : null
+  );
+}
+
+/** The filter row: each group is one tap per option, Clear resets them. */
+function filterBar(key, dispatch, parts) {
+  const set = (k, v) => { FILTERS[key][k] = v; dispatch({ type: "view-refresh" }); };
+  return h(
+    "div.hist__filterbar",
+    {},
+    parts.map((part) => part(key, set)),
+    h("span", { style: { flex: "1" } }),
+    activeCount(key) ? h("button.btn.btn--ghost", { text: "Clear", on: { click: () => { Object.assign(FILTERS[key], DEFAULTS[key]); dispatch({ type: "view-refresh" }); } } }) : null
+  );
+}
+const group = (label, k, options) => (key, set) =>
+  h(
+    "div.hist__fgroup",
+    {},
+    h("span.micro", { text: label }),
+    h("div.segmented.segmented--sm", { role: "group", "aria-label": label }, options.map(([v, text]) => h("button", { text, "aria-pressed": String(FILTERS[key][k] === v), on: { click: () => set(k, v) } })))
+  );
+const toggle = (label, k) => (key, set) =>
+  h("button.chip.hist__ftoggle", { text: label, "aria-pressed": String(!!FILTERS[key][k]), on: { click: () => set(k, !FILTERS[key][k]) } });
 
 export { iconFill };

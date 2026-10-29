@@ -9,7 +9,7 @@ import { h } from "../lib/dom.js";
  *   rows: any[], onRow?: (row)=>void, expand?: (row)=>any, isOpen?: (row)=>boolean,
  *   rowKey?: (row)=>string, foot?: string[], className?: string }} opts
  */
-export function dataTable({ columns, rows, onRow, expand, isOpen, foot, className }) {
+export function dataTable({ columns, rows, onRow, expand, isOpen, foot, className, empty }) {
   const head = h(
     "thead",
     {},
@@ -32,6 +32,8 @@ export function dataTable({ columns, rows, onRow, expand, isOpen, foot, classNam
     );
     if (open && expand) body.appendChild(h("tr.dt-exp", {}, h("td", { colspan: String(columns.length) }, expand(r))));
   });
+
+  if (!rows.length && empty) body.appendChild(h("tr", {}, h("td.dt-none", { colspan: String(columns.length), text: empty })));
 
   const table = h(
     "table.dt-table",

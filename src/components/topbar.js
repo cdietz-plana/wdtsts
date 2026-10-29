@@ -1,14 +1,12 @@
 import { h } from "../lib/dom.js";
-import { compact, percent, wallClock } from "../lib/format.js";
+import { compact, percent } from "../lib/format.js";
 import { barKpis, findTable } from "../lib/selectors.js";
-import { currentHand } from "../data/games.js";
 import { SUPERVISOR } from "../lib/supervisor.js";
 import { iconBack, iconChevron, iconGrid, iconInfo, iconTick } from "./icons.js";
 import { initialAlerts } from "../data/alerts.js";
 const ALL_ACTIONS = initialAlerts.filter((a) => a.kind === "action");
 import { ICON } from "../assets.js";
 
-const GAMING_DAY = "Fri 25 Sep";
 
 /**
  * KPI strip with the Casino Manager figures WDTS asked for. Nine figures do
@@ -23,7 +21,8 @@ function kpis(state, table) {
     h("div.kpi", {}, h("span.kpi__label", { text: label }), h("b.kpi__value.mono", { text: value, style: color ? { color } : {} }));
   const wl = k.winLoss < 0 ? "var(--critical-ink)" : "var(--ok-ink)";
   const items = [
-    table ? item("Hand", String(currentHand(table.id).game)) : item("Open tables", `${k.openTables}/${k.totalTables}`),
+    // On a table, Open tables means nothing and the hand is on the shoe strip, so the eight that apply show.
+    table ? null : item("Open tables", `${k.openTables}/${k.totalTables}`),
     item("Utilization", `${Math.round(k.utilization * 100)}%`),
     item(table ? "Table W/L" : "Section W/L", compact(k.winLoss), wl),
     item("Theo win", compact(k.theo)),
@@ -63,7 +62,8 @@ export function topBar(state, dispatch) {
   const table = state.level === "table" ? findTable(state.tables, state.tableId) : null;
   const right = [
     kpis(state, table),
-    h("div.clock.clock--quiet", {}, h("span.micro", { text: GAMING_DAY }), h("b.mono", { text: wallClock(state.clockSeconds), data: { live: "clock" } })),
+    // No clock: the tablet's own status bar already shows the date and time,
+    // and the space goes to the figures.
     h("button.icon-btn", { "aria-label": "Information", title: "Information", on: { click: () => dispatch({ type: "sheet", sheet: "help" }) } }, iconInfo(19)),
     h(
       "button.icon-btn",
@@ -75,17 +75,13 @@ export function topBar(state, dispatch) {
   if (!table) {
     const sec = state.sections.find((x) => x.id === state.sectionId) || state.sections[0];
     const onSections = state.level === "sections";
-    const allTables = state.allTables.length;
     return h(
       "header.bar",
       {},
       h("div.mark", {}, h("img", { src: ICON, alt: "WDTS", width: "26", height: "26" })),
-      h(
-        "div",
-        { style: { flexShrink: "0" } },
-        h("div.display", { text: SUPERVISOR.name, style: { fontSize: "var(--t-title)", fontWeight: "600", lineHeight: "1.2", whiteSpace: "nowrap" } }),
-        h("div", { text: onSections ? `${state.sections.length} sections · ${allTables} tables` : `${state.tables.length} tables`, style: { fontSize: "var(--t-detail)", color: "var(--ink-3)", whiteSpace: "nowrap" } })
-      ),
+      // Review feedback: the name and table count came out of the bar. The
+      // account button already carries the manager's initials, the table
+      // count sits with the pagination, and the room goes to the figures.
       sectionPicker(state, dispatch, sec, onSections),
       onSections ? h("div", { style: { flex: "1" } }) : right[0],
       right.slice(1)
