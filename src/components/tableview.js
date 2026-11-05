@@ -422,7 +422,7 @@ export function sessionsTab(state, table, dispatch) {
         { key: "cash", label: "Cash handle", align: "right", render: (r) => money(r.cashHandle) },
         { key: "promo", label: "Promo handle", align: "right", render: (r) => money(r.promoHandle) },
         { key: "buyin", label: "Buy in", align: "right", render: (r) => money(r.buyIn) },
-        { key: "seat", label: "Seat", align: "center", render: (r) => String(r.seat) },
+        { key: "seat", label: "Seat", align: "center", render: (r) => (r.seat ? String(r.seat) : "\u2014") },
         { key: "mid", label: "MID", render: (r) => h("button.dt-link", { text: "Edit", on: { click: (e) => { e.stopPropagation(); dispatch({ type: "toast", message: `MID for ${r.player}: ${r.mid || "none"}.` }); } } }) },
         { key: "notes", label: "Notes", align: "center", render: (r) => h("span.dt-notes", { text: String(r.notes) }) },
       ],

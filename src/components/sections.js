@@ -3,7 +3,7 @@ import { compact, percent } from "../lib/format.js";
 import { performance } from "../lib/selectors.js";
 import { initialAlerts } from "../data/alerts.js";
 import { floorMap, sectionOf } from "./floormap.js";
-import { iconChevron, iconClose, iconFlip, iconGrid } from "./icons.js";
+import { iconChevron, iconClose, iconFlip, iconGrid, iconTick } from "./icons.js";
 
 /**
  * All sections.
@@ -37,7 +37,8 @@ export function sectionsView(state, dispatch) {
     { on: { click: () => { if (state.mapPreview) dispatch({ type: "map-preview", tableId: null }); } } },
     h("div.secv__maphead", {}, h("span.display", { text: "Floor" }), h("span.micro", { text: "Tap a table for a quick look" })),
     floorMap(state, {
-      focus: focused,
+      // Ticked sections light up together; otherwise the one tapped.
+      focus: state.secPick.length ? state.secPick : focused,
       preview: state.mapPreview,
       onTable: (id) => dispatch({ type: "map-preview", tableId: state.mapPreview === id ? null : id }),
       onClose: () => dispatch({ type: "map-preview", tableId: null }),
@@ -65,10 +66,16 @@ export function sectionsView(state, dispatch) {
     const flipBtn = (label) =>
       h("button.tile__flip", { "aria-label": label, on: { click: (e) => { e.stopPropagation(); isFlipped ? flipped.delete(s.id) : flipped.add(s.id); refresh(); } } }, iconFlip(15));
 
+    const picked = state.secPick.includes(s.id);
     const head = () => h(
       "div.seccard__head",
       {},
-      h("span.seccard__sw", { style: { background: `hsl(${s.hue} 55% 48%)` } }),
+      // Tick to view several sections together.
+      h(
+        "button.seccard__pick",
+        { role: "checkbox", "aria-checked": String(picked), "aria-label": `Select ${s.name}`, style: { "--sec": `hsl(${s.hue} 55% 48%)` }, on: { click: (e) => { e.stopPropagation(); dispatch({ type: "sec-pick", sectionId: s.id }); } } },
+        picked ? iconTick(13) : null
+      ),
       h("span", { style: { flex: "1", minWidth: "0" } }, h("span.seccard__name", { text: s.name }), h("span.seccard__sub", { text: s.manager })),
       acts ? h("span.count-badge", { text: String(acts), title: `${acts} actions` }) : null,
       flipBtn(isFlipped ? "Back to the section" : "Show section figures")
@@ -113,7 +120,7 @@ export function sectionsView(state, dispatch) {
       {
         role: "button",
         tabindex: "0",
-        data: { focused: isFocused, flipped: isFlipped, current: s.id === state.sectionId },
+        data: { focused: isFocused, flipped: isFlipped, current: state.viewIds.includes(s.id), picked },
         on: { click: () => { focused = isFocused ? null : s.id; refresh(); } },
       },
       front,
@@ -128,9 +135,11 @@ export function sectionsView(state, dispatch) {
       "div.secv__listhead",
       {},
       h("span.display", { text: "Sections" }),
+      h("span.micro", { text: "Tick to view several together" }),
       h("span", { style: { flex: "1" } }),
-      h("button.btn", { text: "Create new section", on: { click: () => dispatch({ type: "edit-section", sectionId: null }) } })
+      h("button.btn.btn--ghost", { text: "Create new section", on: { click: () => dispatch({ type: "edit-section", sectionId: null }) } })
     ),
+    pickBar(state, dispatch),
     h(
       "div.secv__cards",
       {},
@@ -300,6 +309,27 @@ function chip(id, name, o, own, _sel, onClick, label) {
     h("span.mono", { text: name }),
     from ? h("span.sed__from", { text: `from ${from}` }) : null,
     h("span.sed__x", {}, iconClose(11))
+  );
+}
+
+/**
+ * Several sections at once: tick the cards, then View together. The overview
+ * then shows every table from those sections, each tagged with its section's
+ * color, and Edit tables there still changes any one of them in place.
+ */
+function pickBar(state, dispatch) {
+  const picks = state.secPick.map((id) => state.sections.find((x) => x.id === id)).filter(Boolean);
+  if (!picks.length) return null;
+  const tables = picks.reduce((n, x) => n + x.tableIds.length, 0);
+  return h(
+    "div.secv__pickbar",
+    {},
+    h("span.secv__picksw", {}, picks.map((x) => h("span.ov-sec__sw", { style: { background: `hsl(${x.hue} 55% 48%)` } }))),
+    h("b", { text: `${picks.length} ${picks.length === 1 ? "section" : "sections"}` }),
+    h("span", { text: `${tables} tables` }),
+    h("span", { style: { flex: "1" } }),
+    h("button.btn.btn--ghost", { text: "Clear", on: { click: () => dispatch({ type: "sec-pick-clear" }) } }),
+    h("button.btn", { text: picks.length === 1 ? "Open section" : "View together", on: { click: () => dispatch({ type: "view-sections", sectionIds: picks.map((x) => x.id) }) } })
   );
 }
 

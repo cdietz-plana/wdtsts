@@ -43,10 +43,13 @@ export function playerAlerts(players, thresholds, resolved) {
 const withPlayerAlerts = (s) => ({ ...s, alerts: [...s.alerts.filter((a) => a.gen !== "player"), ...playerAlerts(s.players, s.thresholds, s.resolved)] });
 
 /** Everything that narrows to the tables in one section. */
-function scoped(sections, sectionId, resolved) {
-  const sec = sections.find((x) => x.id === sectionId) || sections[0];
-  const ids = new Set(sec.tableIds);
-  const tables = ALL_TABLES.filter((t) => ids.has(t.id));
+function scoped(sections, sectionIds, resolved) {
+  // One section or several viewed together; tables keep their section order.
+  const list = [].concat(sectionIds).map((id) => sections.find((x) => x.id === id)).filter(Boolean);
+  const secs = list.length ? list : [sections[0]];
+  const order = secs.flatMap((x) => x.tableIds);
+  const ids = new Set(order);
+  const tables = order.map((id) => ALL_TABLES.find((t) => t.id === id)).filter(Boolean);
   return {
     tables,
     alerts: initialAlerts.filter((x) => ids.has(x.tableId) && !resolved.includes(x.id)),
@@ -103,6 +106,21 @@ export const initialState = {
   /** Sections on the floor, and the one this manager is looking at. */
   sections: initialSections,
   sectionId: HOME_SECTION,
+  /** Sections on screen together. One by default; several when picked on All sections. */
+  viewIds: [HOME_SECTION],
+  /**
+   * Review control, not product: which card layout the overview uses.
+   * standard is the live tile (table side first). a, b and c are the three
+   * figure-first layouts under review: tab and side list, tab and serif
+   * columns, plain heading and chips.
+   */
+  look: "standard",
+  /** Section cards ticked on All sections, before View together. */
+  secPick: [],
+  /** Dispatch: the call being made, and calls in flight. */
+  dispatchOpen: null,
+  /** @type {{id:string, role:string, tableId:string|null, where:string, reason:string, note:string, stage:number, discreet:boolean}[]} */
+  calls: [],
   /** The section picker in the bar. */
   sectionMenu: false,
   /**
@@ -145,15 +163,32 @@ export function reducer(s, a) {
     case "login-id": return { ...s, login: { ...s.login, id: a.id } };
     case "sign-in": return { ...s, signedIn: true };
     case "sign-out":
-      return { ...initialState, theme: s.theme, wallpaper: s.wallpaper, expandStyle: s.expandStyle, sections: s.sections, sectionId: s.sectionId, perPage: s.perPage, resolved: s.resolved, tables: s.tables, alerts: s.alerts, players: s.players };
+      return { ...initialState, theme: s.theme, wallpaper: s.wallpaper, expandStyle: s.expandStyle, sections: s.sections, sectionId: s.sectionId, viewIds: s.viewIds, perPage: s.perPage, resolved: s.resolved, tables: s.tables, alerts: s.alerts, players: s.players };
     case "section-menu": return { ...s, sectionMenu: a.open ?? !s.sectionMenu };
     case "select-section":
       return withPlayerAlerts({
         ...s,
-        ...scoped(s.sections, a.sectionId, s.resolved),
-        sectionId: a.sectionId, sectionMenu: false, page: 0, level: "section", tableId: null, expand: null, editSection: null, mapPreview: null,
+        ...scoped(s.sections, [a.sectionId], s.resolved),
+        sectionId: a.sectionId, viewIds: [a.sectionId], secPick: [], sectionMenu: false, page: 0, level: "section", tableId: null, expand: null, editSection: null, mapPreview: null,
       });
-    case "go-sections": return { ...s, level: "sections", sectionMenu: false, expand: null, editSection: null, mapPreview: null };
+    case "go-sections": return { ...s, level: "sections", sheet: null, sectionMenu: false, expand: null, editSection: null, mapPreview: null, secPick: [] };
+    case "sec-pick": return { ...s, secPick: s.secPick.includes(a.sectionId) ? s.secPick.filter((x) => x !== a.sectionId) : [...s.secPick, a.sectionId] };
+    case "sec-pick-clear": return { ...s, secPick: [] };
+    case "view-sections": {
+      const ids = a.sectionIds.length ? a.sectionIds : [s.sectionId];
+      return withPlayerAlerts({
+        ...s,
+        ...scoped(s.sections, ids, s.resolved),
+        sectionId: ids[0], viewIds: ids, secPick: [], page: 0, level: "section", tableId: null, expand: null, editSection: null, mapPreview: null,
+      });
+    }
+    /* --- dispatch ----------------------------------------------------------- */
+    case "dispatch-open": return { ...s, dispatchOpen: { step: 1, role: null, tableId: a.tableId ?? (s.level === "table" ? s.tableId : null), where: "", reason: null, note: "" }, expand: null };
+    case "dispatch-set": return s.dispatchOpen ? { ...s, dispatchOpen: { ...s.dispatchOpen, ...a.patch } } : s;
+    case "dispatch-close": return { ...s, dispatchOpen: null };
+    case "call-start": return { ...s, calls: [...s.calls, a.call], dispatchOpen: null, toast: a.message };
+    case "call-stage": return { ...s, calls: s.calls.map((c) => (c.id === a.callId ? { ...c, stage: a.stage } : c)) };
+    case "call-done": return { ...s, calls: s.calls.filter((c) => c.id !== a.callId) };
     case "map-preview": return { ...s, mapPreview: a.tableId };
 
     /* --- section editor --------------------------------------------------- */
@@ -168,6 +203,8 @@ export function reducer(s, a) {
           tableIds: sec ? [...sec.tableIds] : [],
           from: "unassigned",
           mode: "list",
+          // Opened from the tables overview: Save and Cancel go back there.
+          back: a.back || null,
           pickLeft: [],
           pickRight: [],
         },
@@ -202,12 +239,24 @@ export function reducer(s, a) {
       let sections = s.sections.map((x) => (x.id === id ? x : { ...x, tableIds: x.tableIds.filter((t) => !moving.has(t)) }));
       if (e.id) sections = sections.map((x) => (x.id === id ? { ...x, name: e.name.trim(), tableIds: [...e.tableIds] } : x));
       else sections = [...sections, { id, name: e.name.trim(), manager: "Unassigned", tableIds: [...e.tableIds], hue: 12 + (sections.length * 67) % 360, zone: null }];
-      const next = { ...s, sections, editSection: null, toast: `${e.name.trim()} saved with ${e.tableIds.length} tables.` };
-      return withPlayerAlerts({ ...next, ...scoped(sections, s.sectionId, s.resolved) });
+      const viewIds = s.viewIds.filter((x) => sections.some((y) => y.id === x));
+      const next = { ...s, sections, viewIds: viewIds.length ? viewIds : [id], editSection: null, level: e.back === "section" ? "section" : s.level, toast: `${e.name.trim()} saved with ${e.tableIds.length} tables.` };
+      return withPlayerAlerts({ ...next, ...scoped(sections, next.viewIds, s.resolved) });
     }
-    case "edit-cancel": return { ...s, editSection: null };
+    case "edit-cancel": return { ...s, editSection: null, level: s.editSection && s.editSection.back === "section" ? "section" : s.level };
+    // Edit a section's tables straight from the overview, then come back.
+    case "edit-from-overview": {
+      const sec = s.sections.find((x) => x.id === a.sectionId);
+      if (!sec) return s;
+      return { ...s, level: "sections", expand: null, mapPreview: null, editSection: { id: sec.id, name: sec.name, tableIds: [...sec.tableIds], from: "unassigned", mode: "list", pickLeft: [], pickRight: [], back: "section" } };
+    }
     case "threshold-edit": return { ...s, thresholdEdit: a.open ?? !s.thresholdEdit };
     case "expand-style": return { ...s, expandStyle: a.style };
+    case "look": {
+      if (a.look === "standard") return { ...s, look: "standard" };
+      // The three layouts were drawn in Current on Gray at 9 per page.
+      return { ...s, look: a.look, theme: "current", wallpaper: WALLPAPER_FOR_THEME.current, perPage: 9, page: 0 };
+    }
     case "page": return { ...s, page: a.page, expand: null };
     // Changing density keeps the first table on screen in view.
     case "overview-mode": return { ...s, overviewMode: a.mode, expand: null, mapPreview: null };

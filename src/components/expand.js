@@ -4,7 +4,7 @@ import { alertsForTable, findPlayer, findTable, performance, playersForTable } f
 import { gamesFor } from "../data/games.js";
 import { findOverride } from "./override.js";
 import {
-  iconBell, iconBox, iconCard, iconClose, iconFill, iconHistory, iconLimits, iconOpen, iconPower, iconScan, iconTick, iconUsers,
+  iconBell, iconBox, iconCard, iconRadio, iconClose, iconFill, iconHistory, iconLimits, iconOpen, iconPower, iconScan, iconTick, iconUsers,
 } from "./icons.js";
 import { CHIP_SETS, FILL_DENOMS, inventoryFor, limitProfiles } from "../data/casino.js";
 import { age } from "../lib/format.js";
@@ -161,6 +161,7 @@ function menuView(state, dispatch, table, perf, { onScan, onAlert }) {
       quick(iconHistory(20), "History", () => dispatch({ type: "go-table", tableId: table.id, tab: "games" })),
       quick(iconLimits(20), "Limits", () => dispatch({ type: "expand-view", view: "limits" })),
       quick(iconBell(20), "Alerts", () => dispatch({ type: "expand-view", view: "alerts" })),
+      quick(iconRadio(20), "Dispatch", () => dispatch({ type: "dispatch-open", tableId: table.id })),
       quick(iconPower(20), open ? "Close table" : "Open table", () => dispatch({ type: "toast", message: `${table.name} ${open ? "close" : "open"} requested. Count runs first.` })),
       quick(iconOpen(20), "Full dashboard", () => dispatch({ type: "go-table", tableId: table.id }), { tone: "strong" })
     )

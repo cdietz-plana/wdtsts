@@ -518,3 +518,101 @@
 .pane--rail .rail-row__where { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--t-micro); }
 .pane--rail .rail-row__src { flex-shrink: 0; }
 .pane--rail .rail-row__btn { flex-shrink: 0; height: 34px; padding: 0 11px; font-size: var(--t-detail); }
+
+/* Review round 7 ------------------------------------------------------------- */
+/* Top bar: figures beside the logo; Dispatch, Information and the account at the end. */
+.bar .kpi-strip--scroll { margin-left: 4px; margin-right: 6px; }
+.dispatch-btn {
+  display: inline-flex; align-items: center; gap: 7px; height: 42px; padding: 0 14px; flex-shrink: 0;
+  border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink);
+  font: inherit; font-size: var(--t-body); font-weight: 700; cursor: pointer;
+}
+.dispatch-btn[data-open="true"] { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+.dispatch-btn .count-badge { margin-left: 2px; }
+.ltg[data-theme="felt"] .bar .dispatch-btn { background: #fbfaf6; color: #17140f; border-color: #fbfaf6; }
+.bar__title { font-size: var(--t-title); font-weight: 700; margin-left: 6px; white-space: nowrap; }
+
+/* Overview: which section is on screen, and Edit tables beside it. */
+.ov-sec { display: flex; align-items: center; gap: 8px; flex-shrink: 1; min-width: 0; margin-right: 6px; }
+.ov-sec__name { display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-display); font-size: var(--t-action); font-weight: 700; white-space: nowrap; color: var(--ink); }
+.ov-sec__name + .ov-sec__name { padding-left: 8px; border-left: 1px solid var(--line-strong); font-size: var(--t-body); }
+.ov-sec__sw { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; display: inline-block; }
+.ov-sec__edit {
+  display: inline-flex; align-items: center; gap: 4px; height: 32px; padding: 0 11px; border-radius: 999px;
+  border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--t-detail); font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+.ltg[data-theme="felt"] .ov-sec__edit { background: #fbfaf6; color: #17140f; border-color: #fbfaf6; }
+.ov-sec__menuwrap { position: relative; }
+.ov-sec__menu { position: absolute; top: 38px; left: 0; z-index: 20; min-width: 220px; padding: 6px; border-radius: 12px; background: #ffffff; box-shadow: 0 12px 30px rgba(0,0,0,.25); display: flex; flex-direction: column; }
+.ov-sec__menu button { display: flex; align-items: center; gap: 9px; height: 40px; padding: 0 10px; border: 0; border-radius: 8px; background: none; font: inherit; font-size: var(--t-body); font-weight: 600; color: #17140f; cursor: pointer; text-align: left; }
+.ov-sec__menu button:active { background: #f1eee8; }
+.ov-head .ov-range { white-space: nowrap; }
+.tile__secdot { width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
+
+/* Tile back: three figures, hold beside handle, Daily or Shift. */
+.tile__range button { padding: 4px 9px; font-size: 11.5px; }
+.tile__bfigs { flex: 1; min-height: 0; display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 8px; align-items: stretch; }
+.tile__bfigs .tile__bfig { justify-content: center; }
+.tile__bfig b[data-neg="true"] { color: var(--critical-ink); }
+.tile__bfig--wl b { color: var(--ok-ink); }
+.tile__bfig--wl b[data-neg="true"] { color: var(--critical-ink); }
+.tile__hold { font-size: var(--t-detail); color: var(--ink-2); font-weight: 600; }
+.tile-grid[data-density="4"] .tile__bfigs b { font-size: var(--t-hero); }
+.tile-grid[data-density="9"] .tile__bfigs b { font-size: var(--t-title); }
+.tile-grid[data-density="12"] .tile__bfigs { grid-template-columns: 1fr; gap: 4px; }
+.tile-grid[data-density="12"] .tile__bfigs .tile__bfig { flex-direction: row; align-items: baseline; justify-content: space-between; flex-wrap: wrap; padding: 4px 8px; gap: 0 6px; }
+.tile-grid[data-density="12"] .tile__bfigs b { font-size: var(--t-body); }
+.tile-grid[data-density="12"] .tile__hold { width: 100%; text-align: right; font-size: 10.5px; }
+.tile-grid[data-density="12"] .tile__back .tile__name { display: none; }
+
+/* Dispatch panel. */
+.dx-roles { display: flex; flex-direction: column; gap: 8px; }
+.dx-role { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.dx-role:active { transform: scale(0.99); }
+.dx-role__icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--surface-soft); color: var(--ink); flex-shrink: 0; }
+.dx-role[data-discreet="true"] .dx-role__icon { background: #17140f; color: #ffffff; }
+.dx-role__name { display: block; font-size: var(--t-action); font-weight: 700; }
+.dx-role__sub { display: block; font-size: var(--t-detail); color: var(--ink-2); }
+.dx-where { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.dx-where--areas { grid-template-columns: repeat(2, 1fr); }
+.dx-place { font-size: var(--t-detail); padding: 8px 6px; text-align: center; }
+.dx-reasons { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.dx-note { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 10px; background: #17140f; color: #ffffff; font-size: var(--t-detail); }
+.dx-calls { display: flex; flex-direction: column; gap: 7px; margin-top: 6px; }
+.dx-call { padding: 9px 8px 10px 12px; border-radius: 12px; background: var(--surface-soft); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
+.dx-call[data-discreet="true"] { border-color: #17140f; }
+.dx-call__top { display: flex; align-items: center; gap: 8px; }
+.dx-call__name { font-weight: 700; font-size: var(--t-body); color: var(--ink); flex: 1; }
+.dx-call__stage { font-size: var(--t-micro); font-weight: 700; color: var(--high-ink); }
+.dx-call__sub { font-size: var(--t-detail); color: var(--ink-2); }
+.dx-call__x { width: 30px; height: 30px; }
+.tile__stage .tile__call { background: #eef3fb; border-color: #b9c9e6; }
+
+/* All sections: tick to view several. */
+.seccard__pick {
+  width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer;
+  border: 2px solid var(--sec); background: transparent; color: #ffffff;
+}
+.seccard__pick[aria-checked="true"] { background: var(--sec); }
+.seccard[data-picked="true"] .seccard__face { box-shadow: 0 0 0 3px var(--ink), var(--shadow-card); }
+.secv__pickbar {
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0; padding: 8px 8px 8px 14px; border-radius: 12px;
+  background: #17140f; color: #ffffff; font-size: var(--t-body);
+}
+.secv__pickbar .btn--ghost { background: transparent; color: #ffffff; border-color: rgba(255,255,255,.4); }
+.secv__pickbar .btn:not(.btn--ghost) { background: #ffffff; color: #17140f; border-color: #ffffff; }
+.secv__picksw { display: inline-flex; gap: 3px; }
+.dispatch-btn .count-badge { background: #17140f; color: #ffffff; }
+.dispatch-btn[data-open="true"] .count-badge { background: #ffffff; color: #17140f; }
+.ltg .bar .dispatch-btn { background: #ffffff; color: #17140f; border-color: rgba(0, 0, 0, 0.14); }
+.ltg .bar .dispatch-btn[data-open="true"] { background: #17140f; color: #ffffff; border-color: #17140f; }
+.ltg[data-theme="current"] .bar .dispatch-btn[data-open="true"] { background: #7a1f2b; border-color: #7a1f2b; }
+.ltg[data-theme="glass"] .ov-sec { background: var(--surface); padding: 4px 4px 4px 12px; border-radius: 999px; backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
+.pl__diff { background: rgba(0, 0, 0, 0.72); }
+.pc__avatar[data-anon="true"], .pc__wager[data-zero="true"] b, .pl-shoe__cell .micro { color: var(--ink-2); }
+.pc__kpi .micro { color: var(--ink-2); }
+/* Table bar: back button, table stepper, eight figures, Dispatch. Tighter figures so all eight fit. */
+.bar .table-stepper ~ .kpi-strip--scroll .kpi { padding: 0 7px; }
+.bar .table-stepper ~ .kpi-strip--scroll .kpi__label { font-size: 10px; letter-spacing: 0.03em; }
+.bar .table-stepper ~ .kpi-strip--scroll .kpi__value { font-size: 19px; }
+.bar .table-stepper .crumb-current { min-width: 76px !important; }

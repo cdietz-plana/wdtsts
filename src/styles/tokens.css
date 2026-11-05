@@ -817,6 +817,80 @@
   --floor-blur: blur(3px) saturate(60%) brightness(1.2);
 }
 
+/* --- CURRENT ----------------------------------------------------------------
+   Light beige ground, dark maroon for the primary actions, a black top bar and
+   a near-black Actions panel, so the tables and the panel separate clearly.
+   -------------------------------------------------------------------------- */
+.ltg[data-theme="current"] {
+  --r-sm: 9px; --r-md: 13px; --r-lg: 17px; --r-xl: 22px; --r-pill: 999px;
+
+  --bg: #f3ece0;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #ece3d4;
+  --surface-soft: #f8f3ea;
+  --line: #e6dccb;
+  --line-strong: #d3c5ae;
+
+  --ink: #1c1714;
+  --ink-2: #3f3631;
+  --ink-3: #574c44;
+
+  --brand: #7a1f2b;
+  --critical: #b3202f;
+  --critical-ink: #8f1a28;
+  --high: #d99b1c;
+  --high-ink: #76520a;
+  --ok: #17995c;
+  --ok-ink: #0d6b41;
+
+  --critical-wash: #fdecee;
+  --critical-edge: #f2cdd2;
+  --high-wash: #fbf3e3;
+  --high-edge: #eddfbf;
+  --ok-wash: #e8f5ef;
+  --ok-edge: transparent;
+
+  --felt: #e7dccb;
+  --felt-edge: #d6c8b1;
+  --felt-primary: #2f2622;
+  --felt-primary-edge: #211a17;
+  --seat: #d6c6c4;
+  --seat-on: #2f2622;
+
+  --on-accent: #ffffff;
+  --on-high: #1a1200;
+  --shadow-card: 0 1px 2px rgba(60, 30, 34, 0.05), 0 10px 28px rgba(60, 30, 34, 0.08);
+  --shadow-raised: 0 2px 8px rgba(60, 30, 34, 0.16);
+  --glass-blur: none;
+
+  --plan-bg: transparent;
+  --plan-border: transparent;
+  --plan-pad: 2px;
+  --rail-bg: transparent;
+  --rail-bg-wide: transparent;
+  --rail-blur-wide: none;
+  --narrow-rail-bg: transparent;
+  --legend-ink: var(--ink-2);
+  --legend-shadow: none;
+  --legend-bg: transparent;
+  --legend-blur: none;
+
+  --bar-bg: #000000;
+  --seg-bg: transparent;
+  --seg-edge: transparent;
+  --seg-on: #7a1f2b;
+  --scrim: rgba(30, 22, 18, 0.38);
+  --flyout-bg: #ffffff;
+  --flyout-shadow: -30px 0 70px rgba(60, 30, 34, 0.22);
+  --dial-bg: linear-gradient(155deg, #fff, #f3ece0);
+  --dial-shadow: 0 8px 24px rgba(60, 30, 34, 0.14);
+
+  --floor-bg: rgba(255, 255, 255, 0.95);
+  --floor-thin: rgba(255, 255, 255, 0.93);
+  --floor-blur: blur(3px) saturate(60%) brightness(1.2);
+}
+
 /* --- FELT (the table, not a page) ------------------------------------------
    The one theme that admits what the product is looking at. Pod cards sit on
    baize, lifted off it by a real cast shadow and a light top edge, and the

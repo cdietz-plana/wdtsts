@@ -4,8 +4,9 @@ import { DENSITIES, FILL_STAGES, actionsOf, alertsForTable, alertsOnly, playersF
 import { currentHand } from "../data/games.js";
 import { expandContent } from "./expand.js";
 import { compact as c2, limitShort, percent } from "../lib/format.js";
-import { iconBell, iconBox, iconChevron, iconFill, iconFlip, iconHistory, iconLimits, iconMap, iconMore, iconTrend } from "./icons.js";
+import { iconBell, iconBox, iconChevron, iconFill, iconFlip, iconHistory, iconLimits, iconMap, iconMore, iconScreen, iconTrend } from "./icons.js";
 import { floorMap } from "./floormap.js";
+import { CALL_STAGES, callSteps, roleOf } from "./dispatch.js";
 import { seats } from "./seats.js";
 
 /**
@@ -51,13 +52,36 @@ export function overview(state, dispatch, handlers) {
   const from = page * per + 1;
   const to = Math.min(state.tables.length, from + per - 1);
   const asMap = state.overviewMode === "map";
+  // Which section is on screen, now that the picker is off the bar, with a
+  // one-tap way to change its tables. Several sections show each name.
+  const viewing = state.viewIds.map((id) => state.sections.find((x) => x.id === id)).filter(Boolean);
+  const secLabel = h(
+    "div.ov-sec",
+    {},
+    viewing.length === 1
+      ? h("span.ov-sec__name", {}, h("span.ov-sec__sw", { style: { background: `hsl(${viewing[0].hue} 55% 48%)` } }), viewing[0].name)
+      : h(
+          "span.ov-sec__name",
+          { title: viewing.map((x) => x.name).join(", ") },
+          h("span.secv__picksw", {}, viewing.map((x) => h("span.ov-sec__sw", { style: { background: `hsl(${x.hue} 55% 48%)` } }))),
+          `${viewing.length} sections`
+        ),
+    editTables(viewing, dispatch)
+  );
+  // Review layouts A, B and C carry the range and pages under the grid.
+  const footPager = state.look !== "standard" && !asMap;
+  const rangeEl = asMap
+    ? h("span.ov-range", {}, h("b", { text: String(state.tables.length) }), " tables on the floor")
+    : h("span.ov-range", {}, h("b", { text: `${from}\u2013${to}` }), ` of ${state.tables.length} tables`);
+  const pagerEl = pages > 1 && !asMap ? pagination(page, pages, actionPages, dispatch) : null;
   const head = h(
     "div.ov-head",
     {},
-    asMap
+    secLabel,
+    footPager ? null : asMap
       ? h("span.ov-range", {}, h("b", { text: String(state.tables.length) }), " tables on the floor")
       : h("span.ov-range", {}, h("b", { text: `${from}\u2013${to}` }), ` of ${state.tables.length} tables`),
-    pages > 1 && !asMap ? pagination(page, pages, actionPages, dispatch) : null,
+    footPager ? null : pagerEl,
     h("span", { style: { flex: "1" } }),
     densityControl(asMap ? null : per, dispatch, asMap)
   );
@@ -126,7 +150,8 @@ export function overview(state, dispatch, handlers) {
       { data: { open: !!inplace, density: String(per) }, style: { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` } },
       cells,
       overlay
-    )
+    ),
+    footPager ? h("div.ov-foot", {}, rangeEl, pagerEl) : null
   );
 }
 
@@ -136,6 +161,7 @@ function tile(state, dispatch, t, i, { onAlert }, isOpen, cols, per) {
   const alerts = alertsOnly(items);
   const players = playersForTable(state.players, t.id);
   const fill = state.fills[t.id];
+  const call = state.calls.find((c) => c.tableId === t.id && !c.discreet);
   const scanning = !!state.scanning[t.id];
   const [statusLabel, tone] = STATUS[t.status] || STATUS.playing;
   const dead = t.status === "offline" || t.status === "closed";
@@ -143,7 +169,8 @@ function tile(state, dispatch, t, i, { onAlert }, isOpen, cols, per) {
   const exception = ["offline", "closed", "shuffling", "shuffler-fault", "tray-short"].includes(t.status);
 
   const open = () => dispatch({ type: "go-table", tableId: t.id });
-  const isFlipped = flipped.has(t.id);
+  figuresFirst = state.look !== "standard";
+  const isFlipped = figuresFirst !== flipped.has(t.id);
   const hand = currentHand(t.id);
 
   // Review feedback: the win figure leaves the tile. An arrow says which way
@@ -153,6 +180,7 @@ function tile(state, dispatch, t, i, { onAlert }, isOpen, cols, per) {
     "div.tile__head",
     {},
     dead && !t.dayWin ? null : h("span.tile__trend", { data: { up }, "aria-label": up ? "Table up" : "Table down", title: up ? "Table up" : "Table down" }, iconTrend(per === 12 ? 15 : 18, up)),
+    state.viewIds.length > 1 ? sectionDot(state, t.id) : null,
     h("span.display.tile__name", { text: t.name }),
     h("span.tile__dealer", { text: t.dealer || "" }),
     h("span", { style: { flex: "1" } }),
@@ -193,13 +221,21 @@ function tile(state, dispatch, t, i, { onAlert }, isOpen, cols, per) {
     );
   } else if (fill) {
     onFelt = fillTracker(fill);
+  } else if (call) {
+    // A department on its way to this table. Surveillance never shows here.
+    onFelt = h(
+      "div.tile__fill.tile__call",
+      { "aria-label": `${roleOf(call.role).label}, ${CALL_STAGES[call.stage]}` },
+      h("div.tile__fill-top", {}, h("span.tile__fill-name", { text: roleOf(call.role).label }), h("span.tile__fill-stage", { text: CALL_STAGES[call.stage] })),
+      callSteps(call)
+    );
   } else if (exception) {
     onFelt = h("span.tile__hand", { text: statusLabel, data: { tone } });
   } else {
     const avg = players.length ? Math.round(players.reduce((n, p) => n + (p.avgBet || 0), 0) / players.length) : 0;
     onFelt = h("span.tile__felt-note", { text: players.length ? `avg bet ${compact(avg)}` : "No players" });
   }
-  const stage = h("div.tile__stage", { data: { role: t.role, offline: t.status === "offline", busy: !!(a || fill) } }, onFelt);
+  const stage = h("div.tile__stage", { data: { role: t.role, offline: t.status === "offline", busy: !!(a || fill || call) } }, onFelt);
 
   const quick = (icon, label, onClick, opts = {}) =>
     h(
@@ -214,12 +250,14 @@ function tile(state, dispatch, t, i, { onAlert }, isOpen, cols, per) {
     fill: () => quick(iconFill(17), "Fill / Credit", xp("fill"), { disabled: t.status === "closed" }),
     more: () => quick(iconMore(17), "More", xp("menu")),
     history: () => quick(iconHistory(17), "History", () => dispatch({ type: "go-table", tableId: t.id, tab: "games" })),
+    view: () => quick(iconScreen(17), "View Table", () => dispatch({ type: "go-table", tableId: t.id, tab: "live" }), { disabled: t.status === "offline" }),
     limits: () => quick(iconLimits(17), "Limits", xp("limits")),
     alerts: () => quick(iconBell(17), "Alerts", xp("alerts"), { dot: alerts.length > 0 }),
   };
-  // Review feedback: three quick buttons at every density, and an arrow at
-  // the end of the row that leads to everything else.
-  const set = ["inventory", "fill", "history"];
+  // Review feedback: Inventory, View Table and History at every density, and
+  // an arrow at the end of the row that leads to everything else, Fill /
+  // Credit included.
+  const set = ["inventory", "view", "history"];
   const moreArrow = h(
     "button.tile__morearrow",
     { "aria-label": "More functions", title: "More", on: { click: (e) => { e.stopPropagation(); dispatch({ type: "expand", tableId: t.id, view: "menu" }); } } },
@@ -238,7 +276,7 @@ function tile(state, dispatch, t, i, { onAlert }, isOpen, cols, per) {
       on: { click: open, keydown: (e) => e.key === "Enter" && open() },
     },
     h("div.tile__face.tile__front", { "aria-hidden": isFlipped ? "true" : null }, head, sub, dots, stage, bar),
-    back(t, players)
+    back(t, players, dispatch, state.look)
   );
 }
 
@@ -250,6 +288,9 @@ function tile(state, dispatch, t, i, { onAlert }, isOpen, cols, per) {
  * the tile lets the turn animate instead of being replaced by a re-render.
  */
 const flipped = new Set();
+
+/** True in the review layouts A, B and C, where a tile opens on its figures. */
+let figuresFirst = false;
 
 function flipButton(tableId, label) {
   return h(
@@ -263,7 +304,8 @@ function flipButton(tableId, label) {
           const el = e.currentTarget.closest(".tile");
           if (flipped.has(tableId)) flipped.delete(tableId);
           else flipped.add(tableId);
-          const on = flipped.has(tableId);
+          // In the figure-first layouts the figures are the home side.
+          const on = figuresFirst !== flipped.has(tableId);
           el.dataset.flipped = String(on);
           el.querySelector(".tile__front").setAttribute("aria-hidden", on ? "true" : "false");
           el.querySelector(".tile__back").setAttribute("aria-hidden", on ? "false" : "true");
@@ -275,33 +317,109 @@ function flipButton(tableId, label) {
 }
 
 /** The back of a tile: the table's figures, where the hover card used to be. */
-function back(t, players) {
-  const perf = { win: t.dayWin, drop: t.drop, hold: t.drop ? t.dayWin / t.drop : 0, handle: t.handle };
-  const avgBet = players.length ? Math.round(players.reduce((n, p) => n + (p.avgBet || 0), 0) / players.length) : 0;
-  const fig = (label, value, color) => h("div.tile__bfig", {}, h("span.micro", { text: label }), h("b.mono", { text: value, style: color ? { color } : {} }));
-  const isOn = flipped.has(t.id);
+/**
+ * Daily or Shift on the back of every tile. One setting for all tiles, so a
+ * manager comparing tables compares like with like. Daily is the gaming day;
+ * Shift is since this manager signed in.
+ */
+let figRange = "daily";
+
+/** The table's figures for the shift: a deterministic share of the day. */
+function shiftOf(t) {
+  let n = 0;
+  for (const c of t.id) n = (n * 31 + c.charCodeAt(0)) % 997;
+  const share = 0.24 + (n % 21) / 100;
+  return { win: Math.round(t.dayWin * share / 100) * 100, handle: Math.round(t.handle * share / 1000) * 1000, drop: Math.round(t.drop * share / 1000) * 1000 };
+}
+
+/** The back of a tile: win or loss, handle with hold beside it, buy in. */
+function back(t, players, dispatch, look = "standard") {
+  if (look !== "standard") return figuresFace(t, dispatch, look);
+  const src = figRange === "shift" ? shiftOf(t) : { win: t.dayWin, handle: t.handle, drop: t.drop };
+  const hold = src.drop ? src.win / src.drop : 0;
+  const isOn = figuresFirst !== flipped.has(t.id);
+  const range = h(
+    "div.segmented.segmented--sm.tile__range",
+    { role: "group", "aria-label": "Figures for" },
+    [["daily", "Daily"], ["shift", "Shift"]].map(([id, label]) =>
+      h("button", { text: label, "aria-pressed": String(figRange === id), on: { click: (e) => { e.stopPropagation(); figRange = id; dispatch({ type: "view-refresh" }); } } })
+    )
+  );
   return h(
     "div.tile__face.tile__back",
-    { "aria-hidden": isOn ? "false" : "true" },
+    { "aria-hidden": isOn ? "false" : "true", on: { click: (e) => e.stopPropagation() } },
     h(
       "div.tile__head",
       {},
       h("span.display.tile__name", { text: t.name }),
-      h("span.tile__dealer", { text: t.dealer || "" }),
       h("span", { style: { flex: "1" } }),
+      range,
       flipButton(t.id, "Back to the table")
     ),
     h(
-      "div.tile__bgrid",
+      "div.tile__bfigs",
       {},
-      fig("Win / loss", compact(perf.win), perf.win < 0 ? "var(--critical-ink)" : "var(--ok-ink)"),
-      fig("Hold", percent(perf.hold)),
-      fig("Handle", compact(perf.handle)),
-      fig("Buy in", compact(perf.drop)),
-      fig("Theo win", compact(Math.round(perf.handle * 0.0118))),
-      fig("Avg bet", compact(avgBet))
-    ),
-    h("div.tile__bfoot", {}, h("span.micro", { text: "Limits" }), h("span.mono", { text: limitShort(t.limits) }))
+      h("div.tile__bfig.tile__bfig--wl", {}, h("span.micro", { text: "Win / loss" }), h("b.mono", { text: compact(src.win), data: { neg: src.win < 0 } })),
+      h("div.tile__bfig", {}, h("span.micro", { text: "Handle" }), h("b.mono", { text: compact(src.handle) }), h("span.tile__hold", { text: `Hold ${percent(hold)}` })),
+      h("div.tile__bfig", {}, h("span.micro", { text: "Buy in" }), h("b.mono", { text: compact(src.drop) }))
+    )
+  );
+}
+
+/**
+ * The figure-first face for review layouts A, B and C. One structure, three
+ * arrangements in CSS: the table ID, Shift or Daily, the turn icon; then win
+ * or loss as the lead figure and Buy in, Handle and Hold beside or below it.
+ */
+function figuresFace(t, dispatch, look) {
+  const src = figRange === "shift" ? shiftOf(t) : { win: t.dayWin, handle: t.handle, drop: t.drop };
+  const hold = src.drop ? src.win / src.drop : 0;
+  const isOn = figuresFirst !== flipped.has(t.id);
+  const seg = h(
+    "div.tf__range",
+    { role: "group", "aria-label": "Figures for" },
+    [["shift", "Shift"], ["daily", "Daily"]].map(([id, label]) =>
+      h("button", { text: label, "aria-pressed": String(figRange === id), on: { click: (e) => { e.stopPropagation(); figRange = id; dispatch({ type: "view-refresh" }); } } })
+    )
+  );
+  const item = (label, value) => h("div.tf__item", {}, h("span.tf__label", { text: label }), h("span.tf__value", { text: value }));
+  const wl = compact(src.win);
+  return h(
+    "div.tile__face.tile__back.tf",
+    { "aria-hidden": isOn ? "false" : "true", data: { look } },
+    h("div.tf__head", {}, h("span.tf__name", { text: t.name }), h("span", { style: { flex: "1" } }), seg, flipButton(t.id, "Show the table")),
+    h(
+      "div.tf__body",
+      {},
+      h("div.tf__wl", {}, h("span.tf__label", { text: "Win / loss" }), h("span.tf__big", { text: wl, data: { neg: src.win < 0 } })),
+      h("div.tf__list", {}, item("Buy in", compact(src.drop)), item("Handle", compact(src.handle)), item("Hold", percent(hold)))
+    )
+  );
+}
+
+/** A section's color beside the table ID, when several sections share the screen. */
+function sectionDot(state, tableId) {
+  const sec = state.sections.find((x) => x.tableIds.includes(tableId));
+  return sec ? h("span.tile__secdot", { title: sec.name, style: { background: `hsl(${sec.hue} 55% 48%)` } }) : null;
+}
+
+/** Edit tables, straight from the overview. With several sections, pick which. */
+let editMenu = false;
+function editTables(viewing, dispatch) {
+  if (viewing.length === 1) {
+    return h("button.ov-sec__edit", { on: { click: () => dispatch({ type: "edit-from-overview", sectionId: viewing[0].id }) } }, "Edit tables");
+  }
+  return h(
+    "span.ov-sec__menuwrap",
+    {},
+    h("button.ov-sec__edit", { "aria-expanded": String(editMenu), on: { click: () => { editMenu = !editMenu; dispatch({ type: "view-refresh" }); } } }, "Edit tables", iconChevron(12, "down")),
+    editMenu
+      ? h(
+          "div.ov-sec__menu",
+          { role: "menu" },
+          viewing.map((x) => h("button", { role: "menuitem", on: { click: () => { editMenu = false; dispatch({ type: "edit-from-overview", sectionId: x.id }); } } }, h("span.ov-sec__sw", { style: { background: `hsl(${x.hue} 55% 48%)` } }), x.name))
+        )
+      : null
   );
 }
 

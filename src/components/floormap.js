@@ -61,6 +61,8 @@ const ACTION_TABLES = (state) =>
 export function floorMap(state, opts = {}) {
   const sections = state.sections;
   const actions = ACTION_TABLES(state);
+  // focus: one section id or several; the rest fade.
+  const focusSet = opts.focus && [].concat(opts.focus).length ? new Set([].concat(opts.focus)) : null;
   const ids = opts.only ? opts.only : state.allTables.map((t) => t.id);
 
   // Fit the drawn tables into the box with a margin.
@@ -79,7 +81,7 @@ export function floorMap(state, opts = {}) {
   const glyphs = ids.map((id) => {
     const t = state.allTables.find((x) => x.id === id);
     const sec = sectionOf(sections, id);
-    const faded = opts.focus && (!sec || sec.id !== opts.focus);
+    const faded = focusSet && (!sec || !focusSet.has(sec.id));
     const inDraft = draft ? draft.has(id) : false;
     return h(
       "button.fm__t",
@@ -111,7 +113,7 @@ export function floorMap(state, opts = {}) {
           const ys = s.tableIds.map((id) => LAYOUT[id].y);
           const cx = xs.reduce((a, b) => a + b, 0) / xs.length;
           const top = Math.min(...ys);
-          return h("span.fm__label", { text: s.name, data: { faded: !!(opts.focus && opts.focus !== s.id) }, style: { left: `${cx}%`, top: `${Math.max(1, top - 3.2)}%` } });
+          return h("span.fm__label", { text: s.name, data: { faded: !!(focusSet && !focusSet.has(s.id)) }, style: { left: `${cx}%`, top: `${Math.max(1, top - 3.2)}%` } });
         });
 
   return h(

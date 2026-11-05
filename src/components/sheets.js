@@ -2,6 +2,7 @@ import { SUPERVISOR } from "../lib/supervisor.js";
 import { h } from "../lib/dom.js";
 import { wallClock } from "../lib/format.js";
 import { iconClose, iconTrend } from "./icons.js";
+import { viewName } from "./topbar.js";
 
 /**
  * Full-device overlays: help, and the account sheet that finally gives sign out
@@ -26,14 +27,15 @@ const LEGEND = [
   { mark: () => h("span.info-sw", { style: { background: "var(--high)" } }), label: "Alert", note: "Worth a look. Shown under Alerts with a count." },
   { mark: () => h("span.info-tag", { text: "Dealer" }), label: "Dealer or System", note: "Who raised an Action: the dealer display, or the table system." },
   { mark: () => h("span.info-steps", {}, h("i", { data: { s: "done" } }), h("i", { data: { s: "now" } }), h("i")), label: "Fill in progress", note: "Requested, Authorized, Accepted, Processed." },
-  { mark: () => h("span.info-dot"), label: "Alerts on a table", note: "A red dot on the tile's Alerts button." },
+  { mark: () => h("span.info-dot"), label: "Action on another page", note: "A red dot on that page's number above the tables." },
 ];
 
 const HELP = [
   { q: "Actions and Alerts", a: "Actions need you now: dealer requests and what the table system detects. Alerts are worth a look. X closes either one; it is logged in Activity." },
   { q: "Supervisor requested", a: "On my way tells the dealer display you are coming. Close records the reason." },
-  { q: "The tile", a: "Inventory, Fill / Credit, More, History, Limits and Alerts. At 9 per page the buttons are icons; at 12, History, Limits and Alerts are under More." },
-  { q: "Other pages", a: "When Actions are waiting on a page you are not looking at, a red line above the tables says how many and takes you there." },
+  { q: "The tile", a: "Inventory, View Table and History. The arrow holds the rest: Fill / Credit, Players, Limits, Alerts, Dispatch and the full table. The turn icon shows Win / loss, Handle and Buy in, for the day or your shift." },
+  { q: "Dispatch", a: "Calls Security, Surveillance, the Floor Operations Manager or Public Area to a table or a spot on the floor, and tracks them until they arrive. Surveillance calls never show on a table." },
+  { q: "Sections", a: "The account button opens Sections and tables. Tick several sections to view them together. Edit tables beside the section name changes its tables without leaving." },
   { q: "Seat cards", a: "On Players, tap the turn icon on a card for that player's session figures and functions. Rate player enters a rating." },
   { q: "Figures bar", a: "The section's figures on the overview, and the table's figures on a table." },
 ];
@@ -108,8 +110,8 @@ export function accountSheet(state, dispatch) {
         "div.card",
         { style: { width: "460px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "4px" } },
         field("Supervisor ID", SUPERVISOR.id),
-        field("Section", SUPERVISOR.section),
-        field("Assigned", `${state.tables.length} tables`),
+        field("Viewing", viewName(state)),
+        field("Tables", `${state.tables.length}`),
         field("Shift", `Swing · signed in 17:52 · now ${wallClock(state.clockSeconds)}`),
         field("Authority", "Approve ratings, authorize fills, adjust trays"),
         h(
@@ -120,10 +122,11 @@ export function accountSheet(state, dispatch) {
             style: { flex: "1" },
             on: { click: () => dispatch({ type: "sheet", sheet: "thresholds" }) },
           }),
-          h("button.btn.btn--ghost.btn--big", {
-            text: "Change section",
-            style: { flex: "1" },
-            on: { click: () => dispatch({ type: "toast", message: "Section handover happens at shift change." }) },
+          // Review feedback: sections moved out of the top bar and in here.
+          h("button.btn.btn--big", {
+            text: "Sections and tables",
+            style: { flex: "1.4" },
+            on: { click: () => dispatch({ type: "go-sections" }) },
           }),
           h("button.btn.btn--big", {
             text: "Sign out",

@@ -2,7 +2,7 @@ import { h } from "../lib/dom.js";
 import { compact, percent } from "../lib/format.js";
 import { barKpis, findTable } from "../lib/selectors.js";
 import { SUPERVISOR } from "../lib/supervisor.js";
-import { iconBack, iconChevron, iconGrid, iconInfo, iconTick } from "./icons.js";
+import { iconBack, iconChevron, iconGrid, iconInfo, iconRadio, iconTick } from "./icons.js";
 import { initialAlerts } from "../data/alerts.js";
 const ALL_ACTIONS = initialAlerts.filter((a) => a.kind === "action");
 import { ICON } from "../assets.js";
@@ -60,10 +60,19 @@ let kpiScroll = 0;
 
 export function topBar(state, dispatch) {
   const table = state.level === "table" ? findTable(state.tables, state.tableId) : null;
-  const right = [
-    kpis(state, table),
-    // No clock: the tablet's own status bar already shows the date and time,
-    // and the space goes to the figures.
+  const openCalls = state.calls.length;
+
+  // Right end of the bar: Dispatch, Information, the account. No clock (the
+  // tablet's status bar has it) and no section picker (it lives under the
+  // account button now, as Sections and tables).
+  const tools = [
+    h(
+      "button.dispatch-btn",
+      { "aria-label": "Dispatch", data: { open: !!state.dispatchOpen }, on: { click: () => dispatch(state.dispatchOpen ? { type: "dispatch-close" } : { type: "dispatch-open" }) } },
+      iconRadio(18),
+      h("span", { text: "Dispatch" }),
+      openCalls ? h("span.count-badge.count-badge--quiet", { text: String(openCalls) }) : null
+    ),
     h("button.icon-btn", { "aria-label": "Information", title: "Information", on: { click: () => dispatch({ type: "sheet", sheet: "help" }) } }, iconInfo(19)),
     h(
       "button.icon-btn",
@@ -72,19 +81,24 @@ export function topBar(state, dispatch) {
     ),
   ];
 
+  if (state.level === "sections") {
+    return h(
+      "header.bar",
+      {},
+      h("button.back-btn", { "aria-label": "Back to tables", on: { click: () => dispatch({ type: "view-sections", sectionIds: state.viewIds }) } }, iconBack(20), h("span", { text: "Tables" })),
+      h("div.display.bar__title", { text: "Sections and tables" }),
+      h("div", { style: { flex: "1" } }),
+      tools
+    );
+  }
+
   if (!table) {
-    const sec = state.sections.find((x) => x.id === state.sectionId) || state.sections[0];
-    const onSections = state.level === "sections";
     return h(
       "header.bar",
       {},
       h("div.mark", {}, h("img", { src: ICON, alt: "WDTS", width: "26", height: "26" })),
-      // Review feedback: the name and table count came out of the bar. The
-      // account button already carries the manager's initials, the table
-      // count sits with the pagination, and the room goes to the figures.
-      sectionPicker(state, dispatch, sec, onSections),
-      onSections ? h("div", { style: { flex: "1" } }) : right[0],
-      right.slice(1)
+      kpis(state, null),
+      tools
     );
   }
 
@@ -101,7 +115,7 @@ export function topBar(state, dispatch) {
     {},
     // Review feedback: the way back out has to be obvious, so it is a full
     // button with the section's name, not a small arrow.
-    h("button.back-btn", { "aria-label": "Back to all tables", on: { click: () => dispatch({ type: "go-section" }) } }, iconBack(20), h("span", { text: secName(state) })),
+    h("button.back-btn", { "aria-label": "Back to all tables", on: { click: () => dispatch({ type: "go-section" }) } }, iconBack(20), h("span", { text: "Tables" })),
     h(
       "div.table-stepper",
       {},
@@ -109,9 +123,18 @@ export function topBar(state, dispatch) {
       h("span.crumb-current", { text: table.name, style: { minWidth: "92px", textAlign: "center" } }),
       step(next, "right", "Next table")
     ),
-    right
+    kpis(state, table),
+    tools
   );
 }
+
+/** What is on screen: one section's name, or how many sections together. */
+export const viewName = (state) => {
+  const secs = state.viewIds.map((id) => state.sections.find((x) => x.id === id)).filter(Boolean);
+  if (secs.length === 1) return secs[0].name;
+  if (secs.length === 2) return `${secs[0].name} + ${secs[1].name}`;
+  return `${secs.length} sections`;
+};
 
 /**
  * The section picker. Shows the section on screen; opens a list of the
@@ -160,4 +183,3 @@ function sectionPicker(state, dispatch, sec, onSections) {
 /** Table ids with an open Action, from the full list, so other sections show counts too. */
 const ACTIONS_BY_TABLE = (state) => ALL_ACTIONS.filter((a) => !state.resolved.includes(a.id)).map((a) => a.tableId);
 
-const secName = (state) => (state.sections.find((x) => x.id === state.sectionId) || state.sections[0]).name;

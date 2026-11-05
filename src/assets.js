@@ -51,5 +51,6 @@ export const WALLPAPER_FOR_THEME = {
   studio: "gray",
   ledger: "gray",
   rouge: "gray",
+  current: "gray",
   felt: "gray",
 };

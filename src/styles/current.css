@@ -1,0 +1,112 @@
+
+
+/* Current: inherits Rouge structure (dark bar, cards by cast) with its own tokens. */
+.ltg[data-theme="current"] .bar {
+  --ink: #ffffff;
+  --ink-2: #dedee3;
+  --ink-3: #acacb3;
+  --line: rgba(255, 255, 255, 0.13);
+  --line-strong: rgba(255, 255, 255, 0.2);
+  --surface-soft: rgba(255, 255, 255, 0.08);
+  --surface-sunken: rgba(255, 255, 255, 0.07);
+  --seg-bg: transparent;
+  --seg-edge: transparent;
+  --seg-on: rgba(255, 255, 255, 0.14);
+  --shadow-raised: none;
+  /* A filled control in the bar prints dark, and the severity inks lighten:
+     these were tuned for a light page and the bar is not one. */
+  --on-ink: #14161c;
+  --critical-ink: #ff93a0;
+  --high-ink: #f2c261;
+  --ok-ink: #5fd79b;
+  --critical-wash: rgba(255, 147, 160, 0.16);
+  --critical-edge: rgba(255, 147, 160, 0.4);
+  --high-wash: rgba(242, 194, 97, 0.16);
+  --high-edge: rgba(242, 194, 97, 0.38);
+  --ok-wash: rgba(95, 215, 155, 0.16);
+  --ok-edge: rgba(95, 215, 155, 0.34);
+  color: #ffffff;
+  border-bottom-color: transparent;
+}
+.ltg[data-theme="current"] .bar .clock {
+  background: transparent;
+  border-color: transparent;
+  padding: 0 6px;
+}
+.ltg[data-theme="current"] .bar .mark { background: #ffffff; }
+.ltg[data-theme="current"] .bar .avatar {
+  background: transparent;
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.55);
+}
+and the ground is a blush wash rather than a flat
+   neutral. The crimson summary card is the warm counterweight to it.
+   -------------------------------------------------------------------------- */
+.ltg[data-theme="current"] {
+  background: linear-gradient(168deg, #f6f0e6 0%, #f2eadd 55%, #eee5d6 100%);
+}
+.ltg[data-theme="current"] .bar {
+  margin: 10px 12px 0;
+  border-radius: var(--r-xl);
+  border-bottom: none;
+  box-shadow: 0 6px 22px rgba(60, 30, 34, 0.18);
+}
+.ltg[data-theme="current"] .panel-figures {
+  --ink: #ffffff;
+  --ink-2: #f7e4e7;
+  --ink-3: #ecccd1;
+  --line: rgba(255, 255, 255, 0.18);
+  /* Nothing severity-colored inside: the card is already red, so a red figure
+     in it would be decoration reading as a signal. */
+  --critical-ink: #ffffff;
+  --ok-ink: #ffffff;
+  --on-ink: #8e1626;
+  background: linear-gradient(158deg, #8a2533, #6b1a25);
+  color: #ffffff;
+  border-radius: var(--r-lg);
+  margin: 0 14px 12px;
+  padding: 15px 16px;
+  box-shadow: 0 8px 22px rgba(120, 20, 36, 0.24);
+}
+.ltg[data-theme="current"] .card--critical {
+  border-color: var(--critical);
+  box-shadow: var(--shadow-card), 0 0 0 1px var(--critical);
+}
+so it is the only one where the label cannot
+   be the page ink. */
+.ltg[data-theme="current"] .segmented button[aria-pressed="true"] {
+  color: var(--on-accent);
+}
+.ltg[data-theme="current"] .tabs button[aria-pressed="true"],
+.ltg[data-theme="current"] .pg__num[aria-current="page"] { color: #ffffff; }
+
+/* Current: black bar flush to the top, maroon primary, near-black Actions panel. */
+.ltg[data-theme="current"] .bar { background: #000000; margin: 0; border-radius: 0; box-shadow: none; }
+.ltg[data-theme="current"] .btn:not(.btn--ghost),
+.ltg[data-theme="current"] .tile__morearrow,
+.ltg[data-theme="current"] .back-btn { background: #7a1f2b; border-color: #7a1f2b; color: #ffffff; }
+.ltg[data-theme="current"] .bar .back-btn { background: #ffffff; border-color: #ffffff; color: #000000; }
+.ltg[data-theme="current"] .segmented button[aria-pressed="true"],
+.ltg[data-theme="current"] .tabs button[aria-pressed="true"],
+.ltg[data-theme="current"] .pg__num[aria-current="page"],
+.ltg[data-theme="current"] .chip[aria-pressed="true"],
+.ltg[data-theme="current"] .option[aria-pressed="true"] { background: #7a1f2b; border-color: #7a1f2b; color: #ffffff; }
+.ltg[data-theme="current"] .bar .dispatch-btn { background: #ffffff; color: #000000; border-color: #ffffff; }
+.ltg[data-theme="current"] .bar .dispatch-btn[data-open="true"] { background: #7a1f2b; color: #ffffff; border-color: #7a1f2b; }
+.ltg[data-theme="current"] .bar .kpi-strip { background: rgba(255, 255, 255, 0.06); }
+.ltg[data-theme="current"] .tile__stage { background: #2f2622; border-color: #211a17; }
+
+.ltg[data-theme="current"] .pane--alerts {
+  --surface: #232124; --surface-raised: #2a282b; --surface-soft: #2a282b; --surface-sunken: #121113;
+  --ink: #f4f1ee; --ink-2: #dcd6d0; --ink-3: #b3aca5;
+  --line: rgba(255, 255, 255, 0.12); --line-strong: rgba(255, 255, 255, 0.22);
+  --critical-ink: #ffc4cc; --high-ink: #f3d08a; --ok-ink: #9ee3bf;
+  --critical-wash: #3a1a20; --critical-edge: #6b2a35;
+  --on-ink: #161517; --seg-bg: rgba(255,255,255,0.06); --seg-edge: transparent; --seg-on: #7a1f2b;
+  background: #161517; color: #f4f1ee; border-left: 0;
+}
+.ltg[data-theme="current"] .pane--alerts .rail-row[data-kind="action"] { background: #3a1a20; border-color: #6b2a35; }
+.ltg[data-theme="current"] .pane--alerts .rail-row[data-kind="action"] .rail-row__btn { background: #b3202f; border-color: #b3202f; color: #ffffff; }
+.ltg[data-theme="current"] .pane--alerts .rail-tabs button[aria-pressed="true"] { background: #7a1f2b; color: #ffffff; }
+.ltg[data-theme="current"] .pane--alerts .btn--ghost { background: transparent; border-color: rgba(255,255,255,.3); color: #f4f1ee; }
+.ltg[data-theme="current"] .pane--alerts .rail-row__src { background: rgba(255,255,255,0.1); color: #f4f1ee; }

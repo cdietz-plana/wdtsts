@@ -1,4 +1,5 @@
 import { expandContent } from "./components/expand.js";
+import { CALL_STAGES, dispatchPanel, roleOf } from "./components/dispatch.js";
 import { overview } from "./components/grid.js";
 import { sectionsView } from "./components/sections.js";
 import { loginScreen } from "./components/login.js";
@@ -18,8 +19,8 @@ import { createStore } from "./store.js";
 const HINTS = {
   login: "Try: tap the card reader, or key in any ID of four digits or more.",
   section:
-    "Try: an Action's button on the table image · Supervisor requested: On my way, then Close with a reason · Inventory, Fill / Credit, History, and the arrow for everything else · the turn icon for table figures · 4 / 9 / 12 per page · the red dot on a page number means an Action is waiting there · X on any Action or Alert to close it.",
-  sections: "Try: tap a section card to light it up on the map, then Open or Edit tables · the turn icon flips a card for its figures · tap a table on the map for a quick look · Create new section.",
+    "Try: an Action's button on the table image · Supervisor requested: On my way, then Close with a reason · Inventory, View Table, History, and the arrow for everything else (Fill / Credit, Dispatch, Limits, Alerts) · Dispatch in the top bar calls Security, Surveillance, Floor Ops or Public Area · the avatar opens Sections and tables · the turn icon for table figures · 4 / 9 / 12 per page · the red dot on a page number means an Action is waiting there · X on any Action or Alert to close it.",
+  sections: "Try: tick two or more section cards, then View together · tap a card to light it up on the map, then Open or Edit tables · the turn icon flips a card · Create new section · Edit tables on the overview changes a section without coming here.",
   table: "Try: the turn icon on a seat card for the player's figures · Rate player on a card · tap a game to see its limits and positions · Sessions scrolls sideways · Scan is on Inventory · the arrows beside the table name step through the section.",
 };
 
@@ -129,6 +130,37 @@ function onAlert(alert) {
   }
 }
 
+/**
+ * A dispatch call moves through its stages. In the product the department's
+ * own system sends these back; here they play out on timers.
+ */
+let callSeq = 0;
+const callTimers = {};
+function startCall(c) {
+  callSeq += 1;
+  const id = `call${callSeq}`;
+  const r = roleOf(c.role);
+  dispatch({ type: "call-start", call: { ...c, id, stage: 0 }, message: `${r.label} called${c.where ? ` to ${c.where}` : ""}.` });
+  dispatch({ type: "receipt", tableId: c.tableId, title: `${r.label} called`, detail: `${c.where} · ${c.reason}` });
+  callTimers[id] = [];
+  [1, 2, 3].forEach((stage, i) =>
+    callTimers[id].push(
+      window.setTimeout(() => {
+        dispatch({ type: "call-stage", callId: id, stage });
+        if (stage > 1) dispatch({ type: "receipt", tableId: c.tableId, title: `${r.label} ${CALL_STAGES[stage].toLowerCase()}`, detail: c.where });
+      }, 5000 * (i + 1))
+    )
+  );
+  // Arrived calls leave the list after a moment; the receipts stay in Activity.
+  callTimers[id].push(window.setTimeout(() => dispatch({ type: "call-done", callId: id }), 5000 * 3 + 6000));
+}
+function closeCall(id) {
+  (callTimers[id] || []).forEach(window.clearTimeout);
+  const c = getState().calls.find((x) => x.id === id);
+  dispatch({ type: "call-done", callId: id });
+  if (c) dispatch({ type: "receipt", tableId: c.tableId, title: `${roleOf(c.role).label} call closed`, detail: c.where });
+}
+
 const handlers = {
   onScan: runScan,
   onAlert,
@@ -137,6 +169,8 @@ const handlers = {
   onSendFill: sendFill,
   onAdjust: (id) => openTile(id, "adjust", { alertId: "b1" }),
   onOrderFill: (id) => openTile(id, "fill"),
+  onCall: startCall,
+  onCloseCall: closeCall,
 };
 
 let closeTimer;
@@ -152,6 +186,7 @@ function closePlayer() {
 
 /** Whether the side panel was open on the last render, and what it showed. */
 const lastPanel = { open: false, node: null };
+const lastDispatch = { open: false, node: null };
 
 function device(state) {
   const paper = wallpaper(state.wallpaper);
@@ -175,6 +210,7 @@ function device(state) {
   // A tile opened as a side panel, or anything opened from the full table,
   // shows in the right-edge panel over the rail.
   const panelOpen = !!state.expand && (state.expandStyle === "panel" || state.level === "table");
+  const dispatchOpen = !!state.dispatchOpen;
   // The side panel slides in when it opens and out when it closes. Every
   // render rebuilds the tree, so the motion is keyed to the change in state,
   // not to the element: entering plays once, and a closing panel keeps a
@@ -189,9 +225,21 @@ function device(state) {
   lastPanel.open = panelOpen;
   lastPanel.node = panelOpen ? panel : null;
 
+  // Dispatch slides in from the right the same way.
+  const dEnter = dispatchOpen && !lastDispatch.open;
+  const dLeave = !dispatchOpen && lastDispatch.open && lastDispatch.node;
+  const dPanel = h(
+    "aside.flyout.flyout--xp.flyout--dispatch",
+    { data: { open: dispatchOpen, enter: dEnter, leave: !!dLeave }, "aria-hidden": String(!dispatchOpen) },
+    dispatchOpen ? dispatchPanel(state, dispatch, handlers) : dLeave ? [...lastDispatch.node.cloneNode(true).childNodes] : null
+  );
+  lastDispatch.open = dispatchOpen;
+  lastDispatch.node = dispatchOpen ? dPanel : null;
+  const anyOpen = panelOpen || dispatchOpen;
+
   return h(
     "div.ltg",
-    { data: { theme: state.theme, wallpaper: paper.id, level: state.level } },
+    { data: { theme: state.theme, wallpaper: paper.id, level: state.level, look: state.look } },
     ambient,
     topBar(state, dispatch),
     h(
@@ -207,11 +255,12 @@ function device(state) {
     h("button.scrim", {
       // Light for an opened tile, so the grid stays readable beside it.
       class: state.level === "section" ? "scrim scrim--light" : "scrim",
-      data: { open: panelOpen, enter: entering, leave: !!leaving },
+      data: { open: anyOpen, enter: (entering && !dispatchOpen) || (dEnter && !panelOpen), leave: (!!leaving && !dispatchOpen) || (!!dLeave && !panelOpen) },
       "aria-label": "Close panel",
-      on: { click: () => dispatch({ type: "collapse" }) },
+      on: { click: () => { dispatch({ type: "collapse" }); dispatch({ type: "dispatch-close" }); } },
     }),
     panel,
+    dPanel,
     state.playerId ? playerSheet(state, dispatch, closePlayer) : null,
     state.sheet === "help" ? helpSheet(state, dispatch) : null,
     state.sheet === "account" ? accountSheet(state, dispatch) : null,
@@ -241,6 +290,7 @@ function page(state) {
       h("span.page-title", { text: "Mobile Manager · Tables" }),
       h("span.page-sub", { html: "Interaction prototype. Designed for a 10&Prime; tablet in landscape; scaled to fit this window." }),
       // Review controls, not product.
+      state.signedIn ? group("Card layout", [["standard", "Standard"], ["a", "A"], ["b", "B"], ["c", "C"]], state.look, { type: "look", look: "" }) : null,
       state.signedIn ? group("Open a tile", [["inplace", "In place"], ["panel", "Side panel"]], state.expandStyle, { type: "expand-style", style: "" }) : null,
       state.signedIn ? h("button.chip", { text: "Sign out", on: { click: () => dispatch({ type: "sign-out" }) } }) : null,
       h(
@@ -252,7 +302,7 @@ function page(state) {
       h(
         "div.theme-switch",
         { role: "group", "aria-label": "Theme" },
-        [["felt", "Felt"], ["rouge", "Rouge"], ["bw", "B&W"], ["studio", "Studio"], ["glass", "Glass"], ["simple", "Simple"], ["dark", "Dark"], ["square", "Square"], ["ledger", "Ledger"]].map(([t, label]) =>
+        [["felt", "Felt"], ["current", "Current"], ["rouge", "Rouge"], ["bw", "B&W"], ["studio", "Studio"], ["glass", "Glass"], ["simple", "Simple"], ["dark", "Dark"], ["square", "Square"], ["ledger", "Ledger"]].map(([t, label]) =>
           h("button", { text: label, "aria-pressed": String(state.theme === t), on: { click: () => dispatch({ type: "theme", theme: t }) } })
         )
       ),
@@ -321,7 +371,7 @@ function render(action) {
 window.addEventListener("resize", fit);
 window.setInterval(() => {
   const s = getState();
-  if (s.signedIn && !s.expand && !s.sheet && !s.playerId && !s.playerClosing && !Object.keys(s.scanning).length) dispatch({ type: "tick" });
+  if (s.signedIn && !s.expand && !s.dispatchOpen && !s.sheet && !s.playerId && !s.playerClosing && !Object.keys(s.scanning).length) dispatch({ type: "tick" });
 }, 1000);
 
 render();

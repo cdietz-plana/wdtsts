@@ -145,3 +145,15 @@ export const iconInfo = (s = 18) =>
 /** Up or down trend, for win or loss at a glance. */
 export const iconTrend = (s = 18, up = true) =>
   svg(s, up ? '<path d="M12 19V5M5 12l7-7 7 7"/>' : '<path d="M12 5v14M5 12l7 7 7-7"/>', 'stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"');
+
+/** Dispatch: a radio handset, for calling another department. */
+export const iconRadio = (s = 18) =>
+  svg(s, '<rect x="6" y="7" width="12" height="14" rx="2.5"/><path d="M9 7V3M9.5 11h5M9.5 14.5h5"/><circle cx="12" cy="18" r=".6"/>', 'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"');
+
+/** View Table: a screen, for the dealer display. */
+export const iconScreen = (s = 18) =>
+  svg(s, '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>', 'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"');
+
+/** Discreet: an eye, for Surveillance. */
+export const iconEye = (s = 18) =>
+  svg(s, '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>', 'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"');

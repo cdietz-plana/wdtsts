@@ -63,6 +63,7 @@ export function rail(state, dispatch, { onAlert, onResolve }, scopeTableId = nul
 }
 
 function row(state, a, onAlert, onResolve) {
+  if (state.look !== "standard") return lookRow(state, a, onAlert, onResolve);
   const table = findTable(state.tables, a.tableId);
   const who = a.subject ? (a.subject.seat ? `seat ${a.subject.seat}` : a.subject.name) : null;
   const isAction = a.kind === "action";
@@ -94,6 +95,49 @@ function row(state, a, onAlert, onResolve) {
     )
   );
 }
+
+/**
+ * The rail row for review layouts A, B and C: the table first, in a chip with
+ * the seat beside it, then what happened, then who raised it and its button.
+ */
+function lookRow(state, a, onAlert, onResolve) {
+  const table = findTable(state.tables, a.tableId);
+  const seat = a.subject && a.subject.seat ? `S${a.subject.seat}` : null;
+  const isAction = a.kind === "action";
+  const primary = a.actions[0];
+  const fromDealer = a.source === "dealer";
+  const context = fromDealer && table ? requestContext(state, table, a).short : null;
+  return h(
+    "div.rail-row.lr",
+    { data: { kind: a.kind, enroute: !!a.enroute } },
+    h(
+      "div.lr__top",
+      {},
+      table ? h("span.lr__table", {}, iconTableChip(), h("span", { text: table.name })) : null,
+      seat ? h("span.lr__seat", { text: seat }) : null,
+      h("span", { style: { flex: "1" } }),
+      h("span.lr__age", { text: age(a.ageSeconds), data: { live: `age:${a.id}` } }),
+      h("button.lr__x", { "aria-label": `Close ${a.title}`, title: "Close", on: { click: () => onResolve(a.id, `${a.title} closed. It is in Activity.`, { title: `${a.title} closed`, detail: "by Ana Lopes" }) } }, iconClose(14))
+    ),
+    h("div.lr__title", { text: a.title }),
+    context ? h("div.lr__ctx", { text: a.enroute ? "On my way · dealer told" : context }) : null,
+    h(
+      "div.lr__foot",
+      {},
+      h("span.lr__src", { text: isAction ? (fromDealer ? "Dealer" : "System") : "Alert" }),
+      h("span", { style: { flex: "1" } }),
+      h(isAction ? "button.btn.lr__btn" : "button.btn.btn--ghost.lr__btn", { text: a.enroute ? "Close" : primary.label, on: { click: () => onAlert(a) } })
+    )
+  );
+}
+
+/** A small table outline for the rail chip. */
+const iconTableChip = () => {
+  const span = document.createElement("span");
+  span.className = "lr__ticon";
+  span.innerHTML = '<svg width="14" height="10" viewBox="0 0 14 10" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="12" height="8" rx="4"/></svg>';
+  return span;
+};
 
 function activityRow(state, r) {
   const table = findTable(state.tables, r.tableId);
