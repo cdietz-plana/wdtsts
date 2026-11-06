@@ -382,17 +382,34 @@ function figuresFace(t, dispatch, look) {
       h("button", { text: label, "aria-pressed": String(figRange === id), on: { click: (e) => { e.stopPropagation(); figRange = id; dispatch({ type: "view-refresh" }); } } })
     )
   );
-  const item = (label, value) => h("div.tf__item", {}, h("span.tf__label", { text: label }), h("span.tf__value", { text: value }));
+  const item = (label, value, holdOf) =>
+    h(
+      "div.tf__item",
+      {},
+      h("span.tf__label", { text: label }),
+      h("span.tf__pair", {}, h("span.tf__value", { text: value }), holdOf != null ? h("span.tf__hold", { text: `(${percent(holdOf)})` }) : null)
+    );
+  // B: Win, then Handle and Buy in, each with its own hold: Win / Handle and Win / Buy in.
+  const list =
+    look === "b"
+      ? [item("Handle", compact(src.handle), src.handle ? src.win / src.handle : 0), item("Buy in", compact(src.drop), src.drop ? src.win / src.drop : 0)]
+      : [item("Buy in", compact(src.drop)), item("Handle", compact(src.handle)), item("Hold", percent(hold))];
   const wl = compact(src.win);
   return h(
     "div.tile__face.tile__back.tf",
-    { "aria-hidden": isOn ? "false" : "true", data: { look } },
+    {
+      "aria-hidden": isOn ? "false" : "true",
+      data: { look },
+      // A tap on the figures opens the tile (in place or in the side panel,
+      // per the review toggle); the full table is one more tap from there.
+      on: { click: (e) => { e.stopPropagation(); dispatch({ type: "expand", tableId: t.id, view: "menu" }); } },
+    },
     h("div.tf__head", {}, h("span.tf__name", { text: t.name }), h("span", { style: { flex: "1" } }), seg, flipButton(t.id, "Show the table")),
     h(
       "div.tf__body",
       {},
       h("div.tf__wl", {}, h("span.tf__label", { text: "Win / loss" }), h("span.tf__big", { text: wl, data: { neg: src.win < 0 } })),
-      h("div.tf__list", {}, item("Buy in", compact(src.drop)), item("Handle", compact(src.handle)), item("Hold", percent(hold)))
+      h("div.tf__list", {}, list)
     )
   );
 }

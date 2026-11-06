@@ -193,3 +193,48 @@
 .ltg[data-look="c"] .lr__title { font-size: 15px; font-weight: 600; }
 .ltg[data-look="a"] .bar .mark, .ltg[data-look="b"] .bar .mark { background: transparent !important; border-radius: 0; }
 .ltg[data-look="a"] .bar .mark img, .ltg[data-look="b"] .bar .mark img { width: 38px; height: 38px; border-radius: 9px; }
+
+/* ---- Round 8: Todd's notes ------------------------------------------------- */
+/* B: no tab behind the table ID; a plain heading like C and the standard tile. */
+.ltg[data-look="b"] .tf__head { height: 44px; padding: 0 12px 0 16px; }
+.ltg[data-look="b"] .tf__name { background: none; border-radius: 0; padding: 0; min-width: 0; font-family: "Source Serif 4", Georgia, serif; font-size: 19px; font-weight: 600; }
+/* B: Win centered, then Handle and Buy in larger, each with its own hold beside it. */
+.ltg[data-look="b"] .tf__body { margin: 0 16px; }
+.ltg[data-look="b"] .tf__big { font-size: 34px; }
+.ltg[data-look="b"] .tf__list { grid-template-columns: 1fr 1fr; padding: 10px 0 12px; }
+.ltg[data-look="b"] .tf__item + .tf__item { border-left: 1px solid #e6dccb; }
+.ltg[data-look="b"] .tf__item { gap: 7px; }
+.tf__pair { display: inline-flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+.ltg[data-look="b"] .tf__value { font-size: 21px; font-weight: 500; }
+.tf__hold { font-family: var(--look-num); font-size: 13px; color: var(--lk-ink-2); }
+
+/* Narrower Actions panel in the review layouts, so 12 tiles fit. */
+.ltg[data-look] .pane--tables { width: calc(100% - 276px); }
+.ltg[data-look] .pane--rail { left: calc(100% - 276px); width: 276px; }
+.ltg[data-look] .rail-row.lr { padding: 9px 10px; }
+.ltg[data-look] .lr__title { font-size: 14px; }
+.ltg[data-look] .rail-tabs button { padding: 6px 9px; font-size: 13px; }
+
+/* Twelve up: every layout shrinks to fit a third of the height. */
+.ltg[data-look] .tile-grid[data-density="12"] { gap: 8px; }
+.ltg[data-look] .tile-grid[data-density="12"] .tf__head { height: 34px; padding-right: 8px; }
+.ltg[data-look] .tile-grid[data-density="12"] .tf__name { font-size: 15px; }
+.ltg[data-look] .tile-grid[data-density="12"] .tf__range button { padding: 0 7px; font-size: 10.5px; }
+.ltg[data-look="c"] .tile-grid[data-density="12"] .tf__range button { height: 28px; }
+.ltg[data-look] .tile-grid[data-density="12"] .tf .tile__flip { width: 26px; height: 26px; }
+.ltg[data-look] .tile-grid[data-density="12"] .tf__big { font-size: 24px; }
+.ltg[data-look] .tile-grid[data-density="12"] .tf__label { font-size: 9px; letter-spacing: 0.08em; }
+.ltg[data-look] .tile-grid[data-density="12"] .tf__value { font-size: 13px; }
+.ltg[data-look="b"] .tile-grid[data-density="12"] .tf__value { font-size: 16px; }
+.ltg[data-look] .tile-grid[data-density="12"] .tf__hold { font-size: 11px; }
+.ltg[data-look="a"] .tile-grid[data-density="12"] .tf__body { padding: 8px; gap: 8px; }
+.ltg[data-look="a"] .tile-grid[data-density="12"] .tf__wl { gap: 6px; }
+.ltg[data-look="b"] .tile-grid[data-density="12"] .tf__body { margin: 0 10px; }
+.ltg[data-look="b"] .tile-grid[data-density="12"] .tf__wl { gap: 4px; }
+.ltg[data-look="b"] .tile-grid[data-density="12"] .tf__list { padding: 6px 0 8px; }
+.ltg[data-look="c"] .tile-grid[data-density="12"] .tf { padding: 8px !important; }
+.ltg[data-look="c"] .tile-grid[data-density="12"] .tf__head { height: 30px; }
+.ltg[data-look="c"] .tile-grid[data-density="12"] .tf__item { padding: 5px 7px; gap: 3px; }
+.ltg[data-look="c"] .tile-grid[data-density="12"] .tf__list { gap: 4px; }
+.ltg[data-look] .tile-grid[data-density="12"] .tf__head .tf__range { height: auto; }
+.ltg[data-look="b"] .tf__hold { font-size: 15px; } .ltg[data-look="b"] .tile-grid[data-density="12"] .tf__hold { font-size: 11.5px; }

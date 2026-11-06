@@ -61,8 +61,9 @@ const START0 = scoped(initialSections, HOME_SECTION, []);
 const START = { ...START0, alerts: [...START0.alerts, ...playerAlerts(START0.players, initialThresholds, [])] };
 
 export const initialState = {
-  theme: "felt",
-  wallpaper: WALLPAPER_FOR_THEME.felt,
+  // Opens on card layout C, which is drawn in Current on Gray at 9 per page.
+  theme: "current",
+  wallpaper: WALLPAPER_FOR_THEME.current,
   signedIn: false,
   login: { id: "" },
 
@@ -114,7 +115,7 @@ export const initialState = {
    * figure-first layouts under review: tab and side list, tab and serif
    * columns, plain heading and chips.
    */
-  look: "standard",
+  look: "c",
   /** Section cards ticked on All sections, before View together. */
   secPick: [],
   /** Dispatch: the call being made, and calls in flight. */
@@ -132,7 +133,7 @@ export const initialState = {
   /** All sections screen: which section card is turned over, and the map preview. */
   mapPreview: null,
   /** Tiles per page: 4, 9 or 12. */
-  perPage: 4,
+  perPage: 9,
   /** Section overview as tiles or as the floor map. */
   overviewMode: "grid",
   tables: START.tables,
