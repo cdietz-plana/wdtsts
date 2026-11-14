@@ -169,7 +169,8 @@ function tile(state, dispatch, t, i, { onAlert }, isOpen, cols, per) {
   const exception = ["offline", "closed", "shuffling", "shuffler-fault", "tray-short"].includes(t.status);
 
   const open = () => dispatch({ type: "go-table", tableId: t.id });
-  figuresFirst = state.look !== "standard";
+  // Todd: the table side is always the default; the turn icon shows the figures.
+  figuresFirst = false;
   const isFlipped = figuresFirst !== flipped.has(t.id);
   const hand = currentHand(t.id);
 
@@ -179,7 +180,7 @@ function tile(state, dispatch, t, i, { onAlert }, isOpen, cols, per) {
   const head = h(
     "div.tile__head",
     {},
-    dead && !t.dayWin ? null : h("span.tile__trend", { data: { up }, "aria-label": up ? "Table up" : "Table down", title: up ? "Table up" : "Table down" }, iconTrend(per === 12 ? 15 : 18, up)),
+    dead && !t.dayWin ? null : h("span.tile__trend", { data: { up: up ? "true" : "false" }, "aria-label": up ? "Table up" : "Table down", title: up ? "Table up" : "Table down" }, iconTrend(per === 12 ? 15 : 18, up)),
     state.viewIds.length > 1 ? sectionDot(state, t.id) : null,
     h("span.display.tile__name", { text: t.name }),
     h("span.tile__dealer", { text: t.dealer || "" }),
@@ -389,9 +390,9 @@ function figuresFace(t, dispatch, look) {
       h("span.tf__label", { text: label }),
       h("span.tf__pair", {}, h("span.tf__value", { text: value }), holdOf != null ? h("span.tf__hold", { text: `(${percent(holdOf)})` }) : null)
     );
-  // B: Win, then Handle and Buy in, each with its own hold: Win / Handle and Win / Buy in.
+  // B and C: Win, then Handle and Buy in, each with its own hold (Win / Handle, Win / Buy in).
   const list =
-    look === "b"
+    look === "b" || look === "c"
       ? [item("Handle", compact(src.handle), src.handle ? src.win / src.handle : 0), item("Buy in", compact(src.drop), src.drop ? src.win / src.drop : 0)]
       : [item("Buy in", compact(src.drop)), item("Handle", compact(src.handle)), item("Hold", percent(hold))];
   const wl = compact(src.win);

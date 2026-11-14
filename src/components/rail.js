@@ -13,7 +13,11 @@ import { requestContext } from "./expand.js";
  * Every Action row carries its own button, so the common answer (authorize,
  * on my way, review the hand) is one touch from anywhere.
  */
+/** The store's dispatch, for rows that change an item in place (Acknowledge). */
+let railDispatch = () => {};
+
 export function rail(state, dispatch, { onAlert, onResolve }, scopeTableId = null) {
+  railDispatch = dispatch;
   const scope = scopeTableId ? state.alerts.filter((a) => a.tableId === scopeTableId) : state.alerts;
   const actions = actionsOf(scope);
   const alerts = alertsOnly(scope).sort((a, b) => a.ageSeconds - b.ageSeconds);
@@ -109,7 +113,7 @@ function lookRow(state, a, onAlert, onResolve) {
   const context = fromDealer && table ? requestContext(state, table, a).short : null;
   return h(
     "div.rail-row.lr",
-    { data: { kind: a.kind, enroute: !!a.enroute } },
+    { data: { kind: a.kind, enroute: !!a.enroute, acked: !!a.acked } },
     h(
       "div.lr__top",
       {},
@@ -124,7 +128,10 @@ function lookRow(state, a, onAlert, onResolve) {
     h(
       "div.lr__foot",
       {},
-      h("span.lr__src", { text: isAction ? (fromDealer ? "Dealer" : "System") : "Alert" }),
+      // Acknowledge takes the place of the Dealer / System label: seen, still open.
+      a.acked
+        ? h("span.lr__acked", { text: "Acknowledged" })
+        : h("button.lr__ack", { text: "Acknowledge", on: { click: () => { railDispatch({ type: "alert-patch", alertId: a.id, patch: { acked: true } }); railDispatch({ type: "toast", message: `${a.title} acknowledged. It stays open until it is closed.` }); } } }),
       h("span", { style: { flex: "1" } }),
       h(isAction ? "button.btn.lr__btn" : "button.btn.btn--ghost.lr__btn", { text: a.enroute ? "Close" : primary.label, on: { click: () => onAlert(a) } })
     )

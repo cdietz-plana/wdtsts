@@ -1,7 +1,7 @@
 import { h } from "../lib/dom.js";
 import { money } from "../lib/format.js";
 import { findPlayer, findTable } from "../lib/selectors.js";
-import { iconClose, iconNote } from "./icons.js";
+import { iconUser, iconClose, iconNote } from "./icons.js";
 
 /**
  * Everything the product knows about one person, in one sheet.
@@ -57,6 +57,24 @@ export function playerSheet(state, dispatch, onClose) {
   const table = findTable(state.tables, p.tableId);
 
   /* --- left: who they are and what they are worth --- */
+  // ASSUMED: tips and promo redeemed come from the player system; modeled here.
+  const tips = Math.round((p.handle * 0.0004) / 100) * 100;
+  const promo = p.rated ? Math.round((p.handle * 0.0018) / 1000) * 1000 : 0;
+  const initials = p.rated ? p.name.split(/[\s.]+/).filter(Boolean).map((x) => x[0]).join("").slice(0, 2).toUpperCase() : "";
+  // A space for the player's photo, from the property's player system. Until
+  // one is on file it shows initials; anonymous players have none.
+  const photo = h(
+    "div.ps-photo",
+    { data: { anon: !p.rated } },
+    h("div.ps-photo__frame", { "aria-label": p.rated ? `Photo of ${p.name}` : "No photo for an anonymous player" }, p.rated ? h("span", { text: initials }) : iconUser()),
+    h(
+      "div.ps-photo__meta",
+      {},
+      h("b", { text: p.name }),
+      h("span", { text: p.rated ? `${p.tier} · member ${6000 + (p.id.charCodeAt(p.id.length - 1) * 7) % 900}` : "Anonymous" }),
+      h("span.ps-photo__note", { text: p.rated ? "Photo on file" : "No photo" })
+    )
+  );
   const identity = column(
     "Value this gaming day",
     h(
@@ -79,7 +97,9 @@ export function playerSheet(state, dispatch, onClose) {
         row("Front money", money(p.frontMoney)),
         p.bankroll.length
           ? row("Bankroll, yesterday close", p.bankroll.length > 1 ? money(p.bankroll[1].close) : "—")
-          : row("Bankroll", "No history")
+          : row("Bankroll", "No history"),
+        row("Tips", money(tips)),
+        row("Promo redeemed", money(promo))
       )
     ),
     h(
@@ -197,6 +217,8 @@ export function playerSheet(state, dispatch, onClose) {
         ),
         h("div", { text: p.closed ? `${table ? table.name : ""} · left ${p.left}` : `${table ? table.name : ""} · seat ${p.seat}`, style: { fontSize: "var(--t-detail)", color: "var(--ink-3)", marginTop: "2px" } })
       ),
+      // WDTS sketch: the player's photo sits in the header, right of the name.
+      photo,
       h("span", { style: { flex: "1" } }),
       rateAction
     ),

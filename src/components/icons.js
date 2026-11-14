@@ -157,3 +157,7 @@ export const iconScreen = (s = 18) =>
 /** Discreet: an eye, for Surveillance. */
 export const iconEye = (s = 18) =>
   svg(s, '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>', 'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"');
+
+/** A person, for a player with no photo. */
+export const iconUser = (s = 34) =>
+  svg(s, '<circle cx="12" cy="8.5" r="4"/><path d="M4 21c1.2-4.2 4.3-6.5 8-6.5s6.8 2.3 8 6.5"/>', 'stroke-width="1.6" stroke-linecap="round"');

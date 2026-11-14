@@ -238,3 +238,53 @@
 .ltg[data-look="c"] .tile-grid[data-density="12"] .tf__list { gap: 4px; }
 .ltg[data-look] .tile-grid[data-density="12"] .tf__head .tf__range { height: auto; }
 .ltg[data-look="b"] .tf__hold { font-size: 15px; } .ltg[data-look="b"] .tile-grid[data-density="12"] .tf__hold { font-size: 11.5px; }
+
+/* ---- Round 9: Todd's notes ------------------------------------------------- */
+/* C: Handle and Buy in, each with its hold beside it, a size bigger; no Hold chip. */
+.ltg[data-look="c"] .tf__list { grid-template-columns: 1fr 1fr; gap: 8px; }
+.ltg[data-look="c"] .tf__item { padding: 8px 12px; gap: 5px; }
+.ltg[data-look="c"] .tf__value { font-size: 19px; font-weight: 600; }
+.ltg[data-look="c"] .tf__hold { font-family: "Sora", system-ui, sans-serif; font-size: 13px; font-weight: 500; color: var(--lk-ink-2); }
+.ltg[data-look="c"] .tile-grid[data-density="12"] .tf__value { font-size: 14px; }
+.ltg[data-look="c"] .tile-grid[data-density="12"] .tf__hold { font-size: 11px; }
+
+/* The flip button stands out: filled maroon on every card. */
+.ltg .tile__flip,
+.ltg[data-look] .tf .tile__flip,
+.ltg[data-look="c"] .tf .tile__flip {
+  background: #7a1f2b !important; border-color: #7a1f2b !important; color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(122, 31, 43, 0.35);
+}
+
+/* Up is green, down is red, in every theme. */
+.ltg .tile__trend { color: #17714a; }
+.ltg .tile__trend[data-up="false"] { color: #c0283a; }
+
+/* Acknowledge, where Dealer / System used to be. */
+.lr__ack {
+  height: 28px; padding: 0 12px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.45);
+  background: transparent; color: #ffffff; font-family: var(--look-font); font-size: 12.5px; font-weight: 600; cursor: pointer;
+}
+.ltg[data-look="c"] .lr__ack { height: 32px; }
+.lr__acked { font-family: var(--look-font); font-size: 12px; font-weight: 600; color: #b9e7cf; }
+.ltg[data-look] .rail-row.lr[data-acked="true"] { background: #2a2729; }
+
+/* Player record: a space for the photo. */
+.ps-photo { display: flex; align-items: center; gap: 14px; padding: 4px 0 6px; }
+.ps-photo__frame {
+  width: 92px; height: 112px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(160deg, #3a2a2d, #1c1714); color: #ffffff; font-family: var(--font-display); font-size: 30px; font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.ps-photo[data-anon="true"] .ps-photo__frame { background: var(--surface-soft); color: var(--ink-3); border: 1px dashed var(--line-strong); }
+.ps-photo__meta { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ps-photo__meta b { font-size: var(--t-action); color: var(--ink); }
+.ps-photo__meta span { font-size: var(--t-detail); color: var(--ink-2); text-transform: capitalize; }
+.ps-photo__note { color: var(--ink-3) !important; text-transform: none !important; }
+/* Photo in the record's header, as in the WDTS sketch: a portrait beside the name. */
+.sheet__bar .ps-photo { padding: 0; margin-left: 8px; align-self: stretch; }
+.sheet__bar .ps-photo__frame { width: 84px; height: 100%; min-height: 70px; border-radius: 0; font-size: 26px; }
+.sheet__bar .ps-photo__meta { display: none; }
+.sheet__bar:has(.ps-photo) { padding-top: 0; padding-bottom: 0; align-items: stretch; }
+.sheet__bar:has(.ps-photo) > * { align-self: center; }
+.sheet__bar:has(.ps-photo) > .ps-photo { align-self: stretch; }

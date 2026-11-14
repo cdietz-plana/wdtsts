@@ -93,9 +93,9 @@ function sendFill(tableId, mode, amount) {
 
 /** One place decides what an item's button does, wherever it was pressed. */
 function onAlert(alert) {
-  // Supervisor Requested has two taps: On my way, then Close with a reason.
+  // Supervisor Requested: On my way, then Close. No reason is asked for.
   if (alert.enroute) {
-    openTile(alert.tableId, "request", { alertId: alert.id });
+    resolve(alert.id, `${alert.title} closed.`, { title: `${alert.title} closed`, detail: "by Ana Lopes" });
     return;
   }
   const action = alert.actions[0];
