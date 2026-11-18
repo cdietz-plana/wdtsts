@@ -239,7 +239,7 @@ function device(state) {
 
   return h(
     "div.ltg",
-    { data: { theme: state.theme, wallpaper: paper.id, level: state.level, look: state.look } },
+    { data: { theme: state.theme, wallpaper: paper.id, level: state.level, look: state.look, bg: state.bg } },
     ambient,
     topBar(state, dispatch),
     h(
@@ -291,6 +291,7 @@ function page(state) {
       h("span.page-sub", { html: "Interaction prototype. Designed for a 10&Prime; tablet in landscape; scaled to fit this window." }),
       // Review controls, not product.
       state.signedIn ? group("Card layout", [["standard", "Standard"], ["a", "A"], ["b", "B"], ["c", "C"]], state.look, { type: "look", look: "" }) : null,
+      state.signedIn && state.look !== "standard" ? group("Background", [["tan", "1 Tan"], ["beige", "2 Beige"], ["warm", "3 Warm gray"], ["cool", "4 Cool gray"], ["glass", "5 Glass"]], state.bg, { type: "bg", bg: "" }) : null,
       state.signedIn ? group("Open a tile", [["inplace", "In place"], ["panel", "Side panel"]], state.expandStyle, { type: "expand-style", style: "" }) : null,
       state.signedIn ? h("button.chip", { text: "Sign out", on: { click: () => dispatch({ type: "sign-out" }) } }) : null,
       h(

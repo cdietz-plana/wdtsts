@@ -1,7 +1,8 @@
 import { h } from "../lib/dom.js";
 import { money } from "../lib/format.js";
 import { findPlayer, findTable } from "../lib/selectors.js";
-import { iconUser, iconClose, iconNote } from "./icons.js";
+import { iconUser, iconClose, iconNote, iconFlag } from "./icons.js";
+import { hasDescription, openDescription, ppId, rnDescription } from "./rndesc.js";
 
 /**
  * Everything the product knows about one person, in one sheet.
@@ -50,6 +51,9 @@ const column = (title, body, foot) =>
     h("div", { style: { flex: "1", minHeight: "0", overflow: "hidden", display: "flex", flexDirection: "column" } }, body),
     foot || null
   );
+
+/** Which anonymous player's description form is open. */
+let rnOpen = null;
 
 export function playerSheet(state, dispatch, onClose) {
   const p = findPlayer(state.players, state.playerId);
@@ -207,21 +211,33 @@ export function playerSheet(state, dispatch, onClose) {
       h(
         "div",
         {},
+        // WDTS: tier sits under the name, so the photo can move up beside it.
+        h("div.display", { text: p.rated ? p.name : `Anonymous (${ppId(p)})`, style: { fontSize: "var(--t-metric)", fontWeight: "700", lineHeight: "1.05" } }),
         h(
           "div",
-          { style: { display: "flex", alignItems: "center", gap: "9px" } },
-          h("div.display", { text: p.name, style: { fontSize: "var(--t-metric)", fontWeight: "700" } }),
+          { style: { display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" } },
           p.rated
             ? h("span.tag", { text: p.tier.toUpperCase(), style: { background: "var(--critical-wash)", color: "var(--brand)" } })
-            : h("span.tag", { text: "ANONYMOUS", style: { background: "var(--surface-soft)", color: "var(--ink-3)" } })
-        ),
-        h("div", { text: p.closed ? `${table ? table.name : ""} · left ${p.left}` : `${table ? table.name : ""} · seat ${p.seat}`, style: { fontSize: "var(--t-detail)", color: "var(--ink-3)", marginTop: "2px" } })
+            : h("span.tag", { text: "ANONYMOUS", style: { background: "var(--surface-soft)", color: "var(--ink-3)" } }),
+          h("span", { text: p.closed ? `${table ? table.name : ""} · left ${p.left}` : `${table ? table.name : ""} · seat ${p.seat}`, style: { fontSize: "var(--t-detail)", color: "var(--ink-3)" } })
+        )
       ),
-      // WDTS sketch: the player's photo sits in the header, right of the name.
       photo,
+      // Anonymous players: RN opens the Refused Player Description.
+      p.rated
+        ? null
+        : h("button.rn-btn", { data: { done: hasDescription(p.id) }, "aria-label": "Refused player description", on: { click: () => { openDescription(p); rnOpen = p.id; dispatch({ type: "view-refresh" }); } } },
+            h("b", { text: "RN" }), iconFlag(), h("span", { text: hasDescription(p.id) ? "Described" : "Description" })),
       h("span", { style: { flex: "1" } }),
       rateAction
     ),
-    h("div.sheet__body", { style: { display: "flex", gap: "13px" } }, identity, activity, notesCol)
+    h("div.sheet__body", { style: { display: "flex", gap: "13px" } }, identity, activity, notesCol),
+    rnOpen === p.id
+      ? rnDescription(p, {
+          refresh: () => dispatch({ type: "view-refresh" }),
+          close: () => { rnOpen = null; dispatch({ type: "view-refresh" }); },
+          toast: (m) => dispatch({ type: "toast", message: m }),
+        })
+      : null
   );
 }

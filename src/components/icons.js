@@ -161,3 +161,11 @@ export const iconEye = (s = 18) =>
 /** A person, for a player with no photo. */
 export const iconUser = (s = 34) =>
   svg(s, '<circle cx="12" cy="8.5" r="4"/><path d="M4 21c1.2-4.2 4.3-6.5 8-6.5s6.8 2.3 8 6.5"/>', 'stroke-width="1.6" stroke-linecap="round"');
+
+/** A flag, for the refused-player description. */
+export const iconFlag = (s = 20) =>
+  svg(s, '<path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5" fill="currentColor"/>', 'stroke-width="2" stroke-linecap="round" stroke-linejoin="round"');
+
+/** Expand: two arrows apart. */
+export const iconExpand = (s = 16) =>
+  svg(s, '<path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/>', 'stroke-width="2" stroke-linecap="round" stroke-linejoin="round"');

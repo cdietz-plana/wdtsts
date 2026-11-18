@@ -3,7 +3,8 @@ import { compact, money } from "../lib/format.js";
 import { currentHand } from "../data/games.js";
 import { BET_TYPES, gameRows, inventoryFor, limitProfiles, memberNo, sessionKpis, sessionsFor, wagers } from "../data/casino.js";
 import { alertsForTable, findTable, playersForTable } from "../lib/selectors.js";
-import { iconCard, iconChevron, iconFill, iconFlip, iconOpen, iconScan } from "./icons.js";
+import { iconCard, iconChevron, iconClose, iconExpand, iconFill, iconFlip, iconMore, iconOpen, iconScan } from "./icons.js";
+import { ppId } from "./rndesc.js";
 import { overrideTab } from "./override.js";
 import { dealerDisplay } from "./viewtable.js";
 import { dataTable } from "./datatable.js";
@@ -91,6 +92,7 @@ function playersTab(state, table, dispatch) {
     return h("div.pl-pos", { style: lift }, p ? seatCard(state, table, p, dispatch) : emptySeat(table, n, dispatch));
   });
 
+  const bigCard = expandedSeat && expandedSeat.startsWith(`${table.id}:`) ? bySeat.get(Number(expandedSeat.split(":")[1])) : null;
   const diff = (() => {
     const all = players.flatMap((p) => wagers(table, p));
     const b = all.filter((w) => w.key === "B").reduce((n, w) => n + w.amount, 0);
@@ -102,7 +104,8 @@ function playersTab(state, table, dispatch) {
     "div.fade-in.pl",
     {},
     h("div.pl__top", {}, shoe, h("span", { style: { flex: "1" } }), lineToggle),
-    h("div.pl__table", {}, h("div.pl__felt", { "aria-hidden": "true" }), h("div.pl__cards", {}, cards), h("div.pl__diff", {}, "Differential: ", h("b.mono", { text: money(diff) })))
+    h("div.pl__table", {}, h("div.pl__felt", { "aria-hidden": "true" }), h("div.pl__cards", {}, cards), h("div.pl__diff", {}, "Differential: ", h("b.mono", { text: money(diff) }))),
+    bigCard ? h("div.sc-scrim", { on: { click: (e) => { if (e.target === e.currentTarget) { expandedSeat = null; dispatch({ type: "view-refresh" }); } } } }, seatCard(state, table, bigCard, dispatch, true)) : null
   );
 }
 
@@ -113,96 +116,70 @@ const initials = (name) => {
   return name.split(/[\s.]+/).filter(Boolean).map((x) => x[0]).join("").slice(0, 2).toUpperCase();
 };
 
-function seatCard(state, table, p, dispatch) {
+/** Bets or Session on each seat card, and which card is expanded. Glances, so outside the store. */
+const seatView = new Map();
+let expandedSeat = null;
+
+/**
+ * A seat card, as the current Players tab has it: seat and rated star, photo
+ * circle, member number and name, then a Bets / Session toggle and the list
+ * under it, and the functions behind the more button. No rating entry on the
+ * card (review feedback). The expand icon opens the card at full size so the
+ * player's figures fit without squeezing.
+ */
+function seatCard(state, table, p, dispatch, big = false) {
   const key = `${table.id}:${p.seat}`;
-  const on = flippedSeats.has(key);
+  const view = seatView.get(key) || "bets";
   const w = wagers(table, p);
   const k = sessionKpis(table, p);
   const no = memberNo(p);
-
-  const flip = (label) =>
-    h(
-      "button.pc__flip",
-      {
-        "aria-label": label,
-        title: label,
-        on: {
-          click: (e) => {
-            e.stopPropagation();
-            const el = e.currentTarget.closest(".pc");
-            if (flippedSeats.has(key)) flippedSeats.delete(key);
-            else flippedSeats.add(key);
-            el.dataset.flipped = String(flippedSeats.has(key));
-          },
-        },
-      },
-      iconFlip(14)
-    );
+  const refresh = () => dispatch({ type: "view-refresh" });
 
   const head = h(
-    "div.pc__head",
+    "div.sc__head",
     {},
-    h("span.pc__seat", { text: String(p.seat), data: { rated: !!p.rated } }),
+    h("span.sc__seat", { text: String(p.seat) }, p.rated ? h("span.sc__star", { text: "\u2605" }) : null),
     h("span", { style: { flex: "1" } }),
-    flip(on ? "Back to wagers" : "Player figures")
+    h("button.sc__expand", { "aria-label": big ? "Close" : "Expand", title: big ? "Close" : "Expand", on: { click: (e) => { e.stopPropagation(); expandedSeat = big ? null : key; refresh(); } } }, big ? iconClose(15) : iconExpand(15))
   );
-
   const who = h(
-    "button.pc__who",
+    "button.sc__who",
     { on: { click: () => dispatch({ type: "open-player", playerId: p.id }) }, "aria-label": `Open ${p.name}` },
-    h("span.pc__avatar", { text: initials(p.name), data: { anon: !p.rated } }),
-    no ? h("span.pc__no.mono", { text: `(${no})` }) : null,
-    h("span.pc__name", { text: p.name })
+    h("span.sc__photo", { text: initials(p.name), data: { anon: !p.rated } }),
+    no ? h("span.sc__no.mono", { text: `(${no})` }) : h("span.sc__no.mono", { text: `(${ppId(p)})` }),
+    h("span.sc__name", { text: p.rated ? p.name : "Anonymous" })
   );
-
-  const front = h(
-    "div.pc__face.pc__front",
-    { "aria-hidden": on ? "true" : "false" },
-    head,
-    who,
-    h(
-      "div.pc__wagers",
-      {},
-      w.map((x) => h("div.pc__wager", { data: { zero: !x.amount } }, h("span", { text: x.key, title: x.label }), h("b.mono", { text: x.amount ? compact(x.amount) : "0" })))
-    ),
-    h(
-      "button.pc__rate",
-      { on: { click: () => dispatch({ type: "expand", tableId: table.id, view: "rate", amount: p.avgBet, reason: p.id }) } },
-      "Rating",
-      iconChevron(12, "right")
+  const toggle = h(
+    "div.sc__toggle",
+    { role: "group", "aria-label": "Show" },
+    [["bets", "Bets"], ["session", "Session"]].map(([id, label]) =>
+      h("button", { text: label, "aria-pressed": String(view === id), on: { click: (e) => { e.stopPropagation(); seatView.set(key, id); refresh(); } } })
     )
   );
-
-  const fig = (label, value, color) => h("div.pc__kpi", {}, h("span.micro", { text: label }), h("b.mono", { text: value || "—", style: color ? { color } : {} }));
-  const act = (label, msg) => h("button.pc__act", { text: label, on: { click: () => dispatch({ type: "toast", message: msg }) } });
-  const back = h(
-    "div.pc__face.pc__back",
-    { "aria-hidden": on ? "false" : "true" },
-    h("div.pc__head", {}, h("span.pc__seat", { text: String(p.seat), data: { rated: !!p.rated } }), h("span.pc__bname", { text: p.name }), flip("Back to wagers")),
-    h(
-      "div.pc__kpis",
-      {},
-      fig("Session W/L", compact(k.sessionWL), k.sessionWL > 0 ? "var(--critical-ink)" : null),
-      fig("Cash handle", compact(k.cashHandle)),
-      fig("Promo handle", compact(k.promoHandle)),
-      fig("Avg bet", compact(k.avgBet)),
-      fig("Start time", k.start),
-      fig("Buy in", compact(k.buyIn)),
-      fig("Chips in", compact(k.chipsIn)),
-      fig("MID", k.mid)
-    ),
-    h(
-      "div.pc__acts",
-      {},
-      act("MID No.", `MID for ${p.name}: ${k.mid || "none on file"}.`),
-      act("Clock out", `${p.name} clocked out of seat ${p.seat}.`),
-      act("Move", `Pick the seat to move ${p.name} to.`),
-      act("Cancel rating", `Rating for ${p.name} cancelled.`)
-    ),
-    h("button.pc__open", { on: { click: () => dispatch({ type: "open-player", playerId: p.id }) } }, iconOpen(13), "Player record")
+  const line = (label, value, zero) => h("div.sc__line", { data: { zero: !!zero } }, h("span", { text: label }), h("b.mono", { text: value }));
+  const betsList = w.map((x) => line(x.key, x.amount ? compact(x.amount) : "0", !x.amount));
+  const sessList = [
+    line("Session W/L", compact(k.sessionWL)),
+    line("Cash handle", compact(k.cashHandle)),
+    line("Promo handle", compact(k.promoHandle), !k.promoHandle),
+    line("Avg bet", compact(k.avgBet)),
+    line("Start time", k.start),
+    line("Buy in", compact(k.buyIn)),
+    line("Chips in", compact(k.chipsIn)),
+  ];
+  const list = big
+    ? h("div.sc__both", {}, h("div", {}, h("div.micro", { text: "Bets" }), h("div.sc__list", {}, betsList)), h("div", {}, h("div.micro", { text: "Session" }), h("div.sc__list", {}, sessList)))
+    : h("div.sc__list", {}, view === "bets" ? betsList : sessList);
+  const acts = h(
+    "div.sc__acts",
+    {},
+    [["MID No.", `MID for ${p.name}: ${k.mid || "none on file"}.`], ["Clock out", `${p.name} clocked out of seat ${p.seat}.`], ["Move player", `Pick the seat to move ${p.name} to.`], ["Cancel rating", `Rating for ${p.name} cancelled.`]].map(([l, m]) =>
+      h("button.sc__act", { text: l, on: { click: (e) => { e.stopPropagation(); dispatch({ type: "toast", message: m }); } } })
+    )
   );
+  const more = h("button.sc__more", { "aria-label": "More functions", on: { click: (e) => { e.stopPropagation(); expandedSeat = key; refresh(); } } }, iconMore(18));
 
-  return h("div.pc", { data: { flipped: on, rated: !!p.rated } }, front, back);
+  return h("div.sc", { data: { big, rated: !!p.rated } }, head, who, big ? null : toggle, list, big ? acts : more);
 }
 
 function emptySeat(table, n, dispatch) {

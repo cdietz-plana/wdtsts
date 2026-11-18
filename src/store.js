@@ -116,6 +116,11 @@ export const initialState = {
    * columns, plain heading and chips.
    */
   look: "c",
+  /**
+   * Review control: the ground behind the tiles, so the client can pick the
+   * contrast. tan is the original; beige, warm, cool and glass are options.
+   */
+  bg: "beige",
   /** Section cards ticked on All sections, before View together. */
   secPick: [],
   /** Dispatch: the call being made, and calls in flight. */
@@ -253,6 +258,7 @@ export function reducer(s, a) {
     }
     case "threshold-edit": return { ...s, thresholdEdit: a.open ?? !s.thresholdEdit };
     case "expand-style": return { ...s, expandStyle: a.style };
+    case "bg": return { ...s, bg: a.bg };
     case "look": {
       if (a.look === "standard") return { ...s, look: "standard" };
       // The three layouts were drawn in Current on Gray at 9 per page.

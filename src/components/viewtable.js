@@ -2,6 +2,7 @@ import { h } from "../lib/dom.js";
 import { compact, money } from "../lib/format.js";
 import { playersForTable } from "../lib/selectors.js";
 import { memberNo, wagers } from "../data/casino.js";
+import { currentHand } from "../data/games.js";
 
 /**
  * View Table: the Dealer Display, as the dealer sees it.
@@ -19,6 +20,17 @@ import { memberNo, wagers } from "../data/casino.js";
 /** Where each position sits on the display. Top center, the sides, the corners. */
 const SPOTS = { 3: "t1", 4: "t2", 5: "t3", 2: "ml", 6: "mr", 1: "bl", 7: "br" };
 
+/** Tables whose cards are turned over on the display. */
+const revealed = new Set();
+const RED = new Set(["\u2665", "\u2666", "H", "D", "hearts", "diamonds"]);
+
+function cardFace(c, up) {
+  if (!up) return h("span.dd__card.dd__card--back", { "aria-label": "Card face down" });
+  const red = RED.has(c.suit);
+  const sym = { S: "\u2660", H: "\u2665", D: "\u2666", C: "\u2663" }[c.suit] || c.suit;
+  return h("span.dd__card", { data: { red: red ? "true" : "false" } }, h("b", { text: c.rank }), h("i", { text: sym }));
+}
+
 export function dealerDisplay(state, table, dispatch) {
   if (table.status === "offline") {
     return h(
@@ -29,6 +41,9 @@ export function dealerDisplay(state, table, dispatch) {
     );
   }
   const players = playersForTable(state.players, table.id);
+  const hand = currentHand(table.id);
+  const dealt = revealed.has(table.id);
+  const winSide = hand.bankerTotal > hand.playerTotal ? "banker" : hand.playerTotal > hand.bankerTotal ? "player" : "tie";
   const bySeat = new Map(players.map((p) => [p.seat, p]));
   const seatNums = [1, 2, 3, 4, 5, 6, 7].slice(0, Math.min(7, table.seats));
   const pb = (p) => {
@@ -66,14 +81,24 @@ export function dealerDisplay(state, table, dispatch) {
       {},
       h("div.dd__search", { text: "Player search" }),
       h("span", { style: { flex: "1" } }),
+      // WDTS: this line is not a wager total. It shows the cards as they are
+      // dealt, face down until revealed, with each side's card total at the ends.
+      dealt ? h("div.dd__win", { data: { side: winSide }, text: winSide === "tie" ? "TIE" : `${winSide.toUpperCase()} WIN` }) : null,
       h(
         "div.dd__bp",
         {},
-        h("span.dd__bpv.mono", { text: money(totals.B) }),
+        h("span.dd__bpv.mono", { text: dealt ? String(hand.bankerTotal) : "0" }),
         h("span.dd__b", { text: "BANKER" }),
         h("span.dd__p", { text: "PLAYER" }),
-        h("span.dd__bpv.mono", { text: money(totals.P) })
+        h("span.dd__bpv.mono", { text: dealt ? String(hand.playerTotal) : "0" })
       ),
+      h(
+        "div.dd__cards",
+        {},
+        h("div.dd__side", {}, hand.banker.map((c) => cardFace(c, dealt))),
+        h("div.dd__side", {}, hand.player.map((c) => cardFace(c, dealt)))
+      ),
+      h("button.dd__reveal", { text: dealt ? "Show the deal" : "Reveal cards", on: { click: () => { revealed.has(table.id) ? revealed.delete(table.id) : revealed.add(table.id); dispatch({ type: "view-refresh" }); } } }),
       h("div.dd__total.mono", { text: `${money(totals.all)} (${totals.n})` })
     ),
     h("span.dd__corner.dd__corner--l.mono", { text: table.name }),

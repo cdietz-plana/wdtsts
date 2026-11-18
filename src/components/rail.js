@@ -181,6 +181,7 @@ function scheduleStrip(state) {
 }
 
 function playersList(state, dispatch, people) {
+  if (state.level === "table" && state.tableId) people = people.filter((p) => p.tableId === state.tableId);
   const open = openPlayers(people);
   const closed = closedPlayersList(people);
   const list = state.playerList === "closed" ? closed : open;
@@ -222,10 +223,11 @@ function playersList(state, dispatch, people) {
     );
   });
 
+  // WDTS: no thresholds here. The list is simply the top players: on a table,
+  // that table's; on the overview, the section's, each with its table.
   return [
-    playerAlertStrip(state, dispatch),
     h("div", { style: { padding: "0 4px 6px", flexShrink: "0" } }, tabs),
-    h("div", { style: { display: "flex", justifyContent: "space-between", padding: "2px 12px 4px", flexShrink: "0" } }, h("span.micro", { text: "Player" }), h("span.micro", { text: "Player win" })),
+    h("div", { style: { display: "flex", justifyContent: "space-between", padding: "2px 12px 4px", flexShrink: "0" } }, h("span.micro", { text: state.level === "table" ? "Top players at this table" : "Top players" }), h("span.micro", { text: "Player win" })),
     rows.length ? rows : h("div.rail-empty", { text: state.playerList === "closed" ? "Nobody has left yet." : "Nobody is seated." }),
   ];
 }
